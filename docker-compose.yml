@@ -1,0 +1,24 @@
+services:
+  backend:
+    build: ./backend
+    env_file:
+      - path: ./backend/.env      # optional: GEMINI_API_KEY etc. (see backend/.env.example)
+        required: false
+    environment:
+      - JAVA_SANDBOX_MODE=subprocess   # "docker" → run Java in the sandbox image (needs docker socket)
+    mem_limit: 1g
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Optional hardened runner image: docker build -t lampochki-sandbox ./sandbox
+  sandbox:
+    build: ./sandbox
+    image: lampochki-sandbox
+    profiles: ["sandbox"]

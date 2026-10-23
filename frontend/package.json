@@ -1,0 +1,36 @@
+{
+  "name": "java-blueprints-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@dagrejs/dagre": "^1.1.4",
+    "@reactflow/background": "^11.3.14",
+    "@reactflow/controls": "^11.2.14",
+    "@reactflow/core": "^11.11.4",
+    "@reactflow/minimap": "^11.7.14",
+    "ace-builds": "^1.36.5",
+    "axios": "^1.7.9",
+    "diff": "^7.0.0",
+    "html-to-image": "^1.11.11",
+    "react": "^18.3.1",
+    "react-ace": "^13.0.0",
+    "react-dom": "^18.3.1",
+    "react-icons": "^5.4.0",
+    "reactflow": "^11.11.4",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@types/diff": "^6.0.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.5"
+  }
+}

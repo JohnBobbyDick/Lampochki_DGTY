@@ -1,0 +1,328 @@
+class AiAnalysis:
+    def __init__(self, proxies: List[str], api_configs: List[str], logger: logging.Logger,
+                 model_name: str = 'gemini-3-flash-preview'):
+        self.proxies = proxies
+        self.api_configs = api_configs
+        self.logger = logger
+        self.model_name = model_name
+
+    def _select_random_proxy(self) -> str:
+        if not self.proxies:
+            self.logger.error("No proxies available")
+            raise ValueError("No proxies available")
+        return random.choice(self.proxies)
+
+    def _select_random_api_key(self, exclude_keys: Set[str]) -> str:
+        available_keys = [k for k in self.api_configs if k not in exclude_keys]
+        if not available_keys:
+            # Если ключи кончились, сбрасываем список использованных
+            if len(self.api_configs) > 0:
+                self.logger.warning("All API keys were used, resetting and selecting a random one")
+                return random.choice(self.api_configs)
+            self.logger.error("No available API keys left")
+            raise ValueError("No available API keys left")
+        return random.choice(available_keys)
+
+    async def _prepare_content(
+            self,
+            prompt: str,
+            text: str,
+            file_path: Optional[str] = None,
+            file_base64: Optional[str] = None,
+            file_mime_type: Optional[str] = None,
+            audio_base64: Optional[str] = None,  # НОВЫЙ ПАРАМЕТР
+            audio_mime_type: Optional[str] = None  # НОВЫЙ ПАРАМЕТР
+    ) -> List[dict]:
+        """
+        Подготавливает parts для REST API Gemini.
+        """
+        parts = []
+
+        if file_path:
+            try:
+                with open(file_path, 'rb') as f:
+                    file_bytes = f.read()
+                base64_data = base64.b64encode(file_bytes).decode('utf-8')
+                parts.append({
+                    "inline_data": {
+                        "mime_type": "text/html",
+                        "data": base64_data
+                    }
+                })
+            except Exception as e:
+                self.logger.error(f"Error reading file {file_path}: {e}")
+
+        # Добавляем дополнительный файл из Telegram
+        if file_base64 and file_mime_type:
+            parts.append({
+                "inline_data": {
+                    "mime_type": file_mime_type,
+                    "data": file_base64
+                }
+            })
+
+        # НОВОЕ: Добавляем аудио файл
+        if audio_base64 and audio_mime_type:
+            parts.append({
+                "inline_data": {
+                    "mime_type": audio_mime_type,
+                    "data": audio_base64
+                }
+            })
+
+        # Текстовая часть
+        parts.append({"text": f"{prompt}\n\n Вакансия - {text}"})
+
+        return parts
+
+    async def _attempt_generate(self, api_key: str, model_name: str, parts: List[dict], proxy_url: str) -> Tuple[
+        Optional[str], List[str]]:
+        """
+        Выполняет прямой HTTP запрос к API Gemini.
+        """
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+
+        headers = {
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "contents": [{
+                "parts": parts
+            }],
+            "safetySettings": [
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+            ]
+        }
+
+        self.logger.debug(
+            f"[_attempt_generate] Запрос к модели={model_name}, "
+            f"key=...{api_key[-5:] if api_key else 'None'}, "
+            f"proxy={proxy_url}"
+        )
+
+        try:
+            # Используем aiohttp для асинхронного запроса с прокси
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json=payload, headers=headers, proxy=proxy_url) as response:
+                    if response.status != 200:
+                        error_text = await response.text()
+                        self.logger.warning(
+                            f"[_attempt_generate] API Error ({response.status}) "
+                            f"model={model_name}, key=...{api_key[-5:] if api_key else 'None'}: {error_text}"
+                        )
+                        return None, []
+
+                    result = await response.json()
+
+                    # Логируем использование токенов
+                    usage = result.get("usageMetadata", {})
+                    if usage:
+                        self.logger.info(
+                            f"[_attempt_generate] Токены — model={model_name}, "
+                            f"key=...{api_key[-5:] if api_key else 'None'}: "
+                            f"prompt={usage.get('promptTokenCount', '?')}, "
+                            f"candidates={usage.get('candidatesTokenCount', '?')}, "
+                            f"total={usage.get('totalTokenCount', '?')}"
+                        )
+
+                    # Парсим ответ
+                    try:
+                        candidates = result.get('candidates', [])
+                        if not candidates:
+                            self.logger.warning("[_attempt_generate] Нет кандидатов в ответе API")
+                            return None, []
+
+                        content = candidates[0].get('content', {})
+                        parts_resp = content.get('parts', [])
+
+                        if parts_resp and 'text' in parts_resp[0]:
+                            return parts_resp[0]['text'], []  # Sources удалены т.к. нет поиска
+
+                        self.logger.warning("[_attempt_generate] Не найден текст в частях ответа")
+                        return None, []
+                    except (KeyError, IndexError) as e:
+                        self.logger.error(f"[_attempt_generate] Ошибка парсинга ответа: {e}")
+                        return None, []
+
+        except Exception as e:
+            self.logger.error(
+                f"[_attempt_generate] Ошибка соединения: model={model_name}, "
+                f"key=...{api_key[-5:] if api_key else 'None'}: {e}"
+            )
+            return None, []
+
+    async def _attempt_generate_json(
+            self,
+            api_key: str,
+            model_name: str,
+            parts: List[dict],
+            proxy_url: str,
+            response_schema: dict
+    ) -> Optional[dict]:
+        """
+        Выполняет HTTP запрос к API Gemini с JSON schema для структурированного ответа.
+        """
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+
+        headers = {
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "contents": [{
+                "parts": parts
+            }],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "responseSchema": response_schema
+            },
+            "safetySettings": [
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+            ]
+        }
+
+        self.logger.debug(
+            f"[_attempt_generate_json] Запрос к модели={model_name}, "
+            f"key=...{api_key[-5:] if api_key else 'None'}, "
+            f"proxy={proxy_url}"
+        )
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json=payload, headers=headers, proxy=proxy_url) as response:
+                    if response.status != 200:
+                        error_text = await response.text()
+                        self.logger.warning(
+                            f"[_attempt_generate_json] API Error ({response.status}) "
+                            f"model={model_name}, key=...{api_key[-5:] if api_key else 'None'}: {error_text}"
+                        )
+                        return None
+
+                    result = await response.json()
+
+                    # Логируем использование токенов
+                    usage = result.get("usageMetadata", {})
+                    if usage:
+                        self.logger.info(
+                            f"[_attempt_generate_json] Токены — model={model_name}, "
+                            f"key=...{api_key[-5:] if api_key else 'None'}: "
+                            f"prompt={usage.get('promptTokenCount', '?')}, "
+                            f"candidates={usage.get('candidatesTokenCount', '?')}, "
+                            f"total={usage.get('totalTokenCount', '?')}"
+                        )
+
+                    try:
+                        candidates = result.get('candidates', [])
+                        if not candidates:
+                            self.logger.warning("[_attempt_generate_json] Нет кандидатов в ответе API")
+                            return None
+
+                        content = candidates[0].get('content', {})
+                        parts_resp = content.get('parts', [])
+
+                        if parts_resp and 'text' in parts_resp[0]:
+                            json_text = parts_resp[0]['text']
+                            return json.loads(json_text)
+
+                        self.logger.warning("[_attempt_generate_json] Не найден текст в частях ответа")
+                        return None
+                    except json.JSONDecodeError as e:
+                        self.logger.error(f"[_attempt_generate_json] Ошибка парсинга JSON: {e}")
+                        return None
+                    except (KeyError, IndexError) as e:
+                        self.logger.error(f"[_attempt_generate_json] Ошибка парсинга ответа: {e}")
+                        return None
+
+        except Exception as e:
+            self.logger.error(
+                f"[_attempt_generate_json] Ошибка соединения: model={model_name}, "
+                f"key=...{api_key[-5:] if api_key else 'None'}: {e}"
+            )
+            return None
+
+    async def analyze_json(
+            self,
+            prompt: str,
+            text: str,
+            response_schema: dict,
+            file_path: Optional[str] = None,
+            file_base64: Optional[str] = None,
+            file_mime_type: Optional[str] = None,
+            audio_base64: Optional[str] = None,
+            audio_mime_type: Optional[str] = None,
+            retries: int = 3
+    ) -> Optional[dict]:
+        """
+        Анализирует текст с использованием AI и возвращает структурированный JSON ответ.
+        """
+        used_keys = set()
+        sleep_time = 2
+        last_exception = None
+
+        self.logger.info(f"[analyze_json] Начало генерации вопросов/JSON, retries={retries}, base_model={self.model_name}")
+
+        try:
+            parts = await self._prepare_content(
+                prompt, text, file_path, file_base64, file_mime_type,
+                audio_base64, audio_mime_type
+            )
+        except Exception as e:
+            self.logger.error(f"[analyze_json] Ошибка подготовки контента: {e}")
+            return None
+
+        for attempt in range(retries):
+            if attempt == 0:
+                current_model = self.model_name
+            elif attempt == 1:
+                current_model = 'gemini-2.5-flash'
+            else:
+                current_model = 'gemini-2.5-flash-lite'
+
+            try:
+                api_key = self._select_random_api_key(used_keys)
+                used_keys.add(api_key)
+
+                proxy_url = self._select_random_proxy()
+
+                self.logger.info(
+                    f"[analyze_json] Попытка {attempt + 1}/{retries}: "
+                    f"model={current_model}, key=...{api_key[-5:] if api_key else 'None'}"
+                )
+
+                result = await self._attempt_generate_json(
+                    api_key, current_model, parts, proxy_url, response_schema
+                )
+
+                if result is not None:
+                    self.logger.info(
+                        f"[analyze_json] Успешно на попытке {attempt + 1}: model={current_model}"
+                    )
+                    return result
+
+                self.logger.warning(
+                    f"[analyze_json] Попытка {attempt + 1} вернула пустой ответ: model={current_model}"
+                )
+
+            except Exception as e:
+                last_exception = e
+                self.logger.warning(
+                    f"[analyze_json] Попытка {attempt + 1}/{retries} провалилась "
+                    f"(model={current_model}, key=...{api_key[-5:] if api_key else 'None'}): {e}"
+                )
+
+            if attempt < retries - 1:
+                await asyncio.sleep(sleep_time)
+                sleep_time += 2
+            else:
+                self.logger.error(f"[analyze_json] Все {retries} попытки исчерпаны")
+
+        if last_exception:
+            self.logger.error(f"[analyze_json] Последняя ошибка: {last_exception}")
+        return None

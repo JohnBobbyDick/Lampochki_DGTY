@@ -23,6 +23,7 @@ export function useAutoReview() {
 
   useEffect(() => {
     if (!auto || !enabled || !code.trim() || code === lastReviewed.current) return;
+    if (code === useStore.getState().reviewSkip) return;
 
     const controller = new AbortController();
     const timer = setTimeout(async () => {

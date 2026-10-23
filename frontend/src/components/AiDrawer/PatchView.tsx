@@ -29,6 +29,7 @@ const PatchView: React.FC<{ patch: AiPatch }> = ({ patch }) => {
     if (res?.ok) {
       const st = useStore.getState();
       st.replaceCode(res.code);            // snapshot first → Ctrl+Z restores the previous version
+      useStore.setState({ reviewSkip: res.code, aiReview: null });   // don't re-review our own fix
       st.jumpToLine(res.startLine);
       setWarnings(res.warnings ?? []);
       setState('applied');

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 import asyncio
 
@@ -48,14 +48,21 @@ async def decompose() -> AiDecomposeResponse:
 
 
 @router.post("/review", response_model=AiReviewResponse)
-async def review(req: AiReviewRequest) -> AiReviewResponse:
+async def review(req: AiReviewRequest, request: Request) -> AiReviewResponse:
     """Auto-review fired by the UI 5 s after the user stops typing."""
     if not llm_client.is_configured():
         return AiReviewResponse(note="LLM отключён или не настроен")
     s = state.require(req.code)
     known = [d.message for d in detect_defects(s.ast, s.code, analyze_ast(s.ast))]
     async with _REVIEW_SLOTS:
-        return AiReviewResponse(**await ai_analyzer.review(s.code, known))
+        # the UI aborts the request when the user edits again: stop retrying then, don't burn keys
+        job = asyncio.ensure_future(ai_analyzer.review(s.code, known))
+        while not job.done():
+            if await request.is_disconnected():
+                job.cancel()
+                return AiReviewResponse(note="отменено")
+            await asyncio.wait({job}, timeout=0.5)
+        return AiReviewResponse(**job.result())
 
 
 @router.post("/apply", response_model=AiApplyResponse)

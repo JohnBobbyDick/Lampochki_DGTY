@@ -91,6 +91,18 @@ CoverageRun = { codeHash: str, probes: [Probe], hits: { "<probeId>:<outcome>": c
 **Цель.** В строке «Сложность методов · Big O» видно текущую сложность и сложность после предложенных ИИ правок,
 с ожидаемым ускорением по формуле. Дизайн: раздел 5.
 
+**Подробный план:** `docs/superpowers/plans/2026-10-24-stage5-bigo-after-ai.md` (6 задач). **Состояние (24.10):**
+- [x] Задача 1 плана — Big O «было/станет» в патче (`ai/bigo_diff.py`, `AiPatch.bigoBefore/bigoAfter`) — `d815deb`, ревью пройдено.
+- [x] Задача 2 плана — `POST /api/ai/bigo-combined` (совместное применение советов) — `6fd3909`, `1f383e6`, ревью пройдено.
+- [x] Задача 3 плана — `frontend/src/utils/speedup.ts` (ожидаемое ускорение) — `eaba4dc`, ревью пройдено.
+- [ ] **Задача 4 плана — продолжать отсюда** (`utils/bigoAfter.ts`, `hooks/useBigoAfter.ts`, `useApi.bigoCombined`,
+  `useStore.bigoAfterAi`); затем задачи 5 (бейдж в UI) и 6 (документация), потом финальное ревью этапа.
+- Заметки для продолжения: в Task 4 для ранжирования меток переиспользовать разбор из `utils/speedup.ts` (не писать
+  третий парсер); `Analyzer.main` остаётся `O(n²)` после правки одного `mergeItems` (зовёт ещё пузырьковый `sortByValue`)
+  — это верно. Отложенные мелочи: 4 разбора кода на каждый валидный патч; у `/api/ai/bigo-combined` нет лимитов на размер
+  кода и число патчей; патч, чей результат не парсится, получил бы лучший ранг (фронт шлёт только валидные).
+- Windows: тесты бэкенда — `backend/.venv/Scripts/python.exe` и JDK в `PATH` (`backend/venv` — от macOS).
+
 **Задачи.**
 - [ ] **5.1 Big O для патча (бэкенд).** В `ai/patcher.build_patch` после валидной проверки: `analyze_ast(parse_java(patched)["ast"])`
   vs `analyze_ast` исходника → поля патча `bigo_before: {method: O}`, `bigo_after: {method: O}` только для методов, у которых

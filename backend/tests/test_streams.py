@@ -1,5 +1,8 @@
+import copy
 import json
 
+from core.cfg_builder import build_cfg, build_cfg_with_map
+from core.code_generator import regenerate_method, render_stmts
 from core.parser import parse_java
 from core.streams import STREAM_OPS, SOURCE_CALLS, TERMINALS, compose
 
@@ -137,11 +140,6 @@ def test_not_decomposed():
 # Task 2: pipeline nodes in the CFG and editing single steps
 # ---------------------------------------------------------------------------
 
-import copy
-
-from core.cfg_builder import build_cfg, build_cfg_with_map
-from core.code_generator import regenerate_method, render_stmts
-
 _CHAIN = ("List<Integer> r = xs.stream().filter(x -> x > 0).map(x -> x * 2)"
           ".collect(Collectors.toList());\n System.out.println(r);")
 _CHAIN_LINE = ("List<Integer> r = xs.stream().filter((x) -> x > 0).map((x) -> x * 2)"
@@ -186,7 +184,7 @@ def test_cfg_pipeline_nodes():
         assert (a, b, "normal") in pairs
     assert len(edges) == 6
     src = nodes[2]
-    assert src.data["code_snippet"] == _CHAIN_LINE[:-1]
+    assert src.data["code_snippet"] == src.label
     assert nodes[3].data["code_snippet"] == "filter((x) -> x > 0)"
     assert src.data["line_start"] == 5
     # deterministic ids on rebuild
@@ -279,3 +277,42 @@ def test_edit_multiline_chain_with_block_lambda_and_method_ref():
     ref = next(n for n in ops if n.label == "map(String::valueOf)")
     after2 = regenerate_method(m, {ref.id: "map(Object::toString)"})[0][0]
     assert after2 == before.replace("map(String::valueOf)", "map(Object::toString)")
+
+
+def test_edit_source_with_full_chain_does_not_duplicate():
+    """The node editor may send the whole statement as the source label."""
+    m = _method(_CHAIN)
+    nid = _ids(m)["stream-source:List<Integer> r = xs.stream()"]
+    plain = regenerate_method(m, {})[0]
+    full = compose(m["body"][0]["stream"])
+    for label in (full, full + ";", "xs.stream().filter((x) -> x > 0) .map((x) -> x * 2)\n"
+                  "   .collect(Collectors.toList())"):
+        assert regenerate_method(m, {nid: label})[0] == plain, label
+    body, _ = regenerate_method(m, {nid: full.replace("xs.stream()", "ys.stream()")})
+    assert body[0] == _CHAIN_LINE.replace("xs.stream()", "ys.stream()")
+
+
+def test_edit_source_with_full_old_chain_and_edited_op():
+    m = _method(_CHAIN)
+    ids = _ids(m)
+    full = compose(m["body"][0]["stream"])
+    body, _ = regenerate_method(m, {ids["stream-source:List<Integer> r = xs.stream()"]: full,
+                                    ids["stream-op:filter((x) -> x > 0)"]: "filter(x -> x >= 0)"})
+    assert body[0] == _CHAIN_LINE.replace("filter((x) -> x > 0)", "filter(x -> x >= 0)")
+
+
+def test_empty_op_label_deletes_step():
+    m = _method(_CHAIN)
+    nid = _ids(m)["stream-op:filter((x) -> x > 0)"]
+    for label in ("", "   ", " . "):
+        body, changed = regenerate_method(m, {nid: label})
+        assert body[0] == _CHAIN_LINE.replace(".filter((x) -> x > 0)", ""), repr(label)
+        assert changed == [nid]
+
+
+def test_empty_source_or_terminal_label_keeps_text():
+    m = _method(_CHAIN)
+    ids = _ids(m)
+    for key in ("stream-source:List<Integer> r = xs.stream()",
+                "stream-terminal:collect(Collectors.toList())"):
+        assert regenerate_method(m, {ids[key]: "  "})[0][0] == _CHAIN_LINE

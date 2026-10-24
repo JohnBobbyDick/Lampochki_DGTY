@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from core.streams import compose
 from models.schemas import GraphEdge, GraphNode
 
 # A dangling exit of a processed fragment: (source node id, edge type, edge label)
@@ -173,7 +172,7 @@ class _CFGBuilder:
         src = st["source"]
         node = self._add_node(
             "stream-source", st["prefix"] + src["text"], stmt=src,
-            line_start=src.get("line") or stmt.get("line"), code_snippet=compose(st),
+            line_start=src.get("line") or stmt.get("line"),
         )
         self._connect(tails, node.id)
         parts = [("stream-op", op) for op in st["ops"]]

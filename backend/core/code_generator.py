@@ -126,14 +126,43 @@ def _prefix_re(prefix: str) -> re.Pattern[str]:
     return re.compile(r"^\s*" + pat + r"\s*")
 
 
+def _strip_suffix(text: str, suffix: str) -> str | None:
+    """*text* without a trailing *suffix* (compared ignoring whitespace), or ``None``."""
+    sq_text, sq_suffix = re.sub(r"\s+", "", text), re.sub(r"\s+", "", suffix)
+    if not sq_suffix or not sq_text.endswith(sq_suffix):
+        return None
+    keep, pos = len(sq_text) - len(sq_suffix), 0
+    while keep:
+        if not text[pos].isspace():
+            keep -= 1
+        pos += 1
+    return text[:pos].rstrip()
+
+
+def _steps_suffix(ops: list[dict], terminal: dict | None, key: str) -> str:
+    text = "".join("." + op.get(key, op["text"]) for op in ops)
+    return text + ("." + terminal.get(key, terminal["text"]) if terminal else "")
+
+
 def _compose_edited(stream: dict) -> str:
-    """`compose` that drops a prefix the user left in an edited source label."""
+    """`compose` of a possibly edited chain.
+
+    Drops a prefix the user left in the source label, a whole chain pasted into the source label
+    (its ops + terminal, as they are now or were before the edit) and deleted (emptied) ops.
+    """
     src = stream["source"]["text"]
     if stream["prefix"].strip():
         m = _prefix_re(stream["prefix"]).match(src)
         if m:
             src = src[m.end():]
-    return compose({**stream, "source": {**stream["source"], "text": src}})
+    ops, terminal = stream["ops"], stream.get("terminal")
+    for key in ("text", "_orig_text"):
+        cut = _strip_suffix(src, _steps_suffix(ops, terminal, key))
+        if cut:
+            src = cut
+            break
+    kept = [op for op in ops if not op.get("_deleted")]
+    return compose({**stream, "source": {**stream["source"], "text": src}, "ops": kept})
 
 
 def _render_if(s: dict, level: int, prefix: str) -> list[str]:
@@ -174,7 +203,12 @@ def apply_edit(stmt: dict, text: str) -> None:
         text = text.rstrip(";").strip()
         if t != "StreamSource":
             text = text.lstrip(".").strip()
-        stmt["text"] = text  # the source's prefix (if left in the label) is dropped by render_stmt
+        stmt.setdefault("_orig_text", stmt["text"])
+        if not text:
+            if t == "StreamOp":
+                stmt["_deleted"] = True  # an emptied step is removed from the chain
+            return  # an emptied source / terminal keeps its text
+        stmt["text"] = text  # prefix / pasted chain in a source label are dropped by render_stmt
         return
     if t in _PATTERNS:
         m = _PATTERNS[t].match(text)

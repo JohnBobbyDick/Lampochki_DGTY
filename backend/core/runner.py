@@ -74,7 +74,7 @@ def check_compiles(code: str) -> list[dict] | None:
     try:
         (tmp / fname).write_text(code, encoding="utf-8")
         proc = subprocess.run(
-            ["javac", "-proc:none", "-encoding", "UTF-8", "-d", str(tmp / "out"), fname],
+            ["javac", "-proc:none", "-XDshould-stop.ifError=FLOW", "-encoding", "UTF-8", "-d", str(tmp / "out"), fname],
             cwd=tmp, capture_output=True, text=True, timeout=30,
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):

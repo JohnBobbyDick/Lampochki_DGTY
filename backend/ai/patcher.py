@@ -92,20 +92,36 @@ def _compile_errors(code: str) -> list[dict] | None:
     return runner.check_compiles(code)
 
 
-async def validate(original: str, patched: str) -> tuple[bool, list[str], list[str]]:
-    """(valid, problems, warnings): the patch must parse and must not make compilation worse."""
-    syntax = parse_java(patched)["errors"]
-    if syntax:
-        return False, [f"Синтаксическая ошибка: {syntax[0]}"], []
+async def validate(original: str, patched: str, *, fix_line: int | None = None) -> tuple[bool, list[str], list[str]]:
+    """(valid, problems, warnings): a patch must not add compile errors; in fix mode it must also remove the target one.
+
+    Ordinary mode: ``len(E(patched)) <= len(E(original))`` and a compiling original stays compiling.
+    Fix mode (*fix_line* set): strictly fewer errors and no error left on *fix_line* with its original text.
+    Without a local javac only syntax is checked.
+    """
+    syntax_before = parse_java(original)["errors"]
+    syntax_after = parse_java(patched)["errors"]
+    if syntax_after and not syntax_before:
+        return False, [f"Синтаксическая ошибка: {syntax_after[0]}"], []
     before, after = await asyncio.gather(
         asyncio.to_thread(_compile_errors, original), asyncio.to_thread(_compile_errors, patched)
     )
-    if after is None:                      # no local javac (docker mode): syntax check only
-        return True, [], ["Компиляция не проверялась (только синтаксис)"]
-    if not after:
+    if before is None or after is None:    # no local javac (docker mode): syntax check only
+        if syntax_after:
+            return False, [f"Синтаксическая ошибка: {syntax_after[0]}"], []
+        return True, [], [] if fix_line is not None else ["Компиляция не проверялась (только синтаксис)"]
+    if fix_line is not None:
+        target = {e["message"] for e in before if e["line"] == fix_line}
+        if any(e["line"] == fix_line and e["message"] in target for e in after):
+            return False, [f"Правка не устраняет ошибку в строке {fix_line}"], []
+        if len(after) >= len(before):
+            return False, ["Правка не уменьшает число ошибок компиляции"], []
         return True, [], []
-    if before and len(after) <= len(before):
-        return True, [], ["В исходном коде уже были ошибки компиляции — патч их не добавляет"]
+    if not before:
+        return (True, [], []) if not after else (False, [_explain(e) for e in after[:3]], [])
+    if len(after) <= len(before):
+        warn = ["В исходном коде уже были ошибки компиляции — патч их не добавляет"] if after else []
+        return True, [], warn
     return False, [_explain(e) for e in after[:3]], []
 
 
@@ -123,7 +139,7 @@ def _explain(e: dict) -> str:
 
 
 async def build_patch(code: str, old: str, new: str, imports: list[str] | None,
-                      hint_line: int | None = None) -> dict | None:
+                      hint_line: int | None = None, *, fix_line: int | None = None) -> dict | None:
     """Full patch description for the UI, or None when the fragment can't be located unambiguously."""
     code = normalize(code)
     if not (old or "").strip() or not (new or "").strip():
@@ -138,7 +154,7 @@ async def build_patch(code: str, old: str, new: str, imports: list[str] | None,
         return None
     lines = code.split("\n")
     base = lines[start - 1][: len(lines[start - 1]) - len(lines[start - 1].lstrip())]
-    valid, problems, warnings = await validate(code, patched)
+    valid, problems, warnings = await validate(code, patched, fix_line=fix_line)
     return {
         "old_code": old_text, "new_code": reindent(new, base), "imports": added,
         "start_line": start, "end_line": end,
@@ -147,7 +163,7 @@ async def build_patch(code: str, old: str, new: str, imports: list[str] | None,
 
 
 async def apply_patch(code: str, old: str, new: str, imports: list[str] | None,
-                      hint_line: int | None) -> dict:
+                      hint_line: int | None, *, fix_line: int | None = None) -> dict:
     """Apply to the *current* code (which may have changed since the suggestion was made)."""
     code = normalize(code)
     span = locate(code, old, hint_line)
@@ -156,7 +172,7 @@ async def apply_patch(code: str, old: str, new: str, imports: list[str] | None,
                                                         "несколько раз. Дождитесь нового ревью."],
                 "warnings": [], "start_line": 0, "end_line": 0}
     patched, _ = replace_range(code, span[0], span[1], new, imports)
-    valid, problems, warnings = await validate(code, patched)
+    valid, problems, warnings = await validate(code, patched, fix_line=fix_line)
     if not valid:
         return {"ok": False, "code": code, "problems": problems, "warnings": warnings,
                 "start_line": span[0], "end_line": span[1]}

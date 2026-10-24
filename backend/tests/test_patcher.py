@@ -162,3 +162,30 @@ def test_applied_patch_keeps_program_output():
 
     out = run(patcher.apply_patch(CODE, OLD, NEW, [], 6))
     assert compare_code(CODE, out["code"], "Demo").behavior_preserved
+
+
+# ── unified validity rule ───────────────────────────────────────────────────────
+
+from pathlib import Path
+
+CALC = (Path(__file__).resolve().parents[2] / "test_monoliths" / "Calculator.java").read_text(encoding="utf-8")
+OLD_LOOP = "double left = evaluate(expression.substring(0, opIndex));"
+NEW_LOOP = "double left = evaluate(expression.substring(0, opIndex).trim());"
+BROKEN = CALC.replace("return left / right;", "return left / right", 1)   # one compile error
+
+
+def test_patch_on_non_compiling_code_is_valid_if_it_adds_no_errors():
+    p = asyncio.run(patcher.build_patch(BROKEN, OLD_LOOP, NEW_LOOP, []))
+    assert p and p["valid"]
+
+
+def test_patch_that_adds_error_to_non_compiling_code_is_rejected():
+    p = asyncio.run(patcher.build_patch(BROKEN, OLD_LOOP, "int y = undefinedVar;", []))
+    assert p and not p["valid"]
+
+
+def test_fix_mode_requires_target_error_gone():
+    line = BROKEN.split("\n").index(next(l for l in BROKEN.split("\n") if l.strip() == "return left / right")) + 1
+    ok = asyncio.run(patcher.build_patch(BROKEN, "return left / right", "return left / right;", [], fix_line=line))
+    noop = asyncio.run(patcher.build_patch(BROKEN, "return left / right", "return left /  right", [], fix_line=line))
+    assert ok["valid"] and (noop is None or not noop["valid"])

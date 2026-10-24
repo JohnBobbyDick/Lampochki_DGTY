@@ -54,7 +54,7 @@ def test_membership_depends_on_known_type():
     assert f_of("ys = set(xs)\n" + loop) == "O(n)"
     assert f_of("ys = {}\n" + loop) == "O(n)"
     assert f_of("ys: list = []\n" + loop) == "O(n²)"
-    assert f_of("for x in xs:\n    if x not in 'abc':\n        pass\n") == "O(n)"   # literal of fixed size... still a str
+    assert f_of("for x in xs:\n    if x not in 'abc':\n        pass\n") == "O(n)"   # a str literal has a fixed size: O(1)
     assert f_of("for x in xs:\n    if x not in [a for a in xs]:\n        pass\n") == "O(n²)"
 
 
@@ -203,3 +203,47 @@ def test_unparsable_text_falls_back_to_regex():
     ]}
     cls["methods"].append(method)
     assert _Analyzer({"classes": [cls]}).cost(cls, method) == (1, 1)
+
+
+def test_bare_call_in_class_method_is_not_recursion():
+    code = """\
+    def process(xs):
+        return sorted(xs)
+
+    class W:
+        def process(self, xs):
+            return process(xs)
+
+        def again(self, n):
+            if n == 0:
+                return 0
+            return self.again(n - 1)
+    """
+    res = parse_python(textwrap.dedent(code))
+    b = analyze_ast(res["ast"])
+    assert b["W.process"] == "O(n log n)"
+    assert b["W.again"] == "O(n)"
+    from core.bigo_analyzer import is_recursive
+    w = next(c for c in res["ast"]["classes"] if c["name"] == "W")
+    proc = next(m for m in w["methods"] if m["name"] == "process")
+    assert not is_recursive(proc, "W")
+
+
+def test_values_and_tuple_unpacking_kinds():
+    loop = "for x in xs:\n    if x in ys:\n        pass\n"
+    assert f_of(loop.replace("in ys", "in d.values()"), "xs, d: dict") == "O(n²)"
+    assert f_of(loop.replace("in ys", "in d.keys()"), "xs, d: dict") == "O(n)"
+    assert f_of("ys, zs = [1, 2], set()\n" + loop) == "O(n²)"
+    assert f_of("zs, ys = [1, 2], set()\n" + loop) == "O(n)"
+
+
+def test_many_methods_stay_fast():
+    import time
+    methods = "".join(
+        f"    def m{i}(self, xs):\n        self.a{i} = []\n        for x in xs:\n            if x in self.a{i}:\n"
+        f"                self.helper(xs)\n" for i in range(300))
+    code = "class Big:\n" + methods + "    def helper(self, xs):\n        return sorted(xs)\n"
+    res = parse_python(code)
+    start = time.perf_counter()
+    analyze_ast(res["ast"])
+    assert time.perf_counter() - start < 0.5          # was ~1.5 s with uncached type inference

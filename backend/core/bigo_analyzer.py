@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import ast as pyast
 import re
+from functools import lru_cache
 
 LOOP_TYPES = ("ForStatement", "WhileStatement", "DoStatement")
 
@@ -270,17 +271,21 @@ def _py_const_size(node) -> bool:
     return False
 
 
-def _py_parse(text: str, key: str = "", stype: str = ""):
-    """The ast nodes of a statement text (by the key it came from), or None if it does not parse."""
+@lru_cache(maxsize=4096)
+def _py_parse(text: str, key: str = "", stype: str = "") -> tuple | None:
+    """The ast nodes of a statement text (by the key it came from), or None if it does not parse.
+
+    Cached: the nodes are shared, so callers must not modify them.
+    """
     try:
         if key == "control" and stype == "ForStatement":
-            return [pyast.parse(f"for {text}:\n pass").body[0].iter]
+            return (pyast.parse(f"for {text}:\n pass").body[0].iter,)
         if key == "items":
-            return [i.context_expr for i in pyast.parse(f"with {text}:\n pass").body[0].items]
+            return tuple(i.context_expr for i in pyast.parse(f"with {text}:\n pass").body[0].items)
         try:
-            return [pyast.parse(text, mode="eval").body]
+            return (pyast.parse(text, mode="eval").body,)
         except SyntaxError:
-            return pyast.parse(text).body[:1]
+            return tuple(pyast.parse(text).body[:1])
     except (SyntaxError, ValueError, IndexError, AttributeError):
         return None
 
@@ -290,7 +295,25 @@ def _short(name: str) -> str:
     return name.rpartition(".")[2]
 
 
-# ── per-class context───────────────────────────────────────────────────────────────────────────
+def _py_bare_self_call(cls_name: str | None, method: dict) -> bool:
+    """Whether a bare `f(...)` inside Python function `f` calls itself.
+
+    True for module functions and nested defs; inside a class method a bare name is the module function
+    of that name, and the method calls itself only as `self.f(...)` / `cls.f(...)`.
+    """
+    return cls_name in (None, "", "Module") or "." in method["name"]
+
+
+def _py_self_call_text(text: str, cls_name: str | None, method: dict) -> str:
+    """Text in which exactly the self-calls of a Python method are spelled as a bare `name(...)`."""
+    name = re.escape(_short(method["name"]))
+    if _py_bare_self_call(cls_name, method):
+        return text
+    text = re.sub(rf"(?<![\w.])(?={name}\s*\()", "_bare_", text)       # the module function of that name
+    return re.sub(rf"\b(?:self|cls)\s*\.\s*(?={name}\s*\()", "", text)
+
+
+# ── per-class context ───────────────────────────────────────────────────────────────────────────
 
 class _Analyzer:
     def __init__(self, ast: dict):
@@ -299,6 +322,8 @@ class _Analyzer:
             self.classes.setdefault(c["name"], c)
         self.memo: dict[tuple[str, str], Cost | None] = {}
         self.stack: list[tuple[str, str]] = []
+        self._py_globals: dict[str, str] | None = None     # kinds of module-level names (Python)
+        self._py_attrs: dict[int, dict[str, str]] = {}      # kinds of self.* per class (Python)
 
     @staticmethod
     def _all_classes(classes: list[dict]):
@@ -433,14 +458,20 @@ class _Analyzer:
 
     def _py_types(self, cls: dict, method: dict) -> dict[str, str]:
         """Collection kinds ('seq' / 'hash') or class names of the names a Python method sees."""
-        types: dict[str, str] = {}
-        for m in self.classes.get("Module", {}).get("methods", []):     # module-level globals
-            if m.get("synthetic"):
-                self._py_absorb(m.get("body", []), types)
-        if cls.get("name") != "Module":                                  # self.attr = ... anywhere in the class
-            for m in cls.get("methods", []):
-                if m is not method:
-                    self._py_absorb(m.get("body", []), types, only_self=True)
+        if self._py_globals is None:                                     # module-level globals, once
+            self._py_globals = {}
+            for m in self.classes.get("Module", {}).get("methods", []):
+                if m.get("synthetic"):
+                    self._py_absorb(m.get("body", []), self._py_globals)
+        types = dict(self._py_globals)
+        if cls.get("name") != "Module":                                  # self.attr = ... anywhere in the class, once
+            attrs = self._py_attrs.get(id(cls))
+            if attrs is None:
+                attrs = dict(self._py_globals)
+                for m in cls.get("methods", []):
+                    self._py_absorb(m.get("body", []), attrs, only_self=True)
+                attrs = self._py_attrs[id(cls)] = {k: v for k, v in attrs.items() if k.startswith("self.")}
+            types.update(attrs)
         for p in method.get("parameters", []):
             types[p["name"]] = _py_type_kind(p.get("type", ""))
         self._py_absorb(method.get("body", []), types)
@@ -454,13 +485,19 @@ class _Analyzer:
             nodes = _py_parse(s["expression"])
             node = nodes[0] if nodes else None
             if isinstance(node, pyast.Assign):
-                targets, kind = node.targets, self._py_kind(types, node.value)
+                pairs = []
+                for t in node.targets:
+                    v = node.value
+                    if isinstance(t, (pyast.Tuple, pyast.List)) and isinstance(v, (pyast.Tuple, pyast.List)) \
+                            and len(t.elts) == len(v.elts):          # a, b = [], set()
+                        pairs += [(te, self._py_kind(types, ve)) for te, ve in zip(t.elts, v.elts)]
+                    else:
+                        pairs.append((t, self._py_kind(types, v)))
             elif isinstance(node, pyast.AnnAssign):
-                targets = [node.target]
-                kind = _py_type_kind(pyast.unparse(node.annotation)) or self._py_kind(types, node.value)
+                pairs = [(node.target, _py_type_kind(pyast.unparse(node.annotation)) or self._py_kind(types, node.value))]
             else:
                 continue
-            for t in targets:
+            for t, kind in pairs:
                 if isinstance(t, pyast.Name) and not only_self:
                     types[t.id] = kind
                 elif isinstance(t, pyast.Attribute) and isinstance(t.value, pyast.Name) and t.value.id == "self":
@@ -487,6 +524,8 @@ class _Analyzer:
                     return f.id
             if isinstance(f, pyast.Attribute) and f.attr == "keys":
                 return "hash"
+            if isinstance(f, pyast.Attribute) and f.attr == "values":
+                return "seq"
         return ""
 
     def _py_iterations(self, loop: dict) -> Cost:
@@ -568,7 +607,7 @@ class _Analyzer:
 
     def _py_local_call(self, cls: dict, method: dict, name: str) -> Cost | None:
         """An unqualified call: a nested def of this (or an enclosing) function, a module function, a class."""
-        if name == _short(method["name"]):
+        if name == _short(method["name"]) and _py_bare_self_call(cls["name"], method):
             return ZERO                                # self-recursion: handled by _recursion
         own = {m["name"] for m in cls.get("methods", [])}
         prefix = method["name"]
@@ -582,13 +621,12 @@ class _Analyzer:
             return self._method_cost(name, "__init__")
         return ZERO
 
-    def _recursion(self, method: dict, base: Cost) -> Cost | None:
+    def _recursion(self, cls: dict, method: dict, base: Cost) -> Cost | None:
         """Cost of a directly recursive method, from how it calls itself."""
         text = " ".join(_walk_exprs(method.get("body", [])))
         if method.get("language") == "python":      # f(...) or self.f(...); no overloads, defaults change argc
-            name = _short(method["name"])
-            text = re.sub(rf"\b(?:self|cls)\s*\.\s*(?={re.escape(name)}\s*\()", "", text)
-            calls = _call_args(text, name)
+            text = _py_self_call_text(text, cls["name"], method)
+            calls = _call_args(text, _short(method["name"]))
         else:
             own_argc = len(method.get("parameters", []))
             calls = [a for a in _call_args(text, method["name"]) if _argc(a) == own_argc]
@@ -624,16 +662,17 @@ class _Analyzer:
         self.stack.append(key)
         types = self._types(cls, method)
         base = self._stmts_cost(cls, method, types, method.get("body", []))
-        result = UNKNOWN if base is UNKNOWN else self._recursion(method, base)
+        result = UNKNOWN if base is UNKNOWN else self._recursion(cls, method, base)
         self.stack.pop()
         self.memo[key] = result
         return result
 
 
-def is_recursive(method: dict) -> bool:
+def is_recursive(method: dict, cls_name: str | None = None) -> bool:
     if method.get("language") == "python":
-        name = _short(method["name"])
-        pat = re.compile(rf"(?<![\w.]){re.escape(name)}\s*\(|\b(?:self|cls)\s*\.\s*{re.escape(name)}\s*\(")
+        name = re.escape(_short(method["name"]))
+        return any(re.search(rf"(?<![\w.]){name}\s*\(", _py_self_call_text(t, cls_name, method))
+                   for t in _walk_exprs(method.get("body", [])))
     else:
         name = method["name"]
         pat = re.compile(rf"(?<![\w.]){re.escape(name)}\s*\(|this\.{re.escape(name)}\s*\(")
@@ -643,7 +682,7 @@ def is_recursive(method: dict) -> bool:
 def analyze_method(method: dict, cls: dict | None = None) -> str:
     cls = cls or {"name": "", "methods": [method], "fields": []}
     a = _Analyzer({"classes": [cls]})
-    return complexity_label(a.cost(cls, method), is_recursive(method))
+    return complexity_label(a.cost(cls, method), is_recursive(method, cls["name"]))
 
 
 def _rank(cost: Cost | None) -> Cost:
@@ -663,7 +702,7 @@ def analyze_ast(ast: dict) -> dict[str, str]:
             c = a.cost(cls, m)
             if key not in costs or _rank(c) > _rank(costs[key]):   # overloads share a key: keep the worst
                 costs[key] = c
-                recursive[key] = is_recursive(m)
+                recursive[key] = is_recursive(m, cls["name"])
             names.add(m["name"])
         for n in names:
             counts[n] = counts.get(n, 0) + 1

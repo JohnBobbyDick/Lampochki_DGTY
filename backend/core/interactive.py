@@ -18,7 +18,9 @@ from core.coverage import build, instrument
 from core.coverage.build import CovPlan
 
 Emit = Callable[[dict], Awaitable[None]]
-MAX_SESSION_SEC = 300
+MAX_SESSION_SEC = 10
+MAX_MEMORY_MB = 100
+MAX_MEMORY_BYTES = MAX_MEMORY_MB * 1024 * 1024
 MAX_OUT_BYTES = 1_000_000
 
 
@@ -60,14 +62,67 @@ def final_coverage(exit_code: int, plan: CovPlan, tmp: Path) -> dict | None:
     return coverage_message(plan, marker)
 
 
+def _apply_windows_memory_limit(popen: subprocess.Popen, limit_bytes: int = MAX_MEMORY_BYTES):
+    if sys.platform != "win32":
+        return None
+    try:
+        import ctypes
+        import ctypes.wintypes
+
+        JO_EXT_LIMIT = 9
+        JOB_OBJECT_LIMIT_PROCESS_MEMORY = 0x00000100
+
+        class IO_COUNTERS(ctypes.Structure):
+            _fields_ = [
+                ('ReadOperationCount', ctypes.c_uint64), ('WriteOperationCount', ctypes.c_uint64),
+                ('OtherOperationCount', ctypes.c_uint64), ('ReadTransferCount', ctypes.c_uint64),
+                ('WriteTransferCount', ctypes.c_uint64), ('OtherTransferCount', ctypes.c_uint64),
+            ]
+
+        class JO_BASIC_LIMIT_INFO(ctypes.Structure):
+            _fields_ = [
+                ('PerProcessUserTimeLimit', ctypes.c_int64), ('PerJobUserTimeLimit', ctypes.c_int64),
+                ('LimitFlags', ctypes.wintypes.DWORD), ('MinimumWorkingSetSize', ctypes.c_size_t),
+                ('MaximumWorkingSetSize', ctypes.c_size_t), ('ActiveProcessLimit', ctypes.wintypes.DWORD),
+                ('Affinity', ctypes.c_size_t), ('PriorityClass', ctypes.wintypes.DWORD),
+                ('SchedulingClass', ctypes.wintypes.DWORD),
+            ]
+
+        class JO_EXT_LIMIT_INFO(ctypes.Structure):
+            _fields_ = [
+                ('BasicLimitInformation', JO_BASIC_LIMIT_INFO), ('IoInfo', IO_COUNTERS),
+                ('ProcessMemoryLimit', ctypes.c_size_t), ('JobMemoryLimit', ctypes.c_size_t),
+                ('PeakProcessMemoryLimit', ctypes.c_size_t), ('PeakJobMemoryLimit', ctypes.c_size_t),
+            ]
+
+        h_job = ctypes.windll.kernel32.CreateJobObjectW(None, None)
+        if not h_job:
+            return None
+        info = JO_EXT_LIMIT_INFO()
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_PROCESS_MEMORY
+        info.ProcessMemoryLimit = limit_bytes
+        if not ctypes.windll.kernel32.SetInformationJobObject(
+            h_job, JO_EXT_LIMIT, ctypes.byref(info), ctypes.sizeof(info),
+        ):
+            ctypes.windll.kernel32.CloseHandle(h_job)
+            return None
+        if not ctypes.windll.kernel32.AssignProcessToJobObject(h_job, int(popen._handle)):
+            ctypes.windll.kernel32.CloseHandle(h_job)
+            return None
+        return h_job
+    except Exception:
+        return None
+
+
 class InteractiveProcess:
     """Wrapper around subprocess.Popen providing an async-friendly interface
     that works consistently across all event loops (including Windows SelectorEventLoop)."""
 
-    def __init__(self, popen: subprocess.Popen, tmp: Path):
+    def __init__(self, popen: subprocess.Popen, tmp: Path, job_handle=None):
         self.popen = popen
         self.tmp = tmp
         self.stdin = popen.stdin
+        self.job_handle = job_handle
 
     @property
     def returncode(self) -> int | None:
@@ -78,6 +133,13 @@ class InteractiveProcess:
             self.popen.kill()
         except OSError:
             pass
+        if self.job_handle and sys.platform == "win32":
+            try:
+                import ctypes
+                ctypes.windll.kernel32.CloseHandle(self.job_handle)
+                self.job_handle = None
+            except Exception:
+                pass
 
 
 PY_COVERAGE_UNSUPPORTED = "Покрытие для Python пока не поддерживается"
@@ -116,7 +178,7 @@ async def start_session(
                         "errors": runner.parse_compile_errors(proc.stderr)})
             await emit({"type": "exit", "code": proc.returncode, "durationMs": 0})
             return None
-        cmd = [runner.get_java_cmd(), "-Xmx256m", "-Dfile.encoding=UTF-8"]
+        cmd = [runner.get_java_cmd(), f"-Xmx{MAX_MEMORY_MB}m", "-Dfile.encoding=UTF-8"]
         if plan.data_file is not None:
             cmd.append(f"-Djb.cov={plan.data_file}")
         cmd += ["-cp", "out", main_class]
@@ -173,7 +235,8 @@ async def _start_python(code: str, emit: Emit) -> tuple[InteractiveProcess, Path
         await emit({"type": "stderr", "data": f"Python launch failed: {str(exc) or repr(exc)}\n"})
         await emit({"type": "exit", "code": 127, "durationMs": 0})
         return None
-    return InteractiveProcess(popen, tmp), tmp, CovPlan(error=PY_COVERAGE_UNSUPPORTED)
+    job_handle = _apply_windows_memory_limit(popen, MAX_MEMORY_BYTES)
+    return InteractiveProcess(popen, tmp, job_handle=job_handle), tmp, CovPlan(error=PY_COVERAGE_UNSUPPORTED)
 
 
 async def pump(proc: InteractiveProcess, emit: Emit) -> int:

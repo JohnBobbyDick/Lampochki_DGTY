@@ -53,3 +53,33 @@ def test_dev_origin_is_accepted():
     with TestClient(app).websocket_connect("/api/ws/run", headers={"origin": "http://localhost:3000"}) as ws:
         ws.send_text(json.dumps({"type": "start", "code": "public class B { int x = ; }"}))
         assert json.loads(ws.receive_text())["type"] == "compile_error"
+
+
+def test_interactive_timeout_limit(monkeypatch):
+    from core import interactive
+    monkeypatch.setattr(interactive, "MAX_SESSION_SEC", 1)
+    with TestClient(app).websocket_connect("/api/ws/run") as ws:
+        ws.send_text(json.dumps({"type": "start", "code": "public class Inf { public static void main(String[] a){ while(true){} } }"}))
+        msgs = collect(ws)
+        stderr = "".join(m.get("data", "") for m in msgs if m["type"] == "stderr")
+        assert "Timeout: сессия дольше 1 с" in stderr
+        assert msgs[-1]["code"] != 0
+
+
+def test_interactive_java_memory_limit():
+    code = "public class OOM { public static void main(String[] a){ byte[] b = new byte[120 * 1024 * 1024]; } }"
+    with TestClient(app).websocket_connect("/api/ws/run") as ws:
+        ws.send_text(json.dumps({"type": "start", "code": code}))
+        msgs = collect(ws)
+        stderr = "".join(m.get("data", "") for m in msgs if m["type"] == "stderr")
+        assert "OutOfMemoryError" in stderr
+        assert msgs[-1]["code"] != 0
+
+
+def test_interactive_python_memory_limit():
+    code = "a = bytearray(150 * 1024 * 1024)"
+    with TestClient(app).websocket_connect("/api/ws/run") as ws:
+        ws.send_text(json.dumps({"type": "start", "code": code, "language": "python"}))
+        msgs = collect(ws)
+        stderr = "".join(m.get("data", "") for m in msgs if m["type"] == "stderr")
+        assert "MemoryError" in stderr or msgs[-1]["code"] != 0

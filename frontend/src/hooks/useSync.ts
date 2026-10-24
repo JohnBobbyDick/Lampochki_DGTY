@@ -86,6 +86,8 @@ export function useSync() {
   const setSyncStatus = useStore((s) => s.setSyncStatus);
   const api = useApi();
   const reqId = useRef(0);
+  /** bumped only by code edits: a graph/method switch must not invalidate in-flight parse/analyze results */
+  const codeReq = useRef(0);
 
   const refreshGraph = async (id: number) => {
     const st = useStore.getState();
@@ -103,15 +105,27 @@ export function useSync() {
     setSyncStatus('idle');
   };
 
-  /* code changed → debounce 500 ms → parse, analyse, rebuild graph */
+  const refreshAnalysis = async (id: number) => {
+    const data = await api.analyzeCode();
+    if (id !== codeReq.current || !data) return; // stale or failed: keep what is shown
+    const st = useStore.getState();
+    st.setDefects(data.defects ?? []);
+    st.setBigo(data.bigo ?? {});
+    st.setCompileErrors(data.compileErrors ?? []);
+  };
+
+  /* code changed → drop stale AI tips at once, then debounce 500 ms → parse, analyse, rebuild graph */
   useEffect(() => {
     if (!code.trim()) return;
+    useStore.getState().pruneStale(code);
     const timer = setTimeout(async () => {
       const id = ++reqId.current;
+      const cid = ++codeReq.current;
       setSyncStatus('syncing');
-      const parsed = await api.parseCode(code);
+      const parsed = await api.parseCode(code, () => cid === codeReq.current);
+      if (cid !== codeReq.current) return;
       if (!parsed) return setSyncStatus('error');
-      await Promise.all([api.analyzeCode(), refreshGraph(id)]);
+      await Promise.all([refreshAnalysis(cid), refreshGraph(id)]);
     }, 500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -32,7 +32,7 @@ export function useAutoReview() {
       try {
         const { data } = await axios.post('/api/ai/review', { code }, { signal: controller.signal, timeout: 120_000 });
         lastReviewed.current = code;
-        const items = data.suggestions ?? [];
+        const items = (data.suggestions ?? []).filter((it: { patch?: unknown }) => it.patch);
         st.setAiReview(
           items.length || data.summary
             ? { title: '✨ ИИ-ревью кода', text: data.summary, items, source: data.source, note: data.note }

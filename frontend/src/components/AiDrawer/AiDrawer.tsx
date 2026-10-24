@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiX, FiCopy, FiInfo, FiCheckCircle, FiCornerDownRight } from 'react-icons/fi';
+import { FiX, FiInfo, FiCheckCircle, FiCornerDownRight } from 'react-icons/fi';
 import { LuSparkles } from 'react-icons/lu';
 import { useStore } from '../../store/useStore';
 import PatchView from './PatchView';
@@ -38,7 +38,7 @@ const AiDrawer: React.FC = () => {
           {ai.note && <div className="ai-note"><FiInfo /> {ai.note}</div>}
           {ai.text && <p className="ai-text">{ai.text}</p>}
           {ai.items && ai.items.length === 0 && !ai.note && (
-            <div className="state-card"><FiCheckCircle className="state-icon ok" /><div className="state-title">Идей для улучшения не найдено</div></div>
+            <div className="state-card"><FiCheckCircle className="state-icon ok" /><div className="state-title">ИИ не нашёл применимых правок</div></div>
           )}
           {ai.items?.map((it, i) => (
             <div key={i} className="ai-item">
@@ -51,23 +51,12 @@ const AiDrawer: React.FC = () => {
                 )}
               </div>
               <div className="ai-item-detail">{it.detail}</div>
-              {it.patch ? (
+              {it.patch?.valid && (
                 <div onClick={(e) => e.stopPropagation()}><PatchView key={it.patch.oldCode + it.patch.newCode} patch={it.patch} /></div>
-              ) : (
-                it.example && <pre className="code-preview">{it.example}</pre>
               )}
             </div>
           ))}
-          {ai.patch && <PatchView key={ai.patch.oldCode + ai.patch.newCode} patch={ai.patch} />}
-          {ai.code && (
-            <>
-              <div className="ai-code-head">
-                <span className="muted">Пример кода</span>
-                <button className="btn small" onClick={() => navigator.clipboard?.writeText(ai.code!)}><FiCopy /> Копировать</button>
-              </div>
-              <pre className="code-preview">{ai.code}</pre>
-            </>
-          )}
+          {ai.patch?.valid && <PatchView key={ai.patch.oldCode + ai.patch.newCode} patch={ai.patch} />}
           <div className="muted ai-privacy">Код отправляется во внешний LLM по кнопке «Объяснить с ИИ» и, если включено «Авто-ИИ», через 5 с после последней правки.</div>
         </div>
       )}

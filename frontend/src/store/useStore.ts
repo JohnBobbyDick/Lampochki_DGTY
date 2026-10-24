@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Node, Edge } from 'reactflow';
-import { Defect, RunResult, CompareResult, DecomposedFile, GraphType, QualityGateResult } from '../types';
+import { fragmentPresent } from '../utils/fragment';
+import { CompileError, Defect, RunResult, CompareResult, DecomposedFile, GraphType, QualityGateResult } from '../types';
 
 export interface AiPatch {
   oldCode: string;
@@ -38,6 +39,7 @@ interface AppState {
   ast: unknown;
   methods: string[];
   syntaxErrors: string[];
+  compileErrors: CompileError[];
   lineMap: Record<string, number>;
   graphType: GraphType;
   selectedMethod: string | null;
@@ -76,6 +78,9 @@ interface AppState {
   setAst: (ast: unknown) => void;
   setMethods: (methods: string[]) => void;
   setSyntaxErrors: (errors: string[]) => void;
+  setCompileErrors: (e: CompileError[]) => void;
+  /** drop AI tips/patches whose fragment is no longer in `code` */
+  pruneStale: (code: string) => void;
   setDecomposeWarnings: (w: string[]) => void;
   setGateResult: (r: QualityGateResult | null) => void;
   /** set code coming from outside the typing flow (upload / generate / undo) */
@@ -118,6 +123,7 @@ export const useStore = create<AppState>((set, get) => ({
   ast: null,
   methods: [],
   syntaxErrors: [],
+  compileErrors: [],
   lineMap: {},
   graphType: 'cfg',
   selectedMethod: null,
@@ -156,6 +162,23 @@ export const useStore = create<AppState>((set, get) => ({
   setAst: (ast) => set({ ast }),
   setMethods: (methods) => set({ methods }),
   setSyntaxErrors: (syntaxErrors) => set({ syntaxErrors }),
+  setCompileErrors: (compileErrors) => set({ compileErrors }),
+  pruneStale: (code) => {
+    const { ai, aiReview, reviewSkip } = get();
+    const pruneAnswer = (a: AiAnswer): AiAnswer => {
+      let next = a;
+      if (a.items) {
+        const items = a.items.filter((it) => it.patch && fragmentPresent(code, it.patch.oldCode));
+        if (items.length !== a.items.length) next = { ...next, items };
+      }
+      if (a.patch && !fragmentPresent(code, a.patch.oldCode)) next = { ...next, patch: null };
+      return next;
+    };
+    // code that is exactly the result of an applied AI patch keeps its "applied" drawer (undo / check behaviour)
+    const nextAi = ai && code !== reviewSkip ? pruneAnswer(ai) : ai;
+    const nextReview = aiReview && pruneAnswer(aiReview);
+    if (nextAi !== ai || nextReview !== aiReview) set({ ai: nextAi, aiReview: nextReview });
+  },
   setDecomposeWarnings: (decomposeWarnings) => set({ decomposeWarnings }),
   setGateResult: (gateResult) => set({ gateResult }),
   replaceCode: (code) => {
@@ -167,6 +190,7 @@ export const useStore = create<AppState>((set, get) => ({
       code, originalCode: original, past: [], future: [],
       runResult: null, compareResult: null, decomposition: null, gateResult: null,
       selectedMethod: null, ai: null, aiReview: null, stdin: '',
+      compileErrors: [], defects: [], bigo: {},
     }),
   /** remember the current code in the undo stack (skips duplicates) */
   snapshot: () => {

@@ -45,9 +45,11 @@ export function useApi() {
   return useMemo(() => {
     const S = () => useStore.getState();
 
-    const parseCode = (code: string) =>
+    /** `isCurrent` is checked after the response arrives; stale responses are dropped. */
+    const parseCode = (code: string, isCurrent: () => boolean = () => true) =>
       call(async () => {
         const { data } = await api.post('/parse', { code });
+        if (!isCurrent()) return data;
         const st = S();
         st.setAst(data.ast);
         st.setLineMap(data.lineMap ?? {});
@@ -69,8 +71,6 @@ export function useApi() {
     const analyzeCode = () =>
       call(async () => {
         const { data } = await api.post('/analyze');
-        S().setDefects(data.defects ?? []);
-        S().setBigo(data.bigo ?? {});
         return data;
       }, true);
 
@@ -132,7 +132,17 @@ export function useApi() {
       st.setAiLoading(true);
       const data = await call(async () => (await api.post('/ai/explain', { defect })).data, true);
       st.setAiLoading(false);
-      if (data) st.setAi({ title: '✨ Объяснение дефекта', text: data.explanation, code: data.patch ? undefined : data.fixedCode, patch: data.patch, source: data.source, note: data.note });
+      if (data) st.setAi({ title: '✨ Объяснение дефекта', text: data.explanation, patch: data.patch, source: data.source, note: data.note });
+      return data;
+    };
+
+    const aiFix = async (err: { line: number | null; message: string }) => {
+      const st = S();
+      st.setAi(null);
+      st.setAiLoading(true);
+      const data = await call(async () => (await api.post('/ai/fix', { code: st.code, line: err.line, message: err.message })).data, true);
+      st.setAiLoading(false);
+      if (data) st.setAi({ title: '✨ Исправление ошибки', text: data.explanation, patch: data.patch, source: data.source, note: data.note });
       return data;
     };
 
@@ -160,7 +170,7 @@ export function useApi() {
     };
 
     return {
-      aiApply, aiStatus, aiExplain, aiDecompose,
+      aiApply, aiStatus, aiExplain, aiFix, aiDecompose,
       parseCode, getGraph, analyzeCode, generateCode, runCode, compareCode,
       decomposeCode, verifyDecomposition, downloadDecomposition, qualityGate,
     };

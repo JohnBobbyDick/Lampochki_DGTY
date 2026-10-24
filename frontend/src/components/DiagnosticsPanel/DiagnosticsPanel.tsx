@@ -11,11 +11,18 @@ const SEVERITY = {
   hint: { icon: FiInfo, label: 'Совет' },
 } as const;
 
+const FixButton: React.FC<{ line: number | null; message: string }> = ({ line, message }) => {
+  const api = useApi();
+  return <button className="btn small ai-btn" onClick={() => api.aiFix({ line, message })}><LuSparkles /> Исправить с ИИ</button>;
+};
+
 const DiagnosticsPanel: React.FC = () => {
   const api = useApi();
   const defects = useStore((s) => s.defects);
   const bigo = useStore((s) => s.bigo);
   const syntaxErrors = useStore((s) => s.syntaxErrors);
+  const compileErrors = useStore((s) => s.compileErrors);
+  const aiEnabled = useStore((s) => s.aiEnabled);
   const jumpToLine = useStore((s) => s.jumpToLine);
   const setHoveredNode = useStore((s) => s.setHoveredNode);
   const setSelectedMethod = useStore((s) => s.setSelectedMethod);
@@ -35,15 +42,31 @@ const DiagnosticsPanel: React.FC = () => {
 
   return (
     <div className="panel-scroll">
-      {syntaxErrors.length > 0 && (
+      {(compileErrors.length > 0 || syntaxErrors.length > 0) && (
         <section>
-          <h4>Синтаксис</h4>
-          {syntaxErrors.map((e, i) => (
-            <div key={i} className="defect error">
-              <FiAlertCircle className="defect-icon" aria-hidden="true" />
-              <div className="defect-main defect-msg">{e}</div>
-            </div>
-          ))}
+          <h4>Синтаксис и компиляция</h4>
+          {compileErrors.length > 0
+            ? compileErrors.map((e, i) => (
+                <div key={i} className="defect error">
+                  <FiAlertCircle className="defect-icon" aria-hidden="true" />
+                  <div className="defect-main">
+                    <button className="defect-open" onClick={() => jumpToLine(e.line)} title="Перейти к строке в редакторе">
+                      <span className="defect-head"><span className="muted">стр. {e.line}</span></span>
+                      <span className="defect-msg">{e.message}</span>
+                    </button>
+                    {aiEnabled && <FixButton line={e.line} message={e.message} />}
+                  </div>
+                </div>
+              ))
+            : syntaxErrors.map((e, i) => (
+                <div key={i} className="defect error">
+                  <FiAlertCircle className="defect-icon" aria-hidden="true" />
+                  <div className="defect-main">
+                    <div className="defect-msg">{e}</div>
+                    {aiEnabled && <FixButton line={null} message={e} />}
+                  </div>
+                </div>
+              ))}
         </section>
       )}
 

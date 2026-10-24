@@ -45,7 +45,6 @@ const PatchView: React.FC<{ patch: AiPatch }> = ({ patch }) => {
     api.compareCode(st.originalCode || st.code, st.code);
   };
 
-  const blocked = !patch.valid;
   return (
     <div className="patch">
       <div className="patch-head">
@@ -60,7 +59,6 @@ const PatchView: React.FC<{ patch: AiPatch }> = ({ patch }) => {
         ))}
       </pre>
 
-      {blocked && patch.problems.map((p, i) => <div key={i} className="patch-err"><FiXOctagon /> {p}</div>)}
       {errors.map((p, i) => <div key={i} className="patch-err"><FiXOctagon /> {p}</div>)}
       {warnings.map((w, i) => <div key={i} className="patch-warn"><FiInfo /> {w}</div>)}
 
@@ -70,8 +68,8 @@ const PatchView: React.FC<{ patch: AiPatch }> = ({ patch }) => {
           <button className="btn small" onClick={checkBehaviour}>Проверить поведение</button>
         </div>
       ) : (
-        <button className="btn primary small" disabled={blocked || state === 'busy'} onClick={apply}
-                title={blocked ? 'Правка не проходит проверку компиляции' : 'Заменить фрагмент в коде'}>
+        <button className="btn primary small" disabled={state === 'busy'} onClick={apply}
+                title="Заменить фрагмент в коде">
           {state === 'busy' ? 'Проверяю…' : <><FiCheck /> Применить</>}
         </button>
       )}

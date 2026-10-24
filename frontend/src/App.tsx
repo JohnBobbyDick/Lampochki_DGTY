@@ -112,7 +112,7 @@ const App: React.FC = () => {
         </div>
         <span className="spacer" />
         <div className="header-group ai-group">
-          {aiEnabled && aiReview && !aiReviewing && (
+          {aiEnabled && aiReview && !aiReviewing && !!(aiReview.items?.length || aiReview.note) && (
             <button className="btn small ai-chip" onClick={() => useStore.getState().setAi(aiReview)} title="Открыть результат ИИ-ревью">
               <LuSparkles /> {aiReview.items?.length ? `${aiReview.items.length} ${plural(aiReview.items.length, ['идея', 'идеи', 'идей'])}` : aiReview.note ? 'ИИ недоступен' : 'ревью готово'}
             </button>

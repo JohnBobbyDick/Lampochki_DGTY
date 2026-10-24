@@ -51,8 +51,10 @@ const RunComparePanel: React.FC = () => {
   const { same, stdinDiffers } = compareRuns(prev, last);
   return (
     <div className="run-panel">
-      <div className={`status ${same ? 'ok' : 'warn'}`}>{same ? RUN_VERDICT_TITLE.same : RUN_VERDICT_TITLE.changed}</div>
-      {stdinDiffers && <div className="muted" style={{ gridColumn: "1 / -1", margin: "0 14px" }}>Ввод отличался</div>}
+      <div className="run-head">
+        <div className={`status ${same ? 'ok' : 'warn'}`}>{same ? RUN_VERDICT_TITLE.same : RUN_VERDICT_TITLE.changed}</div>
+        {stdinDiffers && <span className="muted">Ввод отличался</span>}
+      </div>
       <Out title="Предыдущий запуск" r={prev} lines={left} />
       <Out title="Последний запуск" r={last} lines={right} />
     </div>

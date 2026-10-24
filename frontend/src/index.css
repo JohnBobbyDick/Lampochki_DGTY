@@ -270,6 +270,8 @@ kbd { font: 600 0.6875rem var(--font-mono); padding: 1px 6px; border-radius: 6px
 .run-panel { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto minmax(0, 1fr); height: 100%; position: relative; }
 .run-panel.single { grid-template-columns: 1fr; }
 .run-panel .status { border: 1px solid transparent; grid-column: 1 / -1; justify-self: start; margin: 10px 14px 4px; padding: 3px 12px; border-radius: var(--r-pill); font-weight: 600; }
+.run-head { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 4px; }
+.run-head .muted { margin-left: 4px; }
 .out-title .muted { text-transform: none; letter-spacing: 0; font-weight: 500; }
 .status.ok { background: var(--ok-soft); color: var(--ok); box-shadow: inset 0 0 0 1px var(--ok); }
 .status.fail { background: var(--err-soft); color: var(--err); box-shadow: inset 0 0 0 1px var(--err); }

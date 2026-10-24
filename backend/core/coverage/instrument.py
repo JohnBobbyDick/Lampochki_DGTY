@@ -10,6 +10,11 @@ Probes (see the stage 4 plan, "Формат данных"):
     everything nested in it (block lambdas, anonymous and local classes). Field initializers are untouched.
   * ``method`` — ``__Cov.h(s);`` right after the ``{`` of a named class' method/constructor body
     (after ``this(…);`` / ``super(…);`` when the body starts with one).
+  * ``branch`` / ``cond`` / ``rel`` — decisions (conditions of ``if``/``while``/``do``/``for``/``?:``),
+    ``case`` groups and ``catch`` blocks; leaves of a decision with ``&&``/``||``/``!`` get ``cond``
+    probes, comparisons get ``rel`` probes (``__Cov.r`` evaluates the operands once, in order, and
+    returns the original operator's result, so short-circuit and side effects are unchanged).
+    ``strip`` level 1 removes these together with their loop blocks ``{ boolean __cN … }``.
 """
 
 from __future__ import annotations
@@ -20,11 +25,19 @@ from pathlib import Path
 import javalang
 import javalang.tree as T
 
+from core.coverage.conditions import has_logic, leaves, parse_condition, split_relation, ternary_conditions
 from core.source_map import declaration_span, tokenize
 
 COV_CLASS = "__Cov"
 _TEMPLATE = Path(__file__).with_name("Cov.java")
 _DONE = ["выполнено"]
+_TF = ["истина", "ложь"]
+_LOOP = ["тело выполнялось", "тело ни разу не выполнялось"]
+_HIT = ["выполнен"]
+_ORDER = ["<", "==", ">"]
+_EQ = ["==", "!="]
+_OPS = {"<": 0, "<=": 1, ">": 2, ">=": 3, "==": 4, "!=": 5}
+_LABEL_MAX = 60
 _DECISION_KINDS = ("branch", "cond", "rel")   # removed by strip level 1
 _TYPE_DECLS = (T.ClassDeclaration, T.InterfaceDeclaration, T.EnumDeclaration, T.AnnotationDeclaration)
 _CTOR_CALLS = (T.ExplicitConstructorInvocation, T.SuperConstructorInvocation)
@@ -146,13 +159,16 @@ class _P:
     outcomes: list[str]
     key: tuple[int, int]
     slot: int = -1
+    id: int = -1
 
 
 @dataclass
 class _Ref:
-    """Placeholder in edit text for ``probe.slot + delta`` (known only after numbering)."""
+    """Placeholder in edit text for ``probe.slot + delta`` (or ``probe.id`` with ``attr="id"``),
+    known only after numbering."""
     probe: _P
     delta: int = 0
+    attr: str = "slot"
 
 
 @dataclass
@@ -175,6 +191,7 @@ class _Instrumenter:
         self.tok_at = {(t.position.line, t.position.column): i for i, t in enumerate(tokens)}
         self.edits: list[_Edit] = []
         self.probes: list[_P] = []
+        self.done_q: set[int] = set()       # `?` tokens whose ternary condition is instrumented
 
     # ---- low level -----------------------------------------------------------------------------
     def _doff(self, i: int) -> int:
@@ -213,7 +230,7 @@ class _Instrumenter:
         slot = 0
         probes = []
         for pid, p in enumerate(sorted(self.probes, key=lambda q: q.key)):
-            p.slot = slot
+            p.slot, p.id = slot, pid
             probes.append(Probe(pid, p.kind, p.line, p.method, p.label, p.outcomes, slot))
             slot += len(p.outcomes)
         out, pos = [], 0
@@ -221,7 +238,7 @@ class _Instrumenter:
             if e.start < pos:          # overlapping replacement — never produced by this module
                 raise CoverageUnavailable("Не удалось разобрать код для покрытия: пересекающиеся вставки")
             out.append(self.code[pos:e.start])
-            out.extend(str(x.probe.slot + x.delta) if isinstance(x, _Ref) else x for x in e.parts)
+            out.extend(str(getattr(x.probe, x.attr) + x.delta) if isinstance(x, _Ref) else x for x in e.parts)
             pos = e.end
         out.append(self.code[pos:])
         return "".join(out), probes, slot
@@ -350,6 +367,7 @@ class _Instrumenter:
                 and isinstance(first.expression, _CTOR_CALLS)):
             semi = self.end_tok(first)
             if semi is not None:
+                self.ternaries(self.start_tok(first), semi + 1, ctx)
                 self.expr(first, ctx)
                 at = self.end_off(semi)
                 parts: list = []
@@ -385,50 +403,92 @@ class _Instrumenter:
                 self.edit(at, ["__Cov.h(", _Ref(p), "); "])
         self.inner(s, ctx)
 
-    def body(self, s, ctx: str) -> None:
-        """Body of if/else/loops: an unbraced statement is wrapped in ``{ … }`` to hold its probe."""
-        if s is None or type(s) is T.Statement:
+    def body(self, s, ctx: str, prefix: list | None = None, first: int | None = None) -> None:
+        """Body of if/else/loops: an unbraced statement is wrapped in ``{ … }`` to hold its probe.
+
+        *prefix* (loop entry code) goes first inside the body; *first* is the body's first token
+        (``{`` of a block, ``;`` of an empty statement) when the caller knows it."""
+        if s is None:
+            return
+        if type(s) is T.Statement:                     # empty statement ';'
+            if prefix and first is not None:
+                self.edit(self.off(first), ["{ ", *prefix])
+                self.edit(self.end_off(first), [" }"])
             return
         if isinstance(s, T.BlockStatement) and not s.label:
+            lb = first if first is not None else self.start_tok(s)
+            if prefix and lb is not None:
+                self.edit(self.end_off(lb), [" ", *prefix])
             self.block(s.statements, ctx)
             return
         st, en = self.start_tok(s), self.end_tok(s)
-        p = None
+        wrapped = False
         if st is not None and en is not None:
             at = self.off(st)
             p = self.probe("line", self.line(st), ctx, "", _DONE, at)
-            if p:
-                self.edit(at, ["{ __Cov.h(", _Ref(p), "); "])
+            parts = list(prefix or []) + (["__Cov.h(", _Ref(p), "); "] if p else [])
+            if parts:
+                self.edit(at, ["{ ", *parts])
+                wrapped = True
         self.inner(s, ctx)
-        if p:
+        if wrapped:
             self.edit(self.end_off(en), [" }"])
 
     def inner(self, s, ctx: str) -> None:
-        """Recurse into the parts of statement *s*."""
+        """Recurse into the parts of statement *s* (and put its decision probes)."""
         if isinstance(s, T.IfStatement):
+            kw = self.kw(s, "if")
+            rp = None if kw is None else self.match(kw + 1)
+            if rp is not None:
+                self.decision(kw + 2, rp, ctx, f"if ({self.text(kw + 2, rp)})", self.line(kw))
             self.expr(s.condition, ctx)
             self.body(s.then_statement, ctx)
             self.body(s.else_statement, ctx)
-        elif isinstance(s, T.WhileStatement):
-            self.expr(s.condition, ctx)
-            self.body(s.body, ctx)
+        elif isinstance(s, (T.WhileStatement, T.ForStatement)):
+            self.loop(s, ctx)
         elif isinstance(s, T.DoStatement):
             self.body(s.body, ctx)
+            body_end = self.end_tok(s.body)
+            kw = None if body_end is None else body_end + 1
+            if kw is not None and kw + 1 < len(self.tokens) and self.tokens[kw].value == "while":
+                rp = self.match(kw + 1)
+                if rp is not None and not self.is_true(kw + 2, rp):
+                    self.decision(kw + 2, rp, ctx, f"do…while ({self.text(kw + 2, rp)})", self.line(kw))
             self.expr(s.condition, ctx)
-        elif isinstance(s, T.ForStatement):
-            self.expr(s.control, ctx)
-            self.body(s.body, ctx)
         elif isinstance(s, T.SwitchStatement):
+            kw = self.kw(s, "switch")
+            rp = None if kw is None else self.match(kw + 1)
+            if rp is not None:
+                self.ternaries(kw + 2, rp, ctx)
             self.expr(s.expression, ctx)
             for case in s.cases or []:
+                self.case_probe(case, ctx)
                 self.block(case.statements, ctx)
         elif isinstance(s, T.TryStatement):
+            kw = self.kw(s, "try")
+            if kw is not None and self.tokens[kw + 1].value == "(":
+                rp = self.match(kw + 1)
+                if rp is not None:
+                    self.ternaries(kw + 2, rp, ctx)
             self.expr(s.resources, ctx)
             self.block(s.block, ctx)
-            for c in s.catches or []:
+            catches = s.catches or []
+            braces = self.catch_braces(kw, len(catches)) if kw is not None else []
+            for c, (ck, lb) in zip(catches, braces):
+                types = " | ".join(getattr(c.parameter, "types", None) or [])
+                at = self.end_off(lb)
+                p = self.probe("branch", self.line(ck), ctx, self.short(f"catch ({types})"), _HIT, at)
+                if p:
+                    self.edit(at, [" __Cov.h(", _Ref(p), ");"])
+                self.block(c.block, ctx)
+            for c in catches[len(braces):]:
                 self.block(c.block, ctx)
             self.block(s.finally_block, ctx)
         elif isinstance(s, T.SynchronizedStatement):
+            kw = self.kw(s, "synchronized")
+            rp = None if kw is None else self.match(kw + 1)
+            if rp is not None:
+                self.ternaries(kw + 2, rp, ctx)
             self.expr(s.lock, ctx)
             self.block(s.block, ctx)
         elif isinstance(s, T.BlockStatement):
@@ -436,7 +496,203 @@ class _Instrumenter:
         elif isinstance(s, _TYPE_DECLS):              # local class
             self.type_decl(s, ctx)
         else:
+            st = None if type(s) is T.Statement else self.start_tok(s)
+            en = None if st is None else self.end_tok(s)
+            if en is not None:
+                if isinstance(s, T.AssertStatement):
+                    st += 1
+                self.ternaries(st, en + 1, ctx)
             self.expr(s, ctx)
+
+    # ---- decisions -----------------------------------------------------------------------------
+    def kw(self, s, word: str) -> int | None:
+        """Token index of the keyword *word* that starts statement *s* (after its labels)."""
+        pos = getattr(s, "position", None)
+        i = self.tok_at.get((pos.line, pos.column)) if pos else None
+        while (i is not None and i + 2 < len(self.tokens) and self.tokens[i].value != word
+               and self.tokens[i + 1].value == ":"):
+            i += 2
+        if i is None or self.tokens[i].value != word or i + 1 >= len(self.tokens):
+            return None
+        return i
+
+    def text(self, a: int, b: int) -> str:
+        """Source of tokens [a, b) with whitespace collapsed."""
+        if b <= a:
+            return ""
+        return " ".join(self.code[self.off(a):self.end_off(b - 1)].split())
+
+    @staticmethod
+    def short(label: str) -> str:
+        return label if len(label) <= _LABEL_MAX else label[:_LABEL_MAX - 1] + "…"
+
+    def is_true(self, a: int, b: int) -> bool:
+        return b - a == 1 and self.tokens[a].value == "true"
+
+    def decision(self, a: int, b: int, ctx: str, label: str, line: int, scan: bool = True) -> None:
+        """``if``/``do``/``?:`` condition [a, b): ``__Cov.c(sb, D')``; *scan* — also the ``?:``
+        conditions inside it."""
+        if b <= a:
+            return
+        p = self.probe("branch", line, ctx, self.short(label), _TF, self.off(a))
+        self.condition(a, b, ctx, ["__Cov.c(", _Ref(p), ", "] if p else None)
+        if scan:
+            self.ternaries(a, b, ctx)
+
+    def condition(self, a: int, b: int, ctx: str, head: list | None) -> None:
+        """Wrap the decision [a, b) in *head* … ``)`` and its leaves in cond/rel probes.
+
+        Openings are created outside-in and closings inside-out, so edits at one offset nest."""
+        if head:
+            self.edit(self.off(a), head)
+        root = parse_condition(self.tokens, a, b)
+        logic = has_logic(root)
+        for lf in leaves(root):
+            self.leaf(lf.a, lf.b, ctx, logic)
+        if head:
+            self.edit(self.end_off(b - 1), [")"])
+
+    def leaf(self, a: int, b: int, ctx: str, logic: bool) -> None:
+        """Leaf L of a decision: ``__Cov.c(sc, L')`` when the decision has logic; ``L'`` is
+        ``__Cov.r(sr, op, A, B)`` when L is a comparison."""
+        if b <= a:
+            return
+        at, line = self.off(a), self.line(a)
+        label = self.short(self.text(a, b))
+        pc = self.probe("cond", line, ctx, label, _TF, at) if logic else None
+        if pc:
+            self.edit(at, ["__Cov.c(", _Ref(pc), ", "])
+        rel = split_relation(self.tokens, a, b)
+        if rel:
+            i, op, _ = rel
+            code = _OPS[op]
+            pr = self.probe("rel", line, ctx, label, _EQ if code >= 4 else _ORDER, at)
+            if pr:
+                # unary + for < <= > >= (and ==/!= against a numeric literal, where Java compares
+                # numerically too): boxed operands are unboxed, so a numeric overload is chosen
+                plus = code < 4 or self.num_literal(a, i) or self.num_literal(i + 1, b)
+                self.edit(at, ["__Cov.r(", _Ref(pr), f", {code}, " + ("+(" if plus else "")])
+                self.edit(self.off(i), ["), +(" if plus else ", "], self.end_off(i))
+                self.edit(self.end_off(b - 1), ["))" if plus else ")"])
+        if pc:
+            self.edit(self.end_off(b - 1), [")"])
+
+    def num_literal(self, a: int, b: int) -> bool:
+        """Tokens [a, b) are a numeric/char literal, optionally signed."""
+        if b - a == 2 and self.tokens[a].value in ("-", "+"):
+            a += 1
+        if b - a != 1:
+            return False
+        t = self.tokens[a]
+        if isinstance(t, (javalang.tokenizer.Boolean, javalang.tokenizer.Null)):
+            return False
+        if isinstance(t, javalang.tokenizer.String):      # javalang tokenizes 'c' as String
+            return t.value.startswith("'")
+        return isinstance(t, javalang.tokenizer.Literal)
+
+    def ternaries(self, a: int | None, b: int, ctx: str) -> None:
+        """Branch probes for the ``?:`` conditions in tokens [a, b), skipping block lambdas and
+        anonymous class bodies (their statements are visited on their own)."""
+        if a is None or b <= a:
+            return
+        skips = []
+        j = a
+        while j < b:
+            if self.tokens[j].value == "{" and j > a and self.tokens[j - 1].value in ("->", ")"):
+                end = self.match(j)
+                if end is not None:
+                    skips.append((j, end))
+                    j = end
+            j += 1
+        for ca, q in ternary_conditions(self.tokens, a, b):
+            if q in self.done_q or any(x < q < y for x, y in skips):
+                continue
+            self.done_q.add(q)
+            self.decision(ca, q, ctx, f"?: ({self.text(ca, q)})", self.line(ca), scan=False)
+
+    def loop(self, s, ctx: str) -> None:
+        """``while``/``for``/for-each: branch "body ran / never ran" kept in a ``__cN`` flag."""
+        is_while = isinstance(s, T.WhileStatement)
+        word = "while" if is_while else "for"
+        header = s.condition if is_while else s.control
+        kw = self.kw(s, word)
+        rp = None if kw is None else self.match(kw + 1)
+        st = self.start_tok(s)
+        if rp is None or st is None:
+            self.expr(header, ctx)
+            self.body(s.body, ctx)
+            return
+        each = not is_while and isinstance(s.control, T.EnhancedForControl)
+        ca = cb = None
+        if is_while:
+            ca, cb = kw + 2, rp
+        elif not each:
+            semi1 = self.scan(kw + 2, ";")
+            semi2 = None if semi1 is None else self.scan(semi1 + 1, ";")
+            if semi2 is not None:
+                ca, cb = semi1 + 1, semi2
+        constant = not each and (ca is None or ca >= cb or self.is_true(ca, cb))
+        en = rp + 1 if type(s.body) is T.Statement else self.end_tok(s)
+        p = None
+        if not constant and en is not None:
+            label = self.short(f"{word} ({self.text(kw + 2, rp)})")
+            p = self.probe("branch", self.line(kw), ctx, label, _LOOP, self.off(st))
+        flag = ["__c", _Ref(p, 0, "id")] if p else []
+        if p:
+            self.edit(self.off(st), ["{ boolean ", *flag, " = false; "])
+        if not constant and not each:
+            self.condition(ca, cb, ctx, ["__Cov.lp(", _Ref(p), ", ", *flag, ", "] if p else None)
+        self.ternaries(kw + 2, rp, ctx)
+        self.expr(header, ctx)
+        prefix = ["if (!", *flag, ") { ", *flag, " = true; __Cov.h(", _Ref(p), "); } "] if p else None
+        self.body(s.body, ctx, prefix, rp + 1)
+        if p:
+            tail = [" if (!", *flag, ") __Cov.h(", _Ref(p, 1), "); }"] if each else [" }"]
+            self.edit(self.end_off(en), tail)
+
+    def case_probe(self, case, ctx: str) -> None:
+        """``__Cov.h(s);`` right after the last label of a non-empty case group."""
+        if not case.statements:
+            return
+        st = self.start_tok(case.statements[0])
+        if st is None or st < 1 or self.tokens[st - 1].value != ":":
+            return
+        colon = j = st - 1
+        values: list[str] = []
+        dflt = False
+        while j >= 0 and self.tokens[j].value == ":":
+            k = j - 1
+            while k >= 0 and self.tokens[k].value not in ("case", "default"):
+                k -= 1
+            if k < 0:
+                break
+            if self.tokens[k].value == "default":
+                dflt = True
+            else:
+                values.insert(0, self.text(k + 1, j))
+            j = k - 1
+        if not values and not dflt:
+            return
+        label = f"case {', '.join(values)}" if values else ""
+        if dflt:
+            label = f"{label}, default" if label else "default"
+        at = self.end_off(colon)
+        p = self.probe("branch", self.line(colon), ctx, self.short(label), _HIT, at)
+        if p:
+            self.edit(at, [" __Cov.h(", _Ref(p), ");"])
+
+    def catch_braces(self, kw: int, n: int) -> list[tuple[int, int]]:
+        """(``catch`` token, ``{`` of its block) for the first *n* catch clauses of a try."""
+        out = []
+        end = self.match(self.scan(kw, "{"))
+        while (len(out) < n and end is not None and end + 1 < len(self.tokens)
+               and self.tokens[end + 1].value == "catch"):
+            lb = self.scan(end + 2, "{")
+            if lb is None:
+                break
+            out.append((end + 1, lb))
+            end = self.match(lb)
+        return out
 
     def expr(self, node, ctx: str) -> None:
         """Find block lambdas and anonymous classes inside an expression (or a simple statement)."""

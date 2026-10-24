@@ -321,6 +321,9 @@ def test_read_hits_rejects_symlink(tmp_path):
     secret = tmp_path / "secret.bin"
     secret.write_bytes(bytes(plan.slots * 4))
     plan.data_file.unlink()
-    plan.data_file.symlink_to(secret)
+    try:
+        plan.data_file.symlink_to(secret)
+    except OSError:
+        pytest.skip("symlinks not available")
     assert read_hits(plan) is None
     assert (plan.data_file.parent.stat().st_mode & 0o777) == 0o755

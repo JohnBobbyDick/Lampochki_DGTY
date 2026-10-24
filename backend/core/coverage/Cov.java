@@ -70,6 +70,27 @@ final class __Cov {
         }
     }
 
+    /** float operands compare as float in Java (int == float is not exact as double). */
+    static boolean r(int s, int op, float a, float b) {
+        if (op >= 4) {
+            h(a == b ? s : s + 1);
+        } else if (a < b) {
+            h(s);
+        } else if (a == b) {
+            h(s + 1);
+        } else if (a > b) {
+            h(s + 2);
+        }
+        switch (op) {
+            case 0: return a < b;
+            case 1: return a <= b;
+            case 2: return a > b;
+            case 3: return a >= b;
+            case 4: return a == b;
+            default: return a != b;
+        }
+    }
+
     static boolean r(int s, int op, boolean a, boolean b) {
         h(a == b ? s : s + 1);
         return op == 4 ? a == b : a != b;

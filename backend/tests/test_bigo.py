@@ -105,3 +105,59 @@ def test_generic_catch_and_unused_var():
     ast, b = analyze(code)
     msgs = " | ".join(d.message for d in detect_defects(ast, code, b))
     assert "Общий catch" in msgs and "unused" in msgs and "Неиспользуемый импорт" in msgs
+
+
+# ── stream chains: structural Big O from the steps ─────────────────────────────────────────────
+
+def _stream_cost(body, params="List<Integer> xs, List<Integer> ys, List<List<Integer>> ls, int n"):
+    code = f"import java.util.*; import java.util.stream.*; class A {{ Object f({params}){{ {body} }} }}"
+    ast, b = analyze(code)
+    return b["A.f"]
+
+
+@pytest.mark.parametrize("name, body, expected", [
+    ("map + collect", "List<Integer> r = xs.stream().map(x -> x * 2).collect(Collectors.toList()); return r;", "O(n)"),
+    ("sorted", "List<Integer> r = xs.stream().sorted().collect(Collectors.toList()); return r;", "O(n log n)"),
+    ("filter with List.contains", "return xs.stream().filter(x -> ys.contains(x)).collect(Collectors.toList());", "O(n²)"),
+    ("flatMap", "return ls.stream().flatMap(l -> l.stream()).collect(Collectors.toList());", "O(n²)"),
+    ("chain inside a loop", "long c = 0; for (Integer a : xs) { c += xs.stream().filter(x -> x > a).count(); } "
+     "return c;", "O(n²)"),
+    ("limit does not lower", "return xs.stream().limit(5).collect(Collectors.toList());", "O(n)"),
+    ("IntStream.range", "int s = IntStream.range(0, n).sum(); return s;", "O(n)"),
+    ("assignment target", "List<Integer> r; r = xs.stream().map(x -> x + 1).collect(Collectors.toList()); "
+     "return r;", "O(n)"),
+    ("sorted with comparator", "return xs.stream().sorted((a, b) -> a - b).findFirst();", "O(n log n)"),
+    ("distinct / toSet", "return xs.stream().distinct().collect(Collectors.toSet());", "O(n)"),
+    ("anyMatch with contains", "return xs.stream().anyMatch(x -> ys.contains(x));", "O(n²)"),
+    ("unrecognised chain keeps the regex estimate", "return xs.stream().weird().count();", "O(n)"),
+])
+def test_stream_chain_cost(name, body, expected):
+    assert _stream_cost(body) == expected, name
+
+
+def test_stream_step_calls_a_project_method():
+    code = ("import java.util.*; import java.util.stream.*; class A { "
+            "int q(List<Integer> a){ int t=0; for (Integer x : a) t += x; return t; } "
+            "Object f(List<Integer> xs){ return xs.stream().map(x -> q(xs)).collect(Collectors.toList()); } }")
+    _, b = analyze(code)
+    assert b["A.f"] == "O(n²)"
+
+
+def test_stream_source_and_tail_costs_still_count():
+    code = ("import java.util.*; import java.util.stream.*; class A { "
+            "List<Integer> g(List<Integer> a){ for (Integer x : a) for (Integer y : a) {} return a; } "
+            "Object f(List<Integer> xs){ return g(xs).stream().map(x -> x).count(); } }")
+    _, b = analyze(code)
+    assert b["A.f"] == "O(n²)"
+
+
+def test_monolith_and_demo_estimates_unchanged(read_java):
+    import json
+    import re
+    from pathlib import Path
+    baseline = json.loads((Path(__file__).parent / "data" / "bigo_baseline.json").read_text())
+    for name in ("Analyzer", "Calculator", "Logger", "Store"):
+        assert analyze(read_java(name))[1] == baseline[name], name
+    ts = (Path(__file__).resolve().parents[2] / "frontend" / "src" / "project" / "examples.ts").read_text()
+    demo = re.search(r"export const DEMO = `(.*?)`", ts, re.S).group(1)
+    assert analyze(demo)[1] == baseline["DEMO"]

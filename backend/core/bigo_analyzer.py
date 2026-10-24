@@ -292,10 +292,41 @@ class _Analyzer:
                 costs.append(c)
         return _worst(*costs)
 
+    def _stream_cost(self, cls: dict, method: dict, types: dict[str, str], stream: dict) -> Cost | None:
+        """Cost of a recognised stream chain, step by step (see core/streams.py for the shape).
+
+        The prefix, the source and the terminal's tail are costed as plain text; every step runs once per
+        element, so it costs n × its lambda; `sorted` is n log n × the comparator; `flatMap` multiplies by n
+        (the inner stream it flattens). The chain text itself never reaches _SORT_RE/_LINEAR_CALL_RE.
+        """
+        def text_cost(text: str) -> Cost | None:
+            return self._expr_cost(cls, method, types, text) if text else ZERO
+
+        terminal = stream.get("terminal")
+        costs = [text_cost(stream.get("prefix", "")), text_cost(stream["source"]["text"]), LINEAR]
+        if terminal:
+            costs.append(text_cost(terminal.get("tail", "")))
+        for step in stream.get("ops", []) + ([terminal] if terminal else []):
+            per = text_cost(step.get("args", ""))
+            if per is UNKNOWN:
+                return UNKNOWN
+            if step["name"] == "sorted":
+                costs.append(_mul(NLOGN, per))
+            elif step["name"] == "flatMap":
+                costs.append(_mul(LINEAR, _worst(LINEAR, per)))   # the flattened stream is itself O(n)
+            else:
+                costs.append(_mul(LINEAR, per))
+        if UNKNOWN in costs:
+            return UNKNOWN
+        return _worst(*costs)
+
     def _stmts_cost(self, cls: dict, method: dict, types: dict[str, str], stmts: list[dict]) -> Cost | None:
         worst = ZERO
         for s in stmts:
-            own = [self._expr_cost(cls, method, types, e) for e in _own_exprs(s)]
+            if s.get("stream"):    # the chain is the statement's whole expression: cost it by its steps
+                own = [self._stream_cost(cls, method, types, s["stream"])]
+            else:
+                own = [self._expr_cost(cls, method, types, e) for e in _own_exprs(s)]
             inner = self._stmts_cost(cls, method, types, list(_children(s)))
             if UNKNOWN in own or inner is UNKNOWN:
                 return UNKNOWN

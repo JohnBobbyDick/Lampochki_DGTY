@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { FiTerminal, FiColumns, FiShield, FiCheck, FiX, FiAlertTriangle } from 'react-icons/fi';
+import { FiTerminal, FiColumns, FiShield, FiCheck, FiX, FiAlertTriangle, FiPercent } from 'react-icons/fi';
 import Console from '../Console/Console';
 import RunComparePanel from '../RunComparePanel/RunComparePanel';
 import ChecksPanel from '../ChecksPanel/ChecksPanel';
+import CoveragePanel from '../CoveragePanel/CoveragePanel';
 import { useStore } from '../../store/useStore';
 import { compareVerdict } from '../../utils/verdict';
 
-type Tab = 'console' | 'compare' | 'checks';
+type Tab = 'console' | 'compare' | 'checks' | 'coverage';
 
 const VERDICT_TEXT = { ok: 'пройдена', warn: 'не подтверждена', fail: 'не пройдена' } as const;
 
@@ -31,6 +32,7 @@ const BottomPanel: React.FC = () => {
     { id: 'console', label: 'Консоль', icon: <FiTerminal /> },
     { id: 'compare', label: 'Сравнение', icon: <FiColumns /> },
     { id: 'checks', label: 'Проверка', icon: <FiShield /> },
+    { id: 'coverage', label: 'Покрытие', icon: <FiPercent /> },
   ];
 
   return (
@@ -52,6 +54,7 @@ const BottomPanel: React.FC = () => {
       <div className="bottom-body" style={{ display: tab === 'console' ? 'flex' : 'none' }}><Console /></div>
       {tab === 'compare' && <div className="bottom-body"><RunComparePanel /></div>}
       {tab === 'checks' && <div className="bottom-body"><ChecksPanel /></div>}
+      {tab === 'coverage' && <div className="bottom-body"><CoveragePanel /></div>}
     </>
   );
 };

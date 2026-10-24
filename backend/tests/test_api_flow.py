@@ -140,3 +140,20 @@ def test_generate_edits_stream_step():
     assert ".filter(x -> x >= 0).map((x) -> x * 2).collect(Collectors.toList());" in code
     assert check_compiles(code) == []
     assert run_java(code).stdout.strip() == "[0, 2, 4]"
+
+
+def test_generate_renames_stream_variable():
+    from core.runner import check_compiles
+
+    parse(STREAM_CODE)
+    g = client.get("/api/graph", params={"type": "cfg", "method": "s"}).json()
+    src = next(n for n in g["nodes"] if n["type"] == "stream-source")
+    ret = next(n for n in g["nodes"] if n["label"] == "return r")
+    src["label"] = "List<Integer> q = xs.stream()"
+    ret["label"] = "return q"
+    r = client.post("/api/generate", json={"graph": {"method": "s", "nodes": g["nodes"]}})
+    assert r.status_code == 200, r.text
+    code = r.json()["code"]
+    assert "List<Integer> q = xs.stream().filter((x) -> x > 0)" in code and "= List" not in code
+    assert check_compiles(code) == []
+    assert run_java(code).stdout.strip() == "[2, 4]"

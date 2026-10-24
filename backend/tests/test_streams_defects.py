@@ -164,3 +164,14 @@ def test_streams_demo_has_all_rules_and_stream_nodes(read_java):
         assert any(key in m for m in msgs), key
     m = next(m for c in r["ast"]["classes"] if c["name"] == "Streams" for m in c["methods"] if m["name"] == "expensiveNames")
     assert any(n.type == "stream-op" for n in build_cfg(m)[0])
+
+
+def test_one_line_chain_defect_on_terminal_node():
+    from core.cfg_builder import build_cfg
+
+    code = HEAD + " int m(List<Integer> xs) {\n return xs.stream().filter(v -> v > 0).collect(Collectors.toList()).size();\n }\n}\n"
+    r = parse_java(code)
+    m = r["ast"]["classes"][0]["methods"][0]
+    d = _by(detect_defects(r["ast"], code), "count()")[0]
+    term = next(n for n in build_cfg(m)[0] if n.type == "stream-terminal")
+    assert d.node_id == term.id

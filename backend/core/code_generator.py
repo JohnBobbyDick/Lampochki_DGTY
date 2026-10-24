@@ -144,17 +144,52 @@ def _steps_suffix(ops: list[dict], terminal: dict | None, key: str) -> str:
     return text + ("." + terminal.get(key, terminal["text"]) if terminal else "")
 
 
+_RETURN_HEAD = re.compile(r"^\s*return(?![\w$])")
+
+
+def _has_head(text: str) -> bool:
+    """Whether a source label starts with its own statement head: a leading `return` or a top-level
+    assignment / declaration `=` (also `+=` etc.; not `==`, `!=`, `<=`, `>=`, not inside (), [], {}
+    or string / char literals)."""
+    if _RETURN_HEAD.match(text):
+        return True
+    depth, i, n = 0, 0, len(text)
+    while i < n:
+        c = text[i]
+        if c in "\"'":
+            j = i + 1
+            while j < n and text[j] != c:
+                j += 2 if text[j] == "\\" else 1
+            i = j + 1
+            continue
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+        elif c == "=" and depth == 0:
+            nxt, prev = text[i + 1:i + 2], text[i - 1:i]
+            if nxt != "=" and prev not in ("=", "!") and (prev not in ("<", ">") or text[i - 2:i] in ("<<", ">>")):
+                return True
+            i += 1 if nxt != "=" else 2
+            continue
+        i += 1
+    return False
+
+
 def _compose_edited(stream: dict) -> str:
     """`compose` of a possibly edited chain.
 
     Drops a prefix the user left in the source label, a whole chain pasted into the source label
-    (its ops + terminal, as they are now or were before the edit) and deleted (emptied) ops.
+    (its ops + terminal, as they are now or were before the edit) and deleted (emptied) ops. A source
+    label with a different head of its own (`_has_head`) replaces the old prefix.
     """
-    src = stream["source"]["text"]
-    if stream["prefix"].strip():
-        m = _prefix_re(stream["prefix"]).match(src)
+    src, prefix = stream["source"]["text"], stream["prefix"]
+    if prefix.strip():
+        m = _prefix_re(prefix).match(src)
         if m:
             src = src[m.end():]
+        elif _has_head(src):
+            prefix = ""  # the user rewrote the head (`T q = `, `q = `, `return `): it replaces the old one
     ops, terminal = stream["ops"], stream.get("terminal")
     for key in ("text", "_orig_text"):
         cut = _strip_suffix(src, _steps_suffix(ops, terminal, key))
@@ -162,7 +197,7 @@ def _compose_edited(stream: dict) -> str:
             src = cut
             break
     kept = [op for op in ops if not op.get("_deleted")]
-    return compose({**stream, "source": {**stream["source"], "text": src}, "ops": kept})
+    return compose({**stream, "prefix": prefix, "source": {**stream["source"], "text": src}, "ops": kept})
 
 
 def _render_if(s: dict, level: int, prefix: str) -> list[str]:

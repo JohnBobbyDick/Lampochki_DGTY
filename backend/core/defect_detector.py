@@ -6,7 +6,7 @@ import json
 import re
 
 from core.bigo_analyzer import LOOP_TYPES, _children, _walk_exprs, find_loops
-from core.cfg_builder import build_cfg, max_line
+from core.cfg_builder import build_cfg, build_cfg_with_map, max_line
 from models.schemas import Defect
 
 GENERIC_EXC = {"Exception", "Throwable", "RuntimeException"}
@@ -23,6 +23,19 @@ def _node_id_for_line(method: dict, line: int | None) -> str:
         if n.data.get("line_start") == line and n.type not in ("start", "end"):
             return n.id
     return ""
+
+
+def _node_id_for_part(method: dict, part: dict | None, line: int | None) -> str:
+    """Id of the CFG node built from *part* (a stream source / op / terminal dict), else by *line*."""
+    if part is not None:
+        try:
+            nodes, _, stmt_of = build_cfg_with_map(method)
+        except Exception:  # noqa: BLE001
+            nodes, stmt_of = [], {}
+        for n in nodes:
+            if stmt_of.get(n.id) is part:
+                return n.id
+    return _node_id_for_line(method, line)
 
 
 def _iterable(loop: dict) -> str | None:
@@ -258,9 +271,9 @@ def _stream_defects(ast: dict) -> list[Defect]:
             qname = f"{cls['name']}.{m['name']}"
             body = m.get("body", [])
 
-            def add(line, severity, message, rec, big_o=""):
+            def add(line, severity, message, rec, big_o="", part=None):
                 found.append(Defect(
-                    line_start=line or 0, line_end=line or 0, node_id=_node_id_for_line(m, line),
+                    line_start=line or 0, line_end=line or 0, node_id=_node_id_for_part(m, part, line),
                     method=qname, severity=severity, big_o=big_o, message=message, recommendation=rec,
                 ))
 
@@ -280,7 +293,7 @@ def _stream_defects(ast: dict) -> list[Defect]:
                             f"Повторный стрим по коллекции «{coll}» внутри цикла по ней в {qname} — "
                             f"на каждый элемент коллекция обходится заново",
                             "Вынести стрим из цикла или посчитать результат за один проход (Map/Set) — O(n) вместо O(n²)",
-                            "O(n²)")
+                            "O(n²)", part=st["source"])
 
             for s in _walk_stmts(body):
                 st = s.get("stream")
@@ -292,18 +305,20 @@ def _stream_defects(ast: dict) -> list[Defect]:
                                 and tail.startswith(".size()"):
                             add(term["line"], "hint",
                                 f"Подсчёт элементов через сбор в коллекцию и size() в {qname} — используйте count()",
-                                "Заменить collect(...).size() на count(): список не нужно создавать ради размера")
+                                "Заменить collect(...).size() на count(): список не нужно создавать ради размера",
+                                part=term)
                         if name in ("findFirst", "findAny") and tail.startswith(".isPresent()") \
                                 and ops and ops[-1]["name"] == "filter":
                             add(term["line"], "hint",
                                 f"filter(...).{name}().isPresent() в {qname} — используйте anyMatch(...)",
-                                "Заменить на anyMatch(условие): короче и сразу прекращает обход")
+                                "Заменить на anyMatch(условие): короче и сразу прекращает обход",
+                                part=term)
                         if name == "findFirst" and ops and ops[-1]["name"] == "sorted":
                             add(term["line"], "warning",
                                 f"sorted(...).findFirst() в {qname} сортирует всё ради одного элемента — "
                                 f"используйте min(...)/max(...)",
                                 "Заменить на min(...)/max(...) с компаратором — O(n) вместо O(n log n)",
-                                "O(n log n)")
+                                "O(n log n)", part=term)
                         if name in ("forEach", "forEachOrdered"):
                             args = term["args"]
                             lm = _LAMBDA_PARAMS.match(args)
@@ -313,7 +328,8 @@ def _stream_defects(ast: dict) -> list[Defect]:
                             if lm and any(mm.group(1) not in params for mm in _MUTATE.finditer(args)):
                                 add(term["line"], "hint",
                                     f"forEach в {qname} изменяет внешнюю коллекцию — соберите результат через collect(...)",
-                                    "Заменить forEach(x -> list.add(x)) на collect(Collectors.toList()) и т. п.")
+                                    "Заменить forEach(x -> list.add(x)) на collect(Collectors.toList()) и т. п.",
+                                    part=term)
                 if _is_add_loop(s):
                     add(s.get("line"), "hint",
                         f"Цикл можно заменить стримом в {qname}: xs.stream().filter(...).collect(...)",

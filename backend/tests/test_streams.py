@@ -316,3 +316,40 @@ def test_empty_source_or_terminal_label_keeps_text():
     for key in ("stream-source:List<Integer> r = xs.stream()",
                 "stream-terminal:collect(Collectors.toList())"):
         assert regenerate_method(m, {ids[key]: "  "})[0][0] == _CHAIN_LINE
+
+
+def test_edit_source_head_replaces_prefix():
+    m = _method(_CHAIN)
+    nid = _ids(m)["stream-source:List<Integer> r = xs.stream()"]
+    rest = ".filter((x) -> x > 0).map((x) -> x * 2).collect(Collectors.toList());"
+    for label, head in (("List<Integer> q = xs.stream()", "List<Integer> q = "),
+                        ("Set<Integer> r = xs.stream()", "Set<Integer> r = "),
+                        ("r = xs.stream()", "r = "),
+                        ("return xs.stream()", "return "),
+                        ("List<Integer> q = xs.stream()" + rest, "List<Integer> q = ")):
+        body, _ = regenerate_method(m, {nid: label})
+        assert body[0] == head + "xs.stream()" + rest, label
+
+
+def test_edit_source_head_compiles():
+    from core.runner import check_compiles
+
+    def gen(body_src: str, label: str) -> str:
+        code = ("import java.util.*;\nimport java.util.stream.*;\nclass A {\n"
+                " Object s(List<Integer> xs, List<Integer> r) {\n" + body_src + "\n }\n}\n")
+        m = parse_java(code)["ast"]["classes"][0]["methods"][0]
+        nid = next(n.id for n in build_cfg(m)[0] if n.type == "stream-source")
+        body, _ = regenerate_method(m, {nid: label})
+        return code.replace(body_src, "\n".join(body))
+
+    chain = "List<Integer> p = xs.stream().filter(x -> x > 0).collect(Collectors.toList());\n return p;"
+    code = gen(chain, "List<Integer> q = xs.stream()")
+    assert "List<Integer> q = xs.stream().filter" in code and "= List" not in code
+    assert check_compiles(code.replace("return p;", "return q;")) == []
+    code = gen(chain.replace("toList", "toSet"), "Set<Integer> p = xs.stream()")
+    assert "Set<Integer> p = xs.stream().filter" in code and check_compiles(code) == []
+    # declaration -> assignment to the parameter `r`
+    code = gen("List<Integer> q = xs.stream().filter(x -> x > 0).collect(Collectors.toList());\n return r;",
+               "r = xs.stream()")
+    assert "List<Integer> q" not in code and "\nr = xs.stream().filter" in code
+    assert check_compiles(code) == []

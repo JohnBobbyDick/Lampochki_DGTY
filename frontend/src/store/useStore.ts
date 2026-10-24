@@ -65,6 +65,8 @@ interface AppState {
   aiAuto: boolean;
   aiReviewing: boolean;
   aiReview: AiAnswer | null;
+  /** code the AI must not auto-review again (e.g. the result of an applied AI patch) */
+  reviewSkip: string;
   isLoading: boolean;
   error: string | null;
 
@@ -145,6 +147,7 @@ export const useStore = create<AppState>((set, get) => ({
   })(),
   aiReviewing: false,
   aiReview: null,
+  reviewSkip: '',
   isLoading: false,
   error: null,
 

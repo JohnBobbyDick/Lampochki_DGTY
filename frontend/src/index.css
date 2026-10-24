@@ -301,6 +301,10 @@ kbd { font: 600 0.6875rem var(--font-mono); padding: 1px 6px; border-radius: 6px
 .ace-defect-hint { background: color-mix(in srgb, var(--info) 6%, transparent); box-shadow: inset 2px 0 0 var(--info); }
 .ace-changed { background: color-mix(in srgb, var(--ok) 6%, transparent); box-shadow: inset 2px 0 0 var(--ok); position: absolute; }
 .ace-hover-line { background: var(--accent-soft); position: absolute; }
+.ace_gutter-cell.ace-cov-hit { box-shadow: inset 3px 0 0 var(--ok); }
+.ace_gutter-cell.ace-cov-miss { box-shadow: inset 3px 0 0 var(--err); }
+.ace_gutter-cell.ace-cov-partial { box-shadow: inset 3px 0 0 var(--warn); }
+.ace-cov-tip { position: absolute; z-index: 20; pointer-events: none; max-width: 360px; padding: 4px 8px; font-family: var(--font-sans); font-size: 12px; background: var(--surface-elevated); color: var(--ink); border: 1px solid var(--hairline-strong); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
 
 /* ───────────── Overlays ───────────── */
 .toast { position: fixed; top: calc(var(--header-h) + 10px); left: 50%; transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 10px; background: var(--toast-bg); color: var(--ink); border: 1px solid var(--err);

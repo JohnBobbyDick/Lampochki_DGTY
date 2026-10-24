@@ -7,7 +7,9 @@ import 'ace-builds/src-noconflict/theme-tomorrow_night';
 import 'ace-builds/src-noconflict/theme-tomorrow';
 import 'ace-builds/src-noconflict/ext-language_tools';
 import { useStore } from '../../store/useStore';
+import { useProject } from '../../store/useProject';
 import { useTheme } from '../../hooks/useTheme';
+import { lineStates, LineState } from '../../utils/coverage';
 
 const SEVERITY_TYPE = { error: 'error', warning: 'warning', hint: 'info' } as const;
 
@@ -65,6 +67,57 @@ const JavaEditor: React.FC = () => {
       ed.container.removeEventListener('mouseleave', onLeave);
     };
   }, [setHoveredLine]);
+
+  /* coverage: gutter stripes + hover tooltip, only while the text matches the run */
+  const cov = useProject((s) => s.coverage[s.activeId]);
+  const covStates = useMemo<Map<number, LineState>>(
+    () => (cov && cov.code === code ? lineStates(cov) : new Map()),
+    [cov, code],
+  );
+  const covStatesRef = useRef(covStates);
+  covStatesRef.current = covStates;
+
+  useEffect(() => {
+    const session = ref.current?.editor?.session;
+    if (!session) return;
+    covStates.forEach((st, line) => session.addGutterDecoration(line - 1, `ace-cov-${st.state}`));
+    return () => {
+      covStates.forEach((st, line) => session.removeGutterDecoration(line - 1, `ace-cov-${st.state}`));
+    };
+  }, [covStates]);
+
+  useEffect(() => {
+    const ed = ref.current?.editor;
+    if (!ed) return;
+    const tip = document.createElement('div');
+    tip.className = 'ace-cov-tip';
+    tip.style.display = 'none';
+    ed.container.appendChild(tip);
+    const hide = () => { tip.style.display = 'none'; };
+    const onGutter = (e: any) => {
+      const row = ed.renderer.screenToTextCoordinates(e.clientX, e.clientY).row;
+      const st = covStatesRef.current.get(row + 1);
+      if (!st) { hide(); return; }
+      tip.textContent = st.state === 'miss' ? 'Не выполнялась'
+        : st.state === 'hit' ? `Выполнений: ${st.count}`
+        : `Выполнений: ${st.count} · не пройдено: ${st.missing.join('; ')}`;
+      const box = ed.container.getBoundingClientRect();
+      tip.style.display = 'block';
+      tip.style.left = `${e.clientX - box.left + 12}px`;
+      tip.style.top = `${e.clientY - box.top + 12}px`;
+    };
+    ed.on('guttermousemove' as any, onGutter);
+    ed.on('mouseout' as any, hide);
+    ed.container.addEventListener('mouseleave', hide);
+    ed.on('mousewheel' as any, hide);
+    return () => {
+      ed.off('guttermousemove' as any, onGutter);
+      ed.off('mouseout' as any, hide);
+      ed.off('mousewheel' as any, hide);
+      ed.container.removeEventListener('mouseleave', hide);
+      tip.remove();
+    };
+  }, []);
 
   /* gutter annotations: defects + compile errors */
   const annotations = useMemo(() => {

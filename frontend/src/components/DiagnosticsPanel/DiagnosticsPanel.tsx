@@ -3,6 +3,7 @@ import { FiAlertCircle, FiAlertTriangle, FiInfo, FiCheckCircle, FiZap } from 're
 import { useStore } from '../../store/useStore';
 import { useApi } from '../../hooks/useApi';
 import { classifyBigO } from '../../utils/bigo';
+import BigoChange from '../BigoChange/BigoChange';
 import { LuSparkles } from 'react-icons/lu';
 
 const SEVERITY = {
@@ -20,6 +21,7 @@ const DiagnosticsPanel: React.FC = () => {
   const api = useApi();
   const defects = useStore((s) => s.defects);
   const bigo = useStore((s) => s.bigo);
+  const bigoAfterAi = useStore((s) => s.bigoAfterAi);
   const syntaxErrors = useStore((s) => s.syntaxErrors);
   const compileErrors = useStore((s) => s.compileErrors);
   const aiEnabled = useStore((s) => s.aiEnabled);
@@ -113,6 +115,7 @@ const DiagnosticsPanel: React.FC = () => {
                 <span className="bigo-name" title={m}>{m}</span>
                 <span className="bigo-hint">{c.name}</span>
                 <span className={`bigo-chip ${c.grade}`}>{v}</span>
+                <BigoChange before={v} after={bigoAfterAi[m]} />
               </button>
             );
           })}

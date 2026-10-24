@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { diffLines } from 'diff';
 import { useStore, AiPatch } from '../../store/useStore';
 import { useApi } from '../../hooks/useApi';
+import BigoChange from '../BigoChange/BigoChange';
+import { changedMethods } from '../../utils/bigoChange';
 import { FiXOctagon, FiInfo, FiCheckCircle, FiCheck } from 'react-icons/fi';
 
 /** Diff preview of an AI-suggested edit with an "apply" button; the server re-validates on apply. */
@@ -18,6 +20,11 @@ const PatchView: React.FC<{ patch: AiPatch }> = ({ patch }) => {
           key: `${i}-${j}`, text, kind: part.added ? 'add' : part.removed ? 'del' : 'same',
         })),
       ),
+    [patch],
+  );
+
+  const changes = useMemo(
+    () => changedMethods(patch.bigoBefore ?? {}, patch.bigoAfter ?? {}),
     [patch],
   );
 
@@ -51,6 +58,12 @@ const PatchView: React.FC<{ patch: AiPatch }> = ({ patch }) => {
         <span className="muted">Замена строк {patch.startLine}–{patch.endLine}</span>
         {patch.imports.length > 0 && <span className="muted"> · + import {patch.imports.join(', ')}</span>}
       </div>
+      {changes.map(([m, b, a]) => (
+        <div key={m} className="patch-bigo">
+          <span className="patch-bigo-name" title={m}>{m}</span>
+          <BigoChange before={b} after={a} />
+        </div>
+      ))}
       <pre className="diff-view">
         {rows.map((r) => (
           <div key={r.key} className={`diff-row ${r.kind}`}>

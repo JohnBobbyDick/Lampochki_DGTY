@@ -239,7 +239,7 @@ button, select, input, textarea { font: inherit; }
 .count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: var(--r-pill); background: var(--surface-elevated); color: var(--ink); font-size: 0.6875rem; line-height: 20px; text-align: center; letter-spacing: 0; }
 
 .bigo-list { display: flex; flex-direction: column; gap: 6px; }
-.bigo-row { display: grid; grid-template-columns: 1fr auto; grid-template-areas: 'name chip' 'hint chip'; gap: 2px 12px; align-items: center; text-align: left; width: 100%;
+.bigo-row { display: grid; grid-template-columns: 1fr auto; grid-template-areas: 'name chip' 'hint chip' 'chg chg'; gap: 2px 12px; align-items: center; text-align: left; width: 100%;
   padding: 11px 14px; background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-lg); color: var(--body); cursor: pointer;
   transition: background-color .15s var(--ease), border-color .15s var(--ease), transform .15s var(--ease); }
 @media (hover: hover) { .bigo-row:hover { background: var(--surface-elevated); border-color: var(--hairline-strong); transform: translateY(-1px); } }
@@ -249,6 +249,12 @@ button, select, input, textarea { font: inherit; }
 .bigo-chip.good { color: var(--ok); background: var(--ok-soft); }
 .bigo-chip.ok { color: var(--warn); background: var(--warn-soft); }
 .bigo-chip.bad { color: var(--err); background: var(--err-soft); }
+.bigo-row .bigo-change { grid-area: chg; }
+.bigo-change { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; font-size: 0.75rem; }
+.bigo-arrow { flex: none; color: var(--muted); }
+.bigo-speed { font-weight: 600; white-space: nowrap; } .bigo-speed.better { color: var(--ok); } .bigo-speed.worse { color: var(--err); }
+.patch-bigo { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 6px; }
+.patch-bigo-name { font: 0.75rem var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
 .bigo-chip.unknown { color: var(--muted); background: var(--surface-elevated); }
 
 .state-card { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 20px; border: 1px dashed var(--hairline-strong); border-radius: var(--r-lg); background: var(--surface-soft); }

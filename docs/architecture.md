@@ -20,6 +20,9 @@ Quality Gate: `/quality-gate`, `/decompose/verify` — компиляция + с
 AI-правки: `ai/ai_analyzer.py` (запросы, повторы с `repair.txt`), `ai/patcher.py` (поиск фрагмента, проверка
 «не добавляет новых ошибок»). Эндпоинты: `POST /api/ai/fix` (правка одной ошибки javac), `POST /api/analyze`
 (поле `compileErrors`), `POST /api/files/zip` (zip изменённых файлов проекта, `api/files.py`).
+Big O «было → станет»: `ai/bigo_diff.py` (поля `bigoBefore/bigoAfter` патча), `POST /api/ai/bigo-combined` (несколько
+советов вместе, без LLM). Фронтенд: `utils/speedup.ts` (ускорение при n = 1000), `utils/bigoAfter.ts`,
+`hooks/useBigoAfter.ts` → `useStore.bigoAfterAi`, бейдж `components/BigoChange` в `DiagnosticsPanel` и `PatchView`.
 Фронтенд: история запусков по файлам — `useProject.runs` / `utils/runs.ts`; тесты — `npx vitest run`.
 
 Покрытие: интерактивный запуск (`core/interactive.py`, `/api/ws/run`) компилирует инструментированную копию и после

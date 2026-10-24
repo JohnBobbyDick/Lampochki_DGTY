@@ -76,6 +76,9 @@ the current code. A patch is returned only if it is *applicable*: it adds no com
 (`/api/ai/fix` for a single javac error additionally requires removing the target error). `ai_analyzer._generate_patches`
 re-asks the model up to `REPAIR_ROUNDS` times (`prompts/repair.txt`) when no edit is valid. `/api/ai/fix` takes
 `{code, line, message}`.
+Big O before/after: `ai/bigo_diff.py` fills `AiPatch.bigoBefore/bigoAfter` (affected methods = span intersects the edit
++ methods whose `analyze_ast` label changed; only for valid patches); `POST /api/ai/bigo-combined` (`{code, patches[]}`,
+no LLM) applies several patches together (disjoint in order via `patcher.replace_range`, overlapping → best single).
 
 **Frontend (`frontend/src/`, React 18 + Zustand + React Flow + Ace).** `store/useStore.ts` is the main app state
 (active code, graph, diagnostics); `store/useProject.ts` manages the multi-file project tree (the active file's
@@ -85,6 +88,9 @@ live text lives in `useStore.code`, not in `ProjectFile.code`). `useProject.runs
 accumulate coverage per `ProjectFile.id` by exact code text via `utils/coverage.ts` (`mergeCoverage`, `summarize`,
 `lineStates`, `percent`); any edit resets it for good. `AceEditor` draws gutter stripes + hover tooltip, and the
 BottomPanel tab «Покрытие» (`CoveragePanel`) shows the summary.
+Big O after AI: `utils/speedup.ts` (f(n) ratio at n = 1000, nice rounding), `utils/bigoAfter.ts` + `hooks/useBigoAfter.ts` →
+`useStore.bigoAfterAi` (one applicable advice: `patch.bigoAfter`; ≥2: `/api/ai/bigo-combined`, debounced 400 ms), shown by
+`components/BigoChange` (`utils/bigoChange.ts`) in DiagnosticsPanel's «Сложность методов · Big O» row and `PatchView`.
 `hooks/useApi.ts` wraps all backend calls;
 `hooks/useSync.ts` drives the edit → 500 ms debounce → `/parse` → `/analyze` + `/graph` loop and lays graphs
 out with dagre. `hooks/useAutoReview.ts` fires `/api/ai/review` 5 s after the last edit and cancels on new edits.

@@ -9,7 +9,7 @@
 - [x] **2. Сравнение выводов по файлу (предыдущий ↔ последний запуск)**
 - [x] **3. Выгрузка: текущий файл и zip изменённых**
 - [x] **4. Покрытие кода (аналог JavaScope)**
-- [ ] **5. Сложность «сейчас → после ИИ» и ожидаемое ускорение**
+- [x] **5. Сложность «сейчас → после ИИ» и ожидаемое ускорение**
 - [ ] **6. Stream API и Collectors (Java)**
 - [ ] **7. Python**
 - [ ] **8. C++**
@@ -91,34 +91,23 @@ CoverageRun = { codeHash: str, probes: [Probe], hits: { "<probeId>:<outcome>": c
 **Цель.** В строке «Сложность методов · Big O» видно текущую сложность и сложность после предложенных ИИ правок,
 с ожидаемым ускорением по формуле. Дизайн: раздел 5.
 
-**Подробный план:** `docs/superpowers/plans/2026-10-24-stage5-bigo-after-ai.md` (6 задач). **Состояние (24.10):**
-- [x] Задача 1 плана — Big O «было/станет» в патче (`ai/bigo_diff.py`, `AiPatch.bigoBefore/bigoAfter`) — `d815deb`, ревью пройдено.
-- [x] Задача 2 плана — `POST /api/ai/bigo-combined` (совместное применение советов) — `6fd3909`, `1f383e6`, ревью пройдено.
-- [x] Задача 3 плана — `frontend/src/utils/speedup.ts` (ожидаемое ускорение) — `eaba4dc`, ревью пройдено.
-- [ ] **Задача 4 плана — продолжать отсюда** (`utils/bigoAfter.ts`, `hooks/useBigoAfter.ts`, `useApi.bigoCombined`,
-  `useStore.bigoAfterAi`); затем задачи 5 (бейдж в UI) и 6 (документация), потом финальное ревью этапа.
-- Заметки для продолжения: в Task 4 для ранжирования меток переиспользовать разбор из `utils/speedup.ts` (не писать
-  третий парсер); `Analyzer.main` остаётся `O(n²)` после правки одного `mergeItems` (зовёт ещё пузырьковый `sortByValue`)
-  — это верно. Отложенные мелочи: 4 разбора кода на каждый валидный патч; у `/api/ai/bigo-combined` нет лимитов на размер
-  кода и число патчей; патч, чей результат не парсится, получил бы лучший ранг (фронт шлёт только валидные).
-- Windows: тесты бэкенда — `backend/.venv/Scripts/python.exe` и JDK в `PATH` (`backend/venv` — от macOS).
+**Подробный план:** `docs/superpowers/plans/2026-10-24-stage5-bigo-after-ai.md` (6 задач, все выполнены, 24.10).
 
 **Задачи.**
-- [ ] **5.1 Big O для патча (бэкенд).** В `ai/patcher.build_patch` после валидной проверки: `analyze_ast(parse_java(patched)["ast"])`
-  vs `analyze_ast` исходника → поля патча `bigo_before: {method: O}`, `bigo_after: {method: O}` только для методов, у которых
-  изменилась строка (или чей спан пересекает правку). Схема `AiPatch` + camelCase. Тест: патч `mergeItems` (вложенный цикл →
-  HashMap) даёт `O(n²)` → `O(n)`.
-- [ ] **5.2 Ожидаемое ускорение.** `frontend/src/utils/speedup.ts`: `speedup(before: string, after: string, n = 1000): {factor: number | null, label: string, worse: boolean}`.
-  Оценка `f(n)` для классов: 1, log n, n, n log n, n², n³, 2ⁿ, n! (как в `utils/bigo.ts`); `factor = f_before/f_after`;
-  округление к ~2×, ~5×, ~10×, ~100×, ~1000× (ближайшее «красивое»); та же сложность → `null`; хуже → `worse=true`.
-  vitest на таблицу случаев.
-- [ ] **5.3 «После ИИ» по методу.** `frontend/src/utils/bigoAfter.ts`: из текущих применимых советов (`aiReview.items` + `ai.patch`)
-  собрать для каждого метода лучший `bigo_after`. Несколько непересекающихся советов на один метод — сервер считает совместное
-  применение: новый эндпоинт `POST /api/ai/bigo-combined {code, patches[]}` → применяет по очереди через `patcher.replace_range`
-  (сдвиги строк), при пересечении спанов берёт патч с лучшей сложностью, возвращает `{method: O}`. Тесты бэкенда.
-- [ ] **5.4 UI.** `DiagnosticsPanel` строка метода: `O(n²) → O(n) · ~1000× быстрее` (тултип «при n ≈ 1000»); красным, если хуже;
-  без «быстрее» при той же сложности. Тот же бейдж в `PatchView` рядом с diff.
-- [ ] **5.5 Документация + проверка.**
+- [x] **1. Big O «было/станет» в патче (бэкенд).** `ai/bigo_diff.py`, `AiPatch.bigoBefore/bigoAfter` для затронутых методов — `d815deb`.
+- [x] **2. `POST /api/ai/bigo-combined`.** Совместное применение советов (непересекающиеся по очереди, при пересечении — лучший одиночный) — `6fd3909`, `1f383e6`.
+- [x] **3. `frontend/src/utils/speedup.ts`.** Ожидаемое ускорение по формуле при n = 1000, «красивое» округление — `eaba4dc`.
+- [x] **4. «После ИИ» по методу.** `utils/bigoAfter.ts`, `hooks/useBigoAfter.ts`, `useApi.bigoCombined`, `useStore.bigoAfterAi` — `afa6423`.
+- [x] **5. Бейдж в UI.** `components/BigoChange` + `utils/bigoChange.ts` в строке «Сложность методов · Big O» (`DiagnosticsPanel`) и в `PatchView` — `3b19a52`.
+- [x] **6. Документация и отметки.** README, CLAUDE.md, `docs/architecture.md`, этот файл.
+
+**Отложенные мелочи:**
+- 4 разбора кода на каждый валидный патч.
+- У `/api/ai/bigo-combined` нет лимитов на размер кода и число патчей.
+- `useBigoAfter` перезапрашивает на каждое нажатие клавиши при ≥2 советах (мигание).
+- Пустой ответ `{}` эндпоинта стирает запасной вариант.
+- Пустая строка сетки `.bigo-row` даёт лишний отступ.
+- Windows: тесты бэкенда — `backend/.venv/Scripts/python.exe` и JDK в `PATH` (`backend/venv` — от macOS).
 
 ---
 

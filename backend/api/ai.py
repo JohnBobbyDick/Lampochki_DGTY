@@ -3,11 +3,11 @@ from fastapi import APIRouter, Request
 import asyncio
 
 import state
-from ai import ai_analyzer, llm_client, patcher
+from ai import ai_analyzer, bigo_diff, llm_client, patcher
 from core.decomposer import decompose as run_decompose
 from core.bigo_analyzer import analyze_ast
 from core.defect_detector import detect_defects
-from models.schemas import (AiApplyRequest, AiApplyResponse, AiDecomposeResponse, AiReviewRequest, AiReviewResponse, AiExplainRequest, AiExplainResponse, AiFixRequest, AiStatus,
+from models.schemas import (AiBigoCombinedRequest, AiBigoCombinedResponse, AiApplyRequest, AiApplyResponse, AiDecomposeResponse, AiReviewRequest, AiReviewResponse, AiExplainRequest, AiExplainResponse, AiFixRequest, AiStatus,
                             AiSuggestRequest, AiSuggestResponse)
 
 router = APIRouter(prefix="/ai")
@@ -76,3 +76,10 @@ async def apply(req: AiApplyRequest) -> AiApplyResponse:
     """Replace the suggested fragment in the *current* code, after re-validating the result."""
     p = req.patch
     return AiApplyResponse(**await patcher.apply_patch(req.code, p.old_code, p.new_code, p.imports, p.start_line))
+
+
+@router.post("/bigo-combined", response_model=AiBigoCombinedResponse)
+def bigo_combined(req: AiBigoCombinedRequest) -> AiBigoCombinedResponse:
+    """Big O of the affected methods if several suggestions are applied together (no LLM, no session state)."""
+    patches = [p.model_dump() for p in req.patches]
+    return AiBigoCombinedResponse(bigo=bigo_diff.combined_bigo(req.code, patches))

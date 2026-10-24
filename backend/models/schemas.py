@@ -183,6 +183,15 @@ class AiPatch(CamelModel):
     bigo_after: dict[str, str] = Field(default_factory=dict)
 
 
+class AiBigoCombinedRequest(CamelModel):
+    code: str
+    patches: list[AiPatch] = Field(default_factory=list)
+
+
+class AiBigoCombinedResponse(CamelModel):
+    bigo: dict[str, str] = Field(default_factory=dict)
+
+
 class AiApplyRequest(CamelModel):
     code: str = Field(..., description="Current editor content")
     patch: AiPatch

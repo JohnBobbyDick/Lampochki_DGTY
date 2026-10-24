@@ -145,7 +145,7 @@ class _CFGBuilder:
             "BreakStatement": self._process_break,
             "ContinueStatement": self._process_continue,
         }
-        if stype == "BlockStatement":
+        if stype in ("BlockStatement", "WithStatement"):  # Python `with`: CFG labels come in Task 4
             return self._process_block(stmt.get("body", []), tails)
         handler = handlers.get(stype)
         if handler:

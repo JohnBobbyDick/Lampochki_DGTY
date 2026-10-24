@@ -20,7 +20,7 @@ NLOGN: Cost = (1, 1)
 EXP: Cost = (99, 0)          # exponential; dominates everything
 UNKNOWN = None               # mutual / unclassified recursion
 
-_EXPR_KEYS = ("expression", "condition", "control", "initializer", "raw")
+_EXPR_KEYS = ("expression", "condition", "control", "initializer", "raw", "items")
 _BODY_KEYS = ("body", "then", "else", "finally", "cases", "catches")
 _KEYWORDS = {"if", "for", "while", "switch", "catch", "return", "new", "synchronized", "super", "this", "throw"}
 

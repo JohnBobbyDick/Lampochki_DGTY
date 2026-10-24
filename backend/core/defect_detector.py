@@ -240,7 +240,7 @@ def _loop_collection(loop: dict) -> str | None:
 def _unwrap(stmts: list[dict]) -> list[dict]:
     out: list[dict] = []
     for s in stmts:
-        if s.get("type") == "BlockStatement":
+        if s.get("type") in ("BlockStatement", "WithStatement"):
             out.extend(_unwrap(s.get("body", [])))
         else:
             out.append(s)

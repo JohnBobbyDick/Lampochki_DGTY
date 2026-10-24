@@ -33,7 +33,7 @@ def collect_calls(stmts) -> list[tuple[str | None, str]]:
     def walk(o) -> None:
         if isinstance(o, dict):
             for k, v in o.items():
-                if isinstance(v, str) and k in ("expression", "condition", "control", "initializer", "raw"):
+                if isinstance(v, str) and k in ("expression", "condition", "control", "initializer", "raw", "items"):
                     scan(v)
                 elif isinstance(v, (dict, list)):
                     walk(v)

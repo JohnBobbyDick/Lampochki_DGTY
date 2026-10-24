@@ -53,8 +53,23 @@ def method_names(ast: dict) -> list[str]:
 
 
 def find_method(ast: dict, ref: str | None) -> tuple[dict, dict] | None:
-    """Resolve 'Class.method' / 'method' (or the first method with a body)."""
-    cls_name, _, name = (ref or "").rpartition(".")
+    """Resolve 'Class.method' / 'method' (or the first method with a body).
+
+    Python nested defs are methods named 'outer.inner', so 'Module.outer.inner' is split after the
+    class name (first dot) when such a class exists; otherwise by the last dot as before."""
+    ref = ref or ""
+    head, dot, tail = ref.partition(".")
+    if dot and any(c.get("name") == head for c in ast.get("classes", [])):
+        cls_name, name = head, tail
+    else:
+        cls_name, _, name = ref.rpartition(".")
+    found = _find(ast, ref, cls_name, name)
+    if found is None and "." in ref:  # 'outer.inner' as listed by method_names() for Module
+        found = _find(ast, ref, "", ref)
+    return found
+
+
+def _find(ast: dict, ref: str, cls_name: str, name: str) -> tuple[dict, dict] | None:
     for cls in ast.get("classes", []):
         if cls_name and cls["name"] != cls_name and cls["name"] not in ("Module", ""):
             continue

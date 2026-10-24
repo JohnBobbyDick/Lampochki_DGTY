@@ -5,19 +5,24 @@ import { useStore } from '../../store/useStore';
 import { useProject } from '../../store/useProject';
 import { downloadFile } from '../../utils/download';
 
-/** Open files above the editor. */
+/** Open files above the editor, showing only tabs for the active language. */
 const FileTabs: React.FC = () => {
-  const files = useProject((s) => s.files);
+  const language = useStore((s) => s.language);
+  const allFiles = useProject((s) => s.files);
   const openIds = useProject((s) => s.openIds);
   const activeId = useProject((s) => s.activeId);
   const open = useProject((s) => s.open);
   const close = useProject((s) => s.close);
   const live = useStore((s) => s.code);
 
+  const visibleIds = openIds.filter((id) =>
+    language === 'python' ? id.endsWith('.py') : id.endsWith('.java')
+  );
+
   return (
     <nav className="file-tabs" aria-label="Открытые файлы">
-      {openIds.map((id) => {
-        const f = files.find((x) => x.id === id);
+      {visibleIds.map((id) => {
+        const f = allFiles.find((x) => x.id === id);
         if (!f) return null;
         const active = id === activeId;
         const dirty = (active ? live : f.code) !== f.original;
@@ -32,7 +37,7 @@ const FileTabs: React.FC = () => {
               <button className="file-tab-close" aria-label={`Скачать ${f.name}`} title="Скачать файл"
                       onClick={() => downloadFile(f.name, live)}><FiDownload /></button>
             )}
-            {openIds.length > 1 && (
+            {visibleIds.length > 1 && (
               <button className="file-tab-close" aria-label={`Закрыть ${f.name}`} onClick={() => close(id)}><FiX /></button>
             )}
           </div>

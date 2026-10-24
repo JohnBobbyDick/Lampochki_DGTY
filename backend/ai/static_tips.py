@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-TIPS: list[tuple[str, str, str]] = [
+TIPS_JAVA: list[tuple[str, str, str]] = [
     ("повторный стрим",
      "Стрим по той же коллекции внутри цикла по ней обходит её заново на каждом шаге — O(n²). Вынесите стрим из цикла "
      "или посчитайте всё за один проход (например, сгруппируйте в Map заранее).",
@@ -54,13 +54,41 @@ TIPS: list[tuple[str, str, str]] = [
      "помогает мемоизация или итеративная версия.", ""),
 ]
 
+TIPS_PYTHON: list[tuple[str, str, str]] = [
+    ("повторная обработка пар",
+     "Вложенный цикл по одной коллекции сравнивает каждый элемент с каждым — O(n²). Если сравниваются по ключу "
+     "(например, id), достаточно одного прохода со словарем dict: элементы с одинаковым ключом группируются за один проход O(n).",
+     "from collections import defaultdict\nby_id = defaultdict(list)\nfor item in items:\n    by_id[item.id].append(item)"),
+    ("вложенные циклы",
+     "Глубина вложенности циклов определяет полиномиальную сложность O(n²). Попробуйте заменить внутренний линейный поиск на поиск в set или dict (O(1)), "
+     "или отсортировать данные один раз.", ""),
+    ("пустой catch",
+     "Пустой except скрывает ошибку: программа продолжит работу с некорректным состоянием. "
+     "Как минимум залогируйте исключение или перехватывайте конкретный тип ошибки.",
+     "try:\n    # ...\nexcept ValueError as exc:\n    print(f'Ошибка: {exc}', file=sys.stderr)"),
+    ("общий catch",
+     "except Exception: ловит слишком широкий круг ошибок, включая ошибки логики. "
+     "Укажите конкретные типы исключений (ValueError, KeyError, OSError).", ""),
+    ("не используется",
+     "Неиспользуемая переменная засоряет код. Удалите её или замените на '_' при распаковке кортежей.", ""),
+    ("неиспользуемый импорт", "Удалите неиспользуемый import — он замедляет инициализацию и загромождает модуль.", ""),
+    ("дублирование",
+     "Одинаковые участки кода вынесите в отдельную функцию или хелпер.", ""),
+    ("рекурсия",
+     "Для рекурсии в Python помните о лимите глубины стека. Для задач с повторяющимися подзадачами используйте "
+     "@functools.lru_cache (мемоизацию) или итеративный алгоритм.", ""),
+]
+
+TIPS = TIPS_JAVA    # backwards-compatible name
+
 DEFAULT = ("Подробного совета в базе паттернов нет. Следуйте рекомендации анализатора; для детального разбора "
            "включите AI (LLM_ENABLED=true и GEMINI_API_KEY).", "")
 
 
-def tip_for(message: str, recommendation: str = "") -> tuple[str, str]:
+def tip_for(message: str, recommendation: str = "", language: str = "java") -> tuple[str, str]:
     low = message.lower()
-    for key, text, code in TIPS:
+    tips = TIPS_PYTHON if (language or "").lower() == "python" else TIPS_JAVA
+    for key, text, code in tips:
         if key in low:
             return text, code
     return (recommendation or DEFAULT[0]), DEFAULT[1]

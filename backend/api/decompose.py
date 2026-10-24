@@ -7,7 +7,7 @@ from fastapi.responses import Response
 import state
 from core.comparator import compare_runs
 from core.decomposer import decompose as run_decompose
-from core.runner import detect_main_class, run_files, run_java
+from core.runner import detect_main_class, run_files, run_code
 from models.schemas import DecomposeRequest, DecomposeResponse, QualityGateResponse
 
 router = APIRouter()
@@ -15,13 +15,13 @@ router = APIRouter()
 
 @router.post("/decompose", response_model=DecomposeResponse)
 def decompose(req: DecomposeRequest | None = None) -> DecomposeResponse:
-    s = state.require(req.code if req else None)
+    s = state.require(req.code if req else None, req.language if req else None)
     return run_decompose(s.code, s.ast)
 
 
 @router.post("/decompose/zip")
 def decompose_zip(req: DecomposeRequest | None = None) -> Response:
-    s = state.require(req.code if req else None)
+    s = state.require(req.code if req else None, req.language if req else None)
     result = run_decompose(s.code, s.ast)
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
@@ -34,13 +34,16 @@ def decompose_zip(req: DecomposeRequest | None = None) -> Response:
 @router.post("/decompose/verify", response_model=QualityGateResponse)
 def decompose_verify(req: DecomposeRequest | None = None) -> QualityGateResponse:
     """Quality gate for a decomposition: original vs. multi-file result."""
-    s = state.require(req.code if req else None)
+    s = state.require(req.code if req else None, req.language if req else None)
     result = run_decompose(s.code, s.ast)
     if not result.files:
         return QualityGateResponse(passed=False, details={"reason": "нечего выделять", "warnings": result.warnings})
-    main = detect_main_class(s.code)
-    before = run_java(s.code, main)
-    after = run_files({f.name: f.code for f in result.files}, main or result.files[0].name[:-5])
+    if s.language == "python":
+        main = "main"     # run_files → main.py (the decomposed entry module)
+    else:
+        main = detect_main_class(s.code) or result.files[0].name[:-5]
+    before = run_code(s.code, main, language=s.language)
+    after = run_files({f.name: f.code for f in result.files}, main)
     cmp = compare_runs(before, after)
     return QualityGateResponse(
         passed=cmp.behavior_preserved,

@@ -1,9 +1,8 @@
-"""Suggest and build a decomposition of a monolithic class into several files.
+"""Suggest and build a decomposition of a monolithic class/module into several files.
 
-Only *static* methods are moved (they have no instance state, so moving is
-behaviour-preserving).  Nested static classes become top-level files.  The
-original class stays as a facade that keeps ``main`` and everything that could
-not be moved, with call sites rewritten to ``Group.method(...)``.
+Supports both Java and Python:
+- In Java: static methods are moved into new classes (e.g. MathOps.java, Parser.java).
+- In Python: functions are moved into separate modules (e.g. mathops.py, parser.py) and imported in main.py.
 """
 
 from __future__ import annotations
@@ -37,7 +36,7 @@ def _group_of(name: str) -> str | None:
 def _comment_start(lines: list[str], start: int) -> int:
     """Pull in contiguous comment lines directly above a declaration (1-based)."""
     i = start - 1
-    while i >= 1 and lines[i - 1].strip().startswith(("//", "/*", "*", "*/")):
+    while i >= 1 and lines[i - 1].strip().startswith(("//", "/*", "*", "*/", "#")):
         i -= 1
     return i
 
@@ -55,7 +54,7 @@ def _imports_for(ast: dict, body: str) -> str:
 
 
 def plan(ast: dict) -> tuple[dict, dict[str, list[dict]], list[dict], list[str]]:
-    """Choose the monolith class and group its movable static methods."""
+    """Choose the monolith class and group its movable methods."""
     warnings: list[str] = []
     classes = ast.get("classes", [])
     if not classes:
@@ -63,11 +62,15 @@ def plan(ast: dict) -> tuple[dict, dict[str, list[dict]], list[dict], list[str]]
     # the monolith: top-level (non-nested) class with the most methods
     nested = {i["name"] for c in classes for i in c.get("inner_classes", [])}
     top = [c for c in classes if c["name"] not in nested] or classes
-    mono = max(top, key=lambda c: len(c["methods"]))
+    mono = max(top, key=lambda c: len(c.get("methods", [])))
 
+    is_py = ast.get("language") == "python"
     calls = resolve_calls(ast)
-    movable = [m for m in mono["methods"] if "static" in m["modifiers"] and m["name"] != "main"]
-    for m in mono["methods"]:
+    movable = [
+        m for m in mono.get("methods", [])
+        if (is_py or "static" in m.get("modifiers", [])) and m["name"] != "main"
+    ]
+    for m in mono.get("methods", []):
         if m not in movable and m["name"] != "main":
             warnings.append(f"Метод {m['name']} не static — оставлен в {mono['name']}")
 
@@ -84,7 +87,7 @@ def plan(ast: dict) -> tuple[dict, dict[str, list[dict]], list[dict], list[str]]
         neighbours += [k for k, v in calls.items() if key in v]
         votes: dict[str, int] = {}
         for n in neighbours:
-            nm = n.split(".", 1)[1]
+            nm = n.split(".", 1)[-1]
             for g, ms in groups.items():
                 if any(x["name"] == nm for x in ms):
                     votes[g] = votes.get(g, 0) + 1
@@ -97,10 +100,45 @@ def plan(ast: dict) -> tuple[dict, dict[str, list[dict]], list[dict], list[str]]
     return mono, groups, mono.get("inner_classes", []), warnings
 
 
+def _decompose_python(code: str, ast: dict, mono: dict, groups: dict, warnings: list[str]) -> DecomposeResponse:
+    lines = code.split("\n")
+    move_map = {m["name"]: g for g, ms in groups.items() for m in ms}
+    files: list[DecomposedFile] = []
+    removed_spans: list[tuple[int, int]] = []
+
+    for g, ms in groups.items():
+        g_name = g.lower()
+        parts = []
+        for m in ms:
+            s_idx = max(0, m["span"]["start"] - 1)
+            e_idx = min(len(lines), m["span"]["end"])
+            parts.append("\n".join(lines[s_idx:e_idx]))
+            removed_spans.append((m["span"]["start"], m["span"]["end"]))
+        content = "\n\n".join(parts) + "\n"
+        files.append(DecomposedFile(name=f"{g_name}.py", methods=[m["name"] for m in ms], code=content))
+
+    # Main facade
+    main_lines = list(lines)
+    for s, e in sorted(removed_spans, reverse=True):
+        del main_lines[s - 1: e]
+
+    imports_added = []
+    for g, ms in groups.items():
+        imports_added.append(f"from {g.lower()} import {', '.join(m['name'] for m in ms)}")
+    import_header = "\n".join(imports_added) + "\n\n" if imports_added else ""
+    facade_code = import_header + "\n".join(main_lines)
+    files.insert(0, DecomposedFile(name="main.py", methods=[m["name"] for m in mono["methods"] if m["name"] not in move_map], code=facade_code))
+
+    return DecomposeResponse(files=files, warnings=warnings)
+
+
 def decompose(code: str, ast: dict) -> DecomposeResponse:
     mono, groups, inner, warnings = plan(ast)
     if not mono or len(groups) < 1:
         return DecomposeResponse(files=[], warnings=warnings + ["Нечего выделять"])
+
+    if ast.get("language") == "python":
+        return _decompose_python(code, ast, mono, groups, warnings)
 
     lines = code.split("\n")
     facade = mono["name"]
@@ -112,7 +150,7 @@ def decompose(code: str, ast: dict) -> DecomposeResponse:
                 new += "X"
             groups[new] = groups.pop(g)
     move_map = {m["name"]: g for g, ms in groups.items() for m in ms}
-    static_fields = [f for f in mono["fields"] if "static" in f["modifiers"]]
+    static_fields = [f for f in mono.get("fields", []) if "static" in f.get("modifiers", [])]
     field_names = {f["name"] for f in static_fields}
 
     def rewrite(text: str) -> str:
@@ -131,15 +169,16 @@ def decompose(code: str, ast: dict) -> DecomposeResponse:
     def method_text(m: dict) -> tuple[str, str]:
         start = _comment_start(lines, m["span"]["start"])
         chunk = lines[start - 1: m["span"]["end"]]
-        # split header/body so the declaration itself is never rewritten
-        bo = m["body_open"]
+        bo = m.get("body_open")
+        if not bo:
+            return "", "\n".join(chunk)
         hdr_len = bo["line"] - start + 1
         header, body = chunk[:hdr_len], chunk[hdr_len:]
         header[-1], tail = header[-1][: bo["col"]], header[-1][bo["col"]:]
         return "\n".join(header), tail + "\n" + "\n".join(body)
 
     kept_static = {
-        m["name"] for m in mono["methods"] if m["name"] not in move_map and "static" in m["modifiers"]
+        m["name"] for m in mono["methods"] if m["name"] not in move_map and "static" in m.get("modifiers", [])
     }
     files: list[DecomposedFile] = []
 
@@ -178,8 +217,8 @@ def decompose(code: str, ast: dict) -> DecomposeResponse:
     for f in static_fields:
         if any(re.search(rf"(?<![\w.]){f['name']}\b", c.code) for c in files):
             facade_text = re.sub(rf"\bprivate(\s+(?:static|final|\s)*[\w<>\[\], ]+\s+{f['name']}\b)", r"\1", facade_text, count=1)
-    files.insert(0, DecomposedFile(
-        name=f"{facade}.java", methods=[m["name"] for m in mono["methods"] if m["name"] not in move_map],
-        code=facade_text if facade_text.endswith("\n") else facade_text + "\n",
-    ))
+
+    files.insert(0, DecomposedFile(name=f"{facade}.java",
+                                  methods=[m["name"] for m in mono["methods"] if m["name"] not in move_map],
+                                  code=facade_text + "\n"))
     return DecomposeResponse(files=files, warnings=warnings)

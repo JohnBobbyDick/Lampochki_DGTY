@@ -20,13 +20,13 @@
   --muted-soft: #5a5a5a;
   --hover: rgba(255, 255, 255, .06);
 
-  --accent: #faff69;
-  --accent-hover: #fcff8f;
-  --accent-active: #e6eb52;
-  --accent-ink: #faff69;           /* accent used as text / border / icon */
-  --on-accent: #0a0a0a;
-  --accent-soft: rgba(250, 255, 105, .12);
-  --accent-line: rgba(250, 255, 105, .28);
+  --accent: #f97316;
+  --accent-hover: #fb923c;
+  --accent-active: #ea580c;
+  --accent-ink: #fb923c;           /* accent used as text / border / icon */
+  --on-accent: #ffffff;
+  --accent-soft: rgba(249, 115, 22, .15);
+  --accent-line: rgba(249, 115, 22, .35);
 
   --ok: #22c55e;   --ok-soft: rgba(34, 197, 94, .14);
   --warn: #f59e0b; --warn-soft: rgba(245, 158, 11, .14);
@@ -40,7 +40,7 @@
 
   /* graph */
   --graph-bg: #0d0d0d; --graph-dot: #2a2a2a;
-  --k-start: #2dd4bf; --k-end: #f472b6; --k-cond: #faff69; --k-loop: #60a5fa;
+  --k-start: #2dd4bf; --k-end: #f472b6; --k-cond: #fb923c; --k-loop: #60a5fa;
   --k-try: #a78bfa; --k-stmt: #a3a3a3; --k-call: #60a5fa; --k-class: #60a5fa;
   --k-stream: #fb923c;
   color-scheme: dark;
@@ -59,13 +59,13 @@
   --muted-soft: #9a9a92;
   --hover: rgba(10, 10, 10, .05);
 
-  --accent: #faff69;
-  --accent-hover: #f1f64f;
-  --accent-active: #e6eb52;
-  --accent-ink: #5f6200;
-  --on-accent: #0a0a0a;
-  --accent-soft: rgba(160, 165, 0, .13);
-  --accent-line: rgba(95, 98, 0, .35);
+  --accent: #ea580c;
+  --accent-hover: #c2410c;
+  --accent-active: #9a3412;
+  --accent-ink: #c2410c;
+  --on-accent: #ffffff;
+  --accent-soft: rgba(234, 88, 12, .12);
+  --accent-line: rgba(194, 65, 12, .35);
 
   --ok: #166534;   --ok-soft: rgba(22, 101, 52, .10);
   --warn: #92400e; --warn-soft: rgba(146, 64, 14, .10);
@@ -78,7 +78,7 @@
   --shadow-pop: 0 12px 32px rgba(10, 10, 10, .14), 0 0 0 1px var(--hairline);
 
   --graph-bg: #f5f5f0; --graph-dot: #d6d6cc;
-  --k-start: #0f766e; --k-end: #be185d; --k-cond: #5f6200; --k-loop: #1d4ed8;
+  --k-start: #0f766e; --k-end: #be185d; --k-cond: #ea580c; --k-loop: #1d4ed8;
   --k-try: #6d28d9; --k-stmt: #57574f; --k-call: #2563eb; --k-class: #2563eb;
   --k-stream: #b45309;
   color-scheme: light;
@@ -605,3 +605,96 @@ dialog.modal[open] { animation: pop-in .2s var(--ease); }
   font: 600 0.6875rem/1.6 var(--font-sans); white-space: nowrap; }
 .g-handle-side { opacity: 0; pointer-events: none; }
 .legend-back b { width: 14px; height: 0; border-top: 2px dashed #4f8ef7; }
+
+
+/* language toggle in header */
+.lang-toggle {
+  display: inline-flex;
+  background: var(--surface-soft);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  padding: 2px;
+  gap: 2px;
+}
+.lang-toggle button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: 600 0.75rem/1.2 var(--font-sans);
+  padding: 4px 8px;
+  border-radius: calc(var(--r-sm) - 2px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.lang-toggle button:hover {
+  color: var(--ink);
+}
+.lang-toggle button.active {
+  background: var(--surface-elevated);
+  color: var(--accent-ink);
+  border: 1px solid var(--accent-line);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* ───────────── Language Palettes (Java = Orange, Python = Blue) ───────────── */
+/* Java palette: warm vibrant orange */
+:root[data-lang='java'],
+.app[data-lang='java'] {
+  --accent: #f97316;
+  --accent-hover: #fb923c;
+  --accent-active: #ea580c;
+  --accent-ink: #fb923c;
+  --on-accent: #ffffff;
+  --accent-soft: rgba(249, 115, 22, .15);
+  --accent-line: rgba(249, 115, 22, .35);
+  --k-cond: #fb923c;
+}
+
+:root[data-lang='java'][data-theme='light'],
+:root[data-theme='light'] .app[data-lang='java'] {
+  --accent: #ea580c;
+  --accent-hover: #c2410c;
+  --accent-active: #9a3412;
+  --accent-ink: #c2410c;
+  --on-accent: #ffffff;
+  --accent-soft: rgba(234, 88, 12, .12);
+  --accent-line: rgba(194, 65, 12, .35);
+  --k-cond: #ea580c;
+}
+
+/* Python palette: iconic golden yellow */
+:root[data-lang='python'],
+.app[data-lang='python'] {
+  --accent: #ffd43b;
+  --accent-hover: #ffe066;
+  --accent-active: #fcc419;
+  --accent-ink: #ffd43b;
+  --on-accent: #111827;
+  --accent-soft: rgba(255, 212, 59, .15);
+  --accent-line: rgba(255, 212, 59, .35);
+  --k-cond: #ffd43b;
+}
+
+:root[data-lang='python'][data-theme='light'],
+:root[data-theme='light'] .app[data-lang='python'] {
+  --accent: #facc15;
+  --accent-hover: #eab308;
+  --accent-active: #ca8a04;
+  --accent-ink: #b45309;
+  --on-accent: #0f172a;
+  --accent-soft: rgba(245, 158, 11, .14);
+  --accent-line: rgba(180, 83, 9, .35);
+  --k-cond: #b45309;
+}
+
+/* Active tab top stripe */
+.file-tab.active {
+  background: var(--code-bg);
+  color: var(--ink);
+  border-color: var(--hairline);
+  border-top: 2px solid var(--accent-ink);
+}
+
+.tree-root svg {
+  color: var(--accent-ink);
+}

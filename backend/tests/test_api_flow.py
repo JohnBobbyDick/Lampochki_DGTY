@@ -81,7 +81,7 @@ def test_analyze_compiles_clean_code(read_java):
 
 def test_analyze_compile_errors_null_when_javac_did_not_run(read_java, monkeypatch):
     import api.analyze as analyze_mod
-    monkeypatch.setattr(analyze_mod, "check_compiles", lambda code: None)
+    monkeypatch.setattr(analyze_mod, "check_compiles", lambda code, language=None: None)
     parse(read_java("Calculator"))
     assert client.post("/api/analyze").json()["compileErrors"] is None
 

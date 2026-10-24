@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FiPlay, FiGitMerge, FiRotateCcw, FiRotateCw, FiLayers, FiSun, FiMoon, FiSidebar, FiHelpCircle, FiCornerUpLeft } from 'react-icons/fi';
 import FileUpload from './components/FileUpload/FileUpload';
-import JavaEditor from './components/AceEditor/AceEditor';
+import CodeEditor from './components/AceEditor/AceEditor';
 import GraphCanvas from './components/GraphCanvas/GraphCanvas';
 import DiagnosticsPanel from './components/DiagnosticsPanel/DiagnosticsPanel';
 import DecomposePanel from './components/DecomposePanel/DecomposePanel';
@@ -54,6 +54,7 @@ const App: React.FC = () => {
     setWelcome(false);
     try { localStorage.setItem('jb.welcome', '0'); } catch { /* private mode */ }
   };
+  const language = useStore((s) => s.language);
   const isLoading = useStore((s) => s.isLoading);
   const error = useStore((s) => s.error);
   const setError = useStore((s) => s.setError);
@@ -71,6 +72,11 @@ const App: React.FC = () => {
     setSide('decompose');
     return api.decomposeCode();
   };
+
+  /* sync data-lang attribute with root element */
+  useEffect(() => {
+    document.documentElement.dataset.lang = language;
+  }, [language]);
 
   /* put the demo file into the editor on first start */
   useEffect(() => { useProject.getState().init(); }, []);
@@ -91,13 +97,34 @@ const App: React.FC = () => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="app">
+    <div className="app" data-lang={language}>
       <header className="header">
         <div className="header-group">
           <button className="btn icon ghost" onClick={toggleSidebar} aria-pressed={sidebar} aria-label="Файлы проекта" title="Файлы проекта"><FiSidebar /></button>
-          <div className="logo"><span className="logo-mark" aria-hidden="true" /><span className="lbl">Java Blueprints</span></div>
+          <div className="logo">
+            <span className="logo-mark" aria-hidden="true" />
+            <span className="lbl">{language === 'python' ? 'Python Blueprints' : 'Java Blueprints'}</span>
+          </div>
         </div>
+
         <div className="header-group">
+          <div className="lang-toggle" role="group" aria-label="Выбор языка">
+            <button
+              className={language === 'java' ? 'active' : ''}
+              onClick={() => useProject.getState().switchLanguage('java')}
+              title="Java"
+            >
+              Java
+            </button>
+            <button
+              className={language === 'python' ? 'active' : ''}
+              onClick={() => useProject.getState().switchLanguage('python')}
+              title="Python 3.11+"
+            >
+              Python
+            </button>
+          </div>
+          <span className="sep" aria-hidden="true" />
           <FileUpload />
           <span className="sep" aria-hidden="true" />
           <button className="btn icon" onClick={() => useStore.getState().undo()} disabled={!canUndo} title="Отменить (Ctrl+Z)" aria-label="Отменить"><FiRotateCcw /></button>
@@ -160,9 +187,9 @@ const App: React.FC = () => {
         )}
         <section className="col editor-col">
           <FileTabs />
-          <div className="editor-body"><JavaEditor /></div>
+          <div className="editor-body"><CodeEditor /></div>
           <Resizer label="Ширина редактора" side="right" dir={1} value={cols.editor}
-                   min={COL_LIMITS.editor[0]} max={COL_LIMITS.editor[1]} onChange={(v) => setCol('editor', v)} />
+                     min={COL_LIMITS.editor[0]} max={COL_LIMITS.editor[1]} onChange={(v) => setCol('editor', v)} />
         </section>
         <section className="col graph-col"><GraphCanvas /></section>
         <section className="col side-col">

@@ -14,6 +14,8 @@ def all_classes(ast: dict) -> list[dict]:
 
 
 def method_key(cls: dict, method: dict) -> str:
+    if cls["name"] in ("Module", ""):
+        return method["name"]
     return f"{cls['name']}.{method['name']}"
 
 
@@ -24,7 +26,7 @@ def collect_calls(stmts) -> list[tuple[str | None, str]]:
     def scan(text: str) -> None:
         for m in _CALL_RE.finditer(text):
             q, name = m.group(1), m.group(2)
-            if name in ("if", "for", "while", "switch", "catch", "new", "return", "super", "this"):
+            if name in ("if", "for", "while", "switch", "catch", "new", "return", "super", "this", "print", "input", "range", "len"):
                 continue
             found.append((q, name))
 
@@ -50,12 +52,14 @@ def resolve_calls(ast: dict) -> dict[str, set[str]]:
     result: dict[str, set[str]] = {}
     for cls in classes:
         for m in cls["methods"] + cls.get("constructors", []):
-            key = f"{cls['name']}.{m['name']}"
+            key = method_key(cls, m)
             callees = result.setdefault(key, set())
             for qualifier, name in collect_calls(m.get("body", [])):
-                if qualifier is None or qualifier in ("this", "super"):
-                    if name in by_class[cls["name"]]:
-                        callees.add(f"{cls['name']}.{name}")
+                if qualifier is None or qualifier in ("this", "super", "self"):
+                    if name in by_class.get(cls["name"], set()):
+                        callees.add(method_key(cls, {"name": name}))
+                    elif "Module" in by_class and name in by_class["Module"]:
+                        callees.add(name)
                 elif qualifier in by_class and name in by_class[qualifier]:
                     callees.add(f"{qualifier}.{name}")
                 elif qualifier == cls["name"] and name in by_class[cls["name"]]:
@@ -71,6 +75,7 @@ def build_call_graph(ast: dict, bigo: dict[str, str] | None = None) -> tuple[lis
     for cls in all_classes(ast):
         for m in cls["methods"]:
             key = method_key(cls, m)
+            snippet = f"{m.get('return_type', '')} {m['name']}(...)" if m.get("return_type") != "None" else f"def {m['name']}(...)"
             nodes.append(GraphNode(
                 id=key,
                 type="method",
@@ -78,8 +83,8 @@ def build_call_graph(ast: dict, bigo: dict[str, str] | None = None) -> tuple[lis
                 data={
                     "line_start": m.get("line_start"),
                     "line_end": (m.get("span") or {}).get("end", m.get("line_start")),
-                    "code_snippet": f"{m['return_type']} {m['name']}(...)",
-                    "big_o": bigo.get(key) or bigo.get(m["name"]),
+                    "code_snippet": snippet.strip(),
+                    "big_o": bigo.get(key) or bigo.get(m["name"]) or bigo.get(f"{cls['name']}.{m['name']}"),
                 },
             ))
     known = {n.id for n in nodes}

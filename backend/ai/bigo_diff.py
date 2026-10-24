@@ -8,15 +8,23 @@ from core.bigo_analyzer import analyze_ast
 from core.parser import parse_java
 
 
+def _parse(code: str) -> dict:
+    """Normalised AST of Java or Python source (Python module functions live in the pseudo-class "Module")."""
+    from core.runner import is_python_code
+    if is_python_code(code):
+        from core.py_parser import parse_python
+        return parse_python(code)["ast"] or {}
+    return parse_java(code)["ast"] or {}
+
+
 def _labels(code: str) -> dict[str, str]:
-    ast = parse_java(code)["ast"]
-    return {k: v for k, v in analyze_ast(ast).items() if "." in k}
+    return {k: v for k, v in analyze_ast(_parse(code)).items() if "." in k}
 
 
 def affected_methods(code: str, start: int, end: int) -> set[str]:
     """``Class.method`` whose span intersects lines [start, end]."""
     out: set[str] = set()
-    for cls in (parse_java(code)["ast"] or {}).get("classes", []):
+    for cls in _parse(code).get("classes", []):
         for m in cls.get("methods", []) + cls.get("constructors", []):
             span = m.get("span") or {}
             s, e = span.get("start"), span.get("end")

@@ -2,7 +2,7 @@
 
 The model returns ``old_code`` (a verbatim fragment of the user's code) and ``new_code``. We locate the
 fragment (whitespace-tolerant, must be unambiguous), re-indent the replacement, add missing imports and
-validate the result (syntax + javac) *before* anything is offered for application.
+validate the result (syntax + compiler/interpreter) *before* anything is offered for application.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import re
 
 from core import runner
 from core.parser import parse_java
+from core.py_parser import parse_python
 
 from ai import bigo_diff
 
@@ -57,6 +58,18 @@ def reindent(new: str, base_indent: str) -> str:
 
 def add_imports(code: str, imports: list[str]) -> tuple[str, list[str]]:
     """Insert missing ``import`` lines; returns (new code, imports actually added)."""
+    if runner.is_python_code(code) and not _IMPORT_RE.search(code):
+        # Python imports: e.g. "math", "from typing import List"
+        lines = code.split("\n")
+        added = []
+        for raw in imports:
+            clean = raw.strip()
+            if not any(clean == l.strip() for l in lines):
+                added.append(clean if clean.startswith("import ") or clean.startswith("from ") else f"import {clean}")
+        if not added:
+            return code, []
+        return "\n".join(added) + "\n\n" + code, added
+
     have = {m.group(2) for m in _IMPORT_RE.finditer(code)}
     added: list[str] = []
     for raw in imports:
@@ -90,8 +103,12 @@ def replace_range(code: str, start: int, end: int, new: str, imports: list[str] 
     return add_imports("\n".join(lines), imports or [])
 
 
-def _compile_errors(code: str) -> list[dict] | None:
-    return runner.check_compiles(code)
+def _compile_errors(code: str, language: str | None = None) -> list[dict] | None:
+    return runner.check_compiles(code, language)
+
+
+def _syntax_errors(code: str, language: str) -> list:
+    return (parse_python(code) if language == "python" else parse_java(code))["errors"]
 
 
 async def validate(original: str, patched: str, *, fix_line: int | None = None) -> tuple[bool, list[str], list[str]]:
@@ -99,14 +116,15 @@ async def validate(original: str, patched: str, *, fix_line: int | None = None) 
 
     Ordinary mode: ``len(E(patched)) <= len(E(original))`` and a compiling original stays compiling.
     Fix mode (*fix_line* set): strictly fewer errors and no error left on *fix_line* with its original text.
-    Without a local javac only syntax is checked.
+    Without a local javac only syntax is checked. Python is checked by its parser + ``compile()`` instead of javac.
     """
-    syntax_before = parse_java(original)["errors"]
-    syntax_after = parse_java(patched)["errors"]
+    language = "python" if runner.is_python_code(original) else "java"
+    syntax_before = _syntax_errors(original, language)
+    syntax_after = _syntax_errors(patched, language)
     if syntax_after and not syntax_before:
         return False, [f"Синтаксическая ошибка: {syntax_after[0]}"], []
     before, after = await asyncio.gather(
-        asyncio.to_thread(_compile_errors, original), asyncio.to_thread(_compile_errors, patched)
+        asyncio.to_thread(_compile_errors, original, language), asyncio.to_thread(_compile_errors, patched, language)
     )
     if before is None or after is None:    # no local javac (docker mode): syntax check only
         if syntax_after:
@@ -132,12 +150,12 @@ _KIND = {"method": "метод", "variable": "переменная", "class": "�
 
 def _explain(e: dict) -> str:
     """Compile error in words: a missing symbol is the usual case — the patch calls a helper it didn't add."""
-    m = re.match(r"cannot find symbol \(symbol:\s*(\w+)\s+([\w$]+)", e["message"])
+    m = re.match(r"cannot find symbol \(symbol:\s*(\w+)\s+([\w$]+)", e.get("message", ""))
     if m:
         kind, name = _KIND.get(m[1], m[1]), m[2]
         return (f"Не компилируется (стр. {e['line']}): правка использует {kind} «{name}», "
                 f"которого нет в коде — ИИ не добавил его определение")
-    return f"Не компилируется (стр. {e['line']}): {e['message']}"
+    return f"Не компилируется (стр. {e['line']}): {e.get('message', '')}"
 
 
 async def build_patch(code: str, old: str, new: str, imports: list[str] | None,
@@ -179,6 +197,6 @@ async def apply_patch(code: str, old: str, new: str, imports: list[str] | None,
     valid, problems, warnings = await validate(code, patched, fix_line=fix_line)
     if not valid:
         return {"ok": False, "code": code, "problems": problems, "warnings": warnings,
-                "start_line": span[0], "end_line": span[1]}
+                "start_line": 0, "end_line": 0}
     return {"ok": True, "code": patched, "problems": [], "warnings": warnings,
             "start_line": span[0], "end_line": span[1]}

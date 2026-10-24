@@ -18,6 +18,7 @@ from pathlib import Path
 
 from core.coverage import instrument
 from core.coverage.instrument import COV_CLASS, CoverageUnavailable, Probe
+from core import runner
 from core.runner import parse_compile_errors
 
 UNAVAILABLE = "инструментированный код не скомпилировался"
@@ -37,8 +38,8 @@ def _javac(tmp: Path, names: list[str]) -> subprocess.CompletedProcess:
     shutil.rmtree(out, ignore_errors=True)
     out.mkdir()
     return subprocess.run(
-        ["javac", "-encoding", "UTF-8", "-d", "out", *names],
-        cwd=tmp, capture_output=True, text=True, timeout=60,
+        [runner.get_javac_cmd(), "-encoding", "UTF-8", "-d", "out", *names],
+        cwd=tmp, capture_output=True, text=True, timeout=60, env=runner.child_env(),
     )
 
 

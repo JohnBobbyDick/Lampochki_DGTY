@@ -50,13 +50,16 @@ export function useApi() {
     /** `isCurrent` is checked after the response arrives; stale responses are dropped. */
     const parseCode = (code: string, isCurrent: () => boolean = () => true) =>
       call(async () => {
-        const { data } = await api.post('/parse', { code });
+        const { data } = await api.post('/parse', { code, language: S().language });
         if (!isCurrent()) return data;
         const st = S();
         st.setAst(data.ast);
         st.setLineMap(data.lineMap ?? {});
         st.setMethods(data.methods ?? []);
         st.setSyntaxErrors(data.errors ?? []);
+        if (data.language && data.language !== st.language) {
+          st.setLanguage(data.language);
+        }
         if (!st.selectedMethod || !(data.methods ?? []).includes(st.selectedMethod)) {
           st.setSelectedMethod(data.methods?.[0] ?? null);
         }
@@ -77,25 +80,25 @@ export function useApi() {
       }, true);
 
     const generateCode = (graph: unknown) =>
-      call(async () => (await api.post('/generate', { graph })).data);
+      call(async () => (await api.post('/generate', { graph, language: S().language })).data);
 
     const runCode = (code: string) =>
       call(async () => {
-        const { data } = await api.post('/run', { code, stdinInput: S().stdin });
+        const { data } = await api.post('/run', { code, stdinInput: S().stdin, language: S().language });
         S().setRunResult(data);
         return data;
       });
 
     const compareCode = (original: string, modified: string) =>
       call(async () => {
-        const { data } = await api.post('/run/compare', { original, modified, stdinInput: S().stdin });
+        const { data } = await api.post('/run/compare', { original, modified, stdinInput: S().stdin, language: S().language });
         S().setCompareResult(data);
         return data;
       });
 
     const decomposeCode = () =>
       call(async () => {
-        const { data } = await api.post('/decompose');
+        const { data } = await api.post('/decompose', { language: S().language });
         S().setDecomposition(data.files ?? []);
         S().setDecomposeWarnings(data.warnings ?? []);
         S().setGateResult(null);
@@ -104,14 +107,14 @@ export function useApi() {
 
     const verifyDecomposition = () =>
       call(async () => {
-        const { data } = await api.post<QualityGateResult>('/decompose/verify');
+        const { data } = await api.post<QualityGateResult>('/decompose/verify', { language: S().language });
         S().setGateResult(data);
         return data;
       });
 
     const downloadDecomposition = () =>
       call(async () => {
-        const { data } = await api.post('/decompose/zip', {}, { responseType: 'blob' });
+        const { data } = await api.post('/decompose/zip', { language: S().language }, { responseType: 'blob' });
         downloadFile('decomposed.zip', data);
         return true;
       });
@@ -132,7 +135,7 @@ export function useApi() {
 
     const qualityGate = (original: string, modified: string) =>
       call(async () => {
-        const { data } = await api.post<QualityGateResult>('/quality-gate', { original, modified, stdinInput: S().stdin });
+        const { data } = await api.post<QualityGateResult>('/quality-gate', { original, modified, stdinInput: S().stdin, language: S().language });
         S().setGateResult(data);
         return data;
       });
@@ -141,7 +144,7 @@ export function useApi() {
       const st = S();
       st.setAi(null);
       st.setAiLoading(true);
-      const data = await call(async () => (await api.post('/ai/explain', { defect })).data, true);
+      const data = await call(async () => (await api.post('/ai/explain', { defect, language: S().language })).data, true);
       st.setAiLoading(false);
       if (data) {
         st.setAi({ title: '✨ Объяснение дефекта', text: data.explanation, patch: data.patch, source: data.source, note: data.note });
@@ -154,7 +157,7 @@ export function useApi() {
       const st = S();
       st.setAi(null);
       st.setAiLoading(true);
-      const data = await call(async () => (await api.post('/ai/fix', { code: st.code, line: err.line, message: err.message })).data, true);
+      const data = await call(async () => (await api.post('/ai/fix', { code: st.code, line: err.line, message: err.message, language: st.language })).data, true);
       st.setAiLoading(false);
       if (data) {
         st.setAi({ title: '✨ Исправление ошибки', text: data.explanation, patch: data.patch, source: data.source, note: data.note });

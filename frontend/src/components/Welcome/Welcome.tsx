@@ -1,10 +1,11 @@
 import React from 'react';
 import { FiFolder, FiShare2, FiPlay } from 'react-icons/fi';
 import Dialog from '../Layout/Dialog';
+import { useStore } from '../../store/useStore';
 import { useProject } from '../../store/useProject';
 
 const STEPS = [
-  { icon: <FiFolder />, title: 'Откройте код', text: 'Выберите пример слева или загрузите свой .java-файл.' },
+  { icon: <FiFolder />, title: 'Откройте код', text: 'Выберите пример слева или загрузите свой .java / .py файл.' },
   { icon: <FiShare2 />, title: 'Смотрите на схему', text: 'Код превращается в блок-схему, а справа видны найденные проблемы и сложность методов.' },
   { icon: <FiPlay />, title: 'Запустите и сравните', text: '«Запустить» выполняет программу, «Сравнить» проверяет, что после правок она работает так же.' },
 ];
@@ -24,7 +25,16 @@ const Welcome: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClo
       ))}
     </ol>
     <div className="modal-actions">
-      <button className="btn" onClick={() => { useProject.getState().open('examples/Analyzer.java'); onClose(); }}>Открыть пример</button>
+      <button
+        className="btn"
+        onClick={() => {
+          const lang = useStore.getState().language;
+          useProject.getState().open(lang === 'python' ? 'examples/analyzer.py' : 'examples/Analyzer.java');
+          onClose();
+        }}
+      >
+        Открыть пример
+      </button>
       <button className="btn primary" onClick={onClose} autoFocus>Начать</button>
     </div>
   </Dialog>

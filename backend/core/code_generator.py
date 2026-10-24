@@ -1,4 +1,8 @@
-"""Java code generation: statement dicts -> source, method splicing, class skeletons."""
+"""Generate source code from AST or an edited CFG.
+
+For Java: CFG edits update method statements; class diagrams yield skeletons.
+For Python: CFG edits update indented Python functions and methods.
+"""
 
 from __future__ import annotations
 
@@ -12,23 +16,23 @@ INDENT = "    "
 
 
 class UnsupportedConstruct(Exception):
-    """Raised when a statement can't be faithfully regenerated."""
+    """Raised when a graph structure cannot be turned back into valid code."""
 
 
 # ---------------------------------------------------------------------------
-# Statement rendering
+# Java Statement rendering
 # ---------------------------------------------------------------------------
 
 def _end(text: str) -> str:
-    t = text.rstrip()
-    return t if t.endswith((";", "}")) else t + ";"
+    text = text.rstrip()
+    return text if text.endswith(";") else text + ";"
 
 
 def render_stmts(stmts: list[dict], level: int) -> list[str]:
-    out: list[str] = []
+    lines: list[str] = []
     for s in stmts:
-        out.extend(render_stmt(s, level))
-    return out
+        lines.extend(render_stmt(s, level))
+    return lines
 
 
 def _block(stmts: list[dict], level: int) -> list[str]:
@@ -36,7 +40,6 @@ def _block(stmts: list[dict], level: int) -> list[str]:
 
 
 def _flatten(stmts: list[dict]) -> list[dict]:
-    """Unwrap BlockStatement wrappers produced for `{ ... }` bodies."""
     res: list[dict] = []
     for s in stmts:
         if s.get("type") == "BlockStatement":
@@ -63,7 +66,7 @@ def render_stmt(s: dict, level: int) -> list[str]:
         mods = " ".join(s.get("modifiers", []))
         return [f"{ind}{mods + ' ' if mods else ''}{s['var_type']} {', '.join(parts)};"]
     if t == "StatementExpression":
-        return [f"{ind}{s['expression']};"]
+        return [f"{ind}{s.get('expression', s.get('raw', ''))};"]
     if t == "ReturnStatement":
         return [f"{ind}return {s['expression']};" if s.get("expression") else f"{ind}return;"]
     if t == "ThrowStatement":
@@ -215,14 +218,89 @@ def _render_if(s: dict, level: int, prefix: str) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# Python Statement rendering
+# ---------------------------------------------------------------------------
+
+def render_python_stmts(stmts: list[dict], level: int) -> list[str]:
+    lines: list[str] = []
+    for s in stmts:
+        lines.extend(render_python_stmt(s, level))
+    return lines
+
+
+def render_python_stmt(s: dict, level: int) -> list[str]:
+    ind = INDENT * level
+    t = s.get("type", "")
+
+    if "_text" in s:
+        return [ind + line for line in s["_text"].splitlines()]
+
+    if t in ("StatementExpression", "LocalVariableDeclaration"):
+        return [f"{ind}{s.get('expression', s.get('raw', 'pass'))}"]
+    if t == "ReturnStatement":
+        return [f"{ind}return {s['expression']}" if s.get("expression") else f"{ind}return"]
+    if t == "ThrowStatement":
+        return [f"{ind}raise {s['expression']}" if s.get("expression") else f"{ind}raise"]
+    if t == "BreakStatement":
+        return [f"{ind}break"]
+    if t == "ContinueStatement":
+        return [f"{ind}continue"]
+
+    if t == "IfStatement":
+        cond = s.get("condition", "True").rstrip(":")
+        if cond.startswith("(") and cond.endswith(")"):
+            cond = cond[1:-1]
+        lines = [f"{ind}if {cond}:"]
+        then_stmts = s.get("then", [])
+        lines.extend(render_python_stmts(then_stmts, level + 1) if then_stmts else [f"{ind}{INDENT}pass"])
+        if s.get("else"):
+            lines.append(f"{ind}else:")
+            lines.extend(render_python_stmts(s.get("else", []), level + 1))
+        return lines
+
+    if t == "ForStatement":
+        ctrl = s.get("control", "item in items").rstrip(":")
+        lines = [f"{ind}for {ctrl}:"]
+        body = s.get("body", [])
+        lines.extend(render_python_stmts(body, level + 1) if body else [f"{ind}{INDENT}pass"])
+        return lines
+
+    if t == "WhileStatement":
+        cond = s.get("condition", "True").rstrip(":")
+        if cond.startswith("(") and cond.endswith(")"):
+            cond = cond[1:-1]
+        lines = [f"{ind}while {cond}:"]
+        body = s.get("body", [])
+        lines.extend(render_python_stmts(body, level + 1) if body else [f"{ind}{INDENT}pass"])
+        return lines
+
+    if t == "TryStatement":
+        lines = [f"{ind}try:"]
+        body = s.get("body", [])
+        lines.extend(render_python_stmts(body, level + 1) if body else [f"{ind}{INDENT}pass"])
+        for c in s.get("catches", []):
+            types = ", ".join(c.get("types", [])) or "Exception"
+            name = f" as {c['name']}" if c.get("name") else ""
+            lines.append(f"{ind}except {types}{name}:")
+            cbody = c.get("body", [])
+            lines.extend(render_python_stmts(cbody, level + 1) if cbody else [f"{ind}{INDENT}pass"])
+        if s.get("finally"):
+            lines.append(f"{ind}finally:")
+            lines.extend(render_python_stmts(s.get("finally", []), level + 1))
+        return lines
+
+    return [f"{ind}pass"]
+
+
+# ---------------------------------------------------------------------------
 # Applying graph edits to a method
 # ---------------------------------------------------------------------------
 
 _PATTERNS = {
-    "IfStatement": re.compile(r"^\s*if\s*\((.*)\)\s*$", re.S),
-    "ForStatement": re.compile(r"^\s*for\s*\((.*)\)\s*$", re.S),
-    "WhileStatement": re.compile(r"^\s*while\s*\((.*)\)\s*$", re.S),
-    "SwitchStatement": re.compile(r"^\s*switch\s*\((.*)\)\s*$", re.S),
+    "IfStatement": re.compile(r"^\s*if\s*(?:\((.*)\)|(.*))\s*$", re.S),
+    "ForStatement": re.compile(r"^\s*for\s*(?:\((.*)\)|(.*))\s*$", re.S),
+    "WhileStatement": re.compile(r"^\s*while\s*(?:\((.*)\)|(.*))\s*$", re.S),
+    "SwitchStatement": re.compile(r"^\s*switch\s*(?:\((.*)\)|(.*))\s*$", re.S),
 }
 _FIELD_OF = {
     "IfStatement": "condition", "WhileStatement": "condition", "ForStatement": "control",
@@ -247,22 +325,24 @@ def apply_edit(stmt: dict, text: str) -> None:
         return
     if t in _PATTERNS:
         m = _PATTERNS[t].match(text)
-        stmt[_FIELD_OF[t]] = (m.group(1) if m else text).strip()
+        val = m.group(1) or m.group(2) if m else text
+        stmt[_FIELD_OF[t]] = (val or text).rstrip(":").strip()
     elif t in ("ReturnStatement", "ThrowStatement"):
-        kw = "return" if t == "ReturnStatement" else "throw"
-        stmt["expression"] = re.sub(rf"^{kw}\b\s*", "", text).rstrip(";").strip()
+        kw = "return" if t == "ReturnStatement" else "throw|raise"
+        stmt["expression"] = re.sub(rf"^({kw})\b\s*", "", text).rstrip(";").strip()
     elif "catches" not in stmt and "types" in stmt:  # a catch clause dict
-        m = re.match(r"^catch\s*\((.+?)\s+(\w+)\)\s*$", text)
+        m = re.match(r"^(?:catch\s*\((.+?)\s+(\w+)\)|except\s+(.+?)(?:\s+as\s+(\w+))?:?)$", text)
         if m:
-            stmt["types"] = [x.strip() for x in m.group(1).split("|")]
-            stmt["name"] = m.group(2)
+            types_str = m.group(1) or m.group(3) or "Exception"
+            stmt["types"] = [x.strip() for x in types_str.replace("|", ",").split(",")]
+            stmt["name"] = m.group(2) or m.group(4) or ""
     elif t in ("TryStatement", "DoStatement"):
         pass  # structural markers – not editable as text
     else:
         stmt["_text"] = text
 
 
-def regenerate_method(method: dict, edits: dict[str, str]) -> tuple[list[str], list[str]]:
+def regenerate_method(method: dict, edits: dict[str, str], language: str = "java") -> tuple[list[str], list[str]]:
     """Return (body lines at level 0, ids of nodes actually changed)."""
     m = copy.deepcopy(method)
     _, _, stmt_of = build_cfg_with_map(m)
@@ -273,14 +353,24 @@ def regenerate_method(method: dict, edits: dict[str, str]) -> tuple[list[str], l
             continue
         apply_edit(stmt, text)
         changed.append(nid)
+
+    if language == "python":
+        return render_python_stmts(m.get("body", []), 0), changed
     return render_stmts(m.get("body", []), 0), changed
 
 
-def splice_method(code: str, method: dict, body_lines: list[str]) -> str:
+def splice_method(code: str, method: dict, body_lines: list[str], language: str = "java") -> str:
     """Replace the body of *method* in *code* with *body_lines* (level 0 lines)."""
-    span, bo = method.get("span"), method.get("body_open")
-    if not span or not bo:
+    span = method.get("span")
+    if not span:
         raise UnsupportedConstruct("Method span unknown")
+
+    if language == "python":
+        return _splice_python(code, span, body_lines)
+
+    bo = method.get("body_open")
+    if not bo:
+        raise UnsupportedConstruct("Method body opening brace unknown")
     src = code.split("\n")
     first = src[span["start"] - 1]
     base_indent = first[: len(first) - len(first.lstrip())]
@@ -291,11 +381,34 @@ def splice_method(code: str, method: dict, body_lines: list[str]) -> str:
     return "\n".join(src[: span["start"] - 1] + new + src[span["end"]:])
 
 
+def _splice_python(code: str, span: dict, body_lines: list[str]) -> str:
+    src = code.split("\n")
+    start_idx = max(0, span["start"] - 1)
+    end_idx = min(len(src), span["end"])
+
+    # locate def ...: header line
+    colon_idx = start_idx
+    while colon_idx < len(src) and ":" not in src[colon_idx]:
+        colon_idx += 1
+    if colon_idx >= len(src):
+        colon_idx = start_idx
+
+    first = src[start_idx]
+    base_indent = first[: len(first) - len(first.lstrip())]
+    body_indent = base_indent + INDENT
+    inner = [(body_indent + l) if l else "" for l in body_lines]
+    if not inner:
+        inner = [body_indent + "pass"]
+
+    header_lines = src[start_idx : colon_idx + 1]
+    return "\n".join(src[:start_idx] + header_lines + inner + src[end_idx:])
+
+
 def find_method(ast: dict, name: str, class_name: str | None = None) -> tuple[dict, dict] | None:
     for cls in ast.get("classes", []):
-        if class_name and cls["name"] != class_name:
+        if class_name and cls["name"] != class_name and cls["name"] not in ("Module", ""):
             continue
-        for m in cls["methods"] + cls.get("constructors", []):
+        for m in cls.get("methods", []) + cls.get("constructors", []):
             if m["name"] == name:
                 return cls, m
     return None

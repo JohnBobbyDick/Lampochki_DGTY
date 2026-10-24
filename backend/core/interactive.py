@@ -1,4 +1,4 @@
-"""Interactive execution: stream a Java process' stdout/stderr, feed stdin live."""
+"""Interactive execution: stream a Java or Python process' stdout/stderr, feed stdin live."""
 
 from __future__ import annotations
 
@@ -6,7 +6,9 @@ import asyncio
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 from typing import Awaitable, Callable
@@ -58,10 +60,38 @@ def final_coverage(exit_code: int, plan: CovPlan, tmp: Path) -> dict | None:
     return coverage_message(plan, marker)
 
 
+class InteractiveProcess:
+    """Wrapper around subprocess.Popen providing an async-friendly interface
+    that works consistently across all event loops (including Windows SelectorEventLoop)."""
+
+    def __init__(self, popen: subprocess.Popen, tmp: Path):
+        self.popen = popen
+        self.tmp = tmp
+        self.stdin = popen.stdin
+
+    @property
+    def returncode(self) -> int | None:
+        return self.popen.poll()
+
+    def kill(self) -> None:
+        try:
+            self.popen.kill()
+        except OSError:
+            pass
+
+
+PY_COVERAGE_UNSUPPORTED = "Покрытие для Python пока не поддерживается"
+
+
 async def start_session(
-    code: str, main_class: str | None, emit: Emit,
-) -> tuple[asyncio.subprocess.Process, Path, CovPlan] | None:
-    """Compile *code* and launch it.  Returns (process, tmpdir, coverage plan) or None on compile error."""
+    code: str, main_class: str | None, emit: Emit, language: str | None = None,
+) -> tuple[InteractiveProcess, Path, CovPlan] | None:
+    """Compile/check *code* and launch it.  Returns (process, tmpdir, coverage plan) or None on compile error.
+
+    Coverage is Java-only: a Python run gets a plan whose ``error`` says so.
+    """
+    if runner.is_python_code(code, language):
+        return await _start_python(code, emit)
     main_class = main_class or runner.detect_main_class(code) or runner._public_class(code) or "Main"
     fname = f"{runner._public_class(code) or main_class}.java"
     files = {fname: code}
@@ -86,58 +116,129 @@ async def start_session(
                         "errors": runner.parse_compile_errors(proc.stderr)})
             await emit({"type": "exit", "code": proc.returncode, "durationMs": 0})
             return None
-        cmd = ["java", "-Xmx256m", "-Dfile.encoding=UTF-8"]
+        cmd = [runner.get_java_cmd(), "-Xmx256m", "-Dfile.encoding=UTF-8"]
         if plan.data_file is not None:
             cmd.append(f"-Djb.cov={plan.data_file}")
         cmd += ["-cp", "out", main_class]
         cwd = tmp
 
     try:
-        proc = await asyncio.create_subprocess_exec(
-            *cmd, cwd=cwd, stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        popen = subprocess.Popen(
+            cmd,
+            cwd=cwd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            bufsize=0,
+            env=None if runner.SANDBOX_MODE == "docker" else runner.child_env(),
         )
+        return InteractiveProcess(popen, tmp), tmp, plan
     except FileNotFoundError as exc:
         shutil.rmtree(tmp, ignore_errors=True)
         await emit({"type": "stderr", "data": f"Java toolchain not found: {exc}\n"})
         await emit({"type": "exit", "code": 127, "durationMs": 0})
         return None
-    return proc, tmp, plan
+    except Exception as exc:
+        shutil.rmtree(tmp, ignore_errors=True)
+        err_msg = str(exc) or repr(exc)
+        await emit({"type": "stderr", "data": f"Java launch failed: {err_msg}\n"})
+        await emit({"type": "exit", "code": 127, "durationMs": 0})
+        return None
 
 
-async def pump(proc: asyncio.subprocess.Process, emit: Emit) -> int:
+async def _start_python(code: str, emit: Emit) -> tuple[InteractiveProcess, Path, CovPlan] | None:
+    try:
+        compile(code, "main.py", "exec")
+    except SyntaxError as exc:
+        await emit({
+            "type": "compile_error",
+            "text": f"SyntaxError: {exc.msg} (line {exc.lineno})\n",
+            "errors": [{"file": "main.py", "line": exc.lineno or 1, "message": exc.msg or "SyntaxError"}],
+        })
+        await emit({"type": "exit", "code": 1, "durationMs": 0})
+        return None
+    tmp = Path(tempfile.mkdtemp(prefix="jb_ws_py_"))
+    (tmp / "main.py").write_text(code, encoding="utf-8")
+    docker = runner.SANDBOX_MODE == "docker"
+    if docker:
+        os.chmod(tmp, 0o755)
+    cmd, env = runner.python_command(tmp, "main.py")
+    try:
+        popen = subprocess.Popen(
+            cmd, cwd=None if docker else tmp, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, bufsize=0, env=env, preexec_fn=None if docker else runner.python_preexec(),
+        )
+    except Exception as exc:  # noqa: BLE001
+        shutil.rmtree(tmp, ignore_errors=True)
+        await emit({"type": "stderr", "data": f"Python launch failed: {str(exc) or repr(exc)}\n"})
+        await emit({"type": "exit", "code": 127, "durationMs": 0})
+        return None
+    return InteractiveProcess(popen, tmp), tmp, CovPlan(error=PY_COVERAGE_UNSUPPORTED)
+
+
+async def pump(proc: InteractiveProcess, emit: Emit) -> int:
     """Forward output until the process exits (or limits are hit); returns exit code."""
+    loop = asyncio.get_running_loop()
+    q: asyncio.Queue[tuple[str, bytes | None]] = asyncio.Queue()
     sent = 0
 
-    async def forward(stream: asyncio.StreamReader, kind: str) -> None:
-        nonlocal sent
-        while chunk := await stream.read(1024):
-            sent += len(chunk)
-            if sent > MAX_OUT_BYTES:
-                await emit({"type": kind, "data": "\n…[output limit reached, process killed]\n"})
-                proc.kill()
-                return
-            await emit({"type": kind, "data": chunk.decode("utf-8", "replace")})
+    def stream_reader(pipe, kind: str):
+        try:
+            while True:
+                chunk = pipe.read(1024)
+                if not chunk:
+                    break
+                loop.call_soon_threadsafe(q.put_nowait, (kind, chunk))
+        except Exception:
+            pass
+        finally:
+            loop.call_soon_threadsafe(q.put_nowait, (kind, None))
 
-    tasks = [asyncio.create_task(forward(proc.stdout, "stdout")),
-             asyncio.create_task(forward(proc.stderr, "stderr"))]
+    t_out = threading.Thread(target=stream_reader, args=(proc.popen.stdout, "stdout"), daemon=True)
+    t_err = threading.Thread(target=stream_reader, args=(proc.popen.stderr, "stderr"), daemon=True)
+    t_out.start()
+    t_err.start()
+
+    active_streams = 2
+    started = time.monotonic()
+
+    while active_streams > 0:
+        elapsed = time.monotonic() - started
+        remaining = max(0.1, MAX_SESSION_SEC - elapsed)
+        try:
+            kind, chunk = await asyncio.wait_for(q.get(), timeout=remaining)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await emit({"type": "stderr", "data": f"\nTimeout: сессия дольше {MAX_SESSION_SEC} с\n"})
+            break
+
+        if chunk is None:
+            active_streams -= 1
+            continue
+
+        sent += len(chunk)
+        if sent > MAX_OUT_BYTES:
+            await emit({"type": kind, "data": "\n…[output limit reached, process killed]\n"})
+            proc.kill()
+            break
+
+        await emit({"type": kind, "data": chunk.decode("utf-8", "replace")})
+
     try:
-        await asyncio.wait_for(proc.wait(), MAX_SESSION_SEC)
-    except asyncio.TimeoutError:
+        await asyncio.wait_for(asyncio.to_thread(proc.popen.wait), timeout=5.0)
+    except (asyncio.TimeoutError, Exception):
         proc.kill()
-        await emit({"type": "stderr", "data": f"\nTimeout: сессия дольше {MAX_SESSION_SEC} с\n"})
-    await asyncio.gather(*tasks, return_exceptions=True)
-    return proc.returncode if proc.returncode is not None else -1
+
+    return proc.popen.returncode if proc.popen.returncode is not None else -1
 
 
-async def feed(proc: asyncio.subprocess.Process, data: str) -> None:
-    if proc.stdin is None or proc.stdin.is_closing():
-        return
-    try:
-        proc.stdin.write(data.encode("utf-8"))
-        await proc.stdin.drain()
-    except (BrokenPipeError, ConnectionResetError):
-        pass
+async def feed(proc: InteractiveProcess, data: str) -> None:
+    if proc.stdin and not proc.stdin.closed:
+        try:
+            proc.stdin.write(data.encode("utf-8"))
+            proc.stdin.flush()
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            pass
 
 
 def cleanup(tmp: Path | None) -> None:

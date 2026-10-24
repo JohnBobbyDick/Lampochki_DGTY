@@ -16,5 +16,5 @@ def analyze() -> AnalyzeResponse:
     return AnalyzeResponse(
         defects=detect_defects(s.ast, s.code, bigo),
         bigo=bigo,
-        compile_errors=check_compiles(s.code),
+        compile_errors=check_compiles(s.code, s.language),
     )

@@ -30,7 +30,7 @@ export function useAutoReview() {
       const st = useStore.getState();
       st.setAiReviewing(true);
       try {
-        const { data } = await axios.post('/api/ai/review', { code }, { signal: controller.signal, timeout: 120_000 });
+        const { data } = await axios.post('/api/ai/review', { code, language: st.language }, { signal: controller.signal, timeout: 120_000 });
         lastReviewed.current = code;
         const items = (data.suggestions ?? []).filter((it: { patch?: unknown }) => it.patch);
         st.setAiReview(

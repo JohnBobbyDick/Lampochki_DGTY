@@ -1,9 +1,10 @@
 """WebSocket endpoint for the interactive console.
 
-Client → server: {type: "start", code, mainClass?} | {type: "stdin", data} | {type: "eof"} | {type: "kill"}
+Client → server: {type: "start", code, mainClass?, language?} | {type: "stdin", data} | {type: "eof"} | {type: "kill"}
 Server → client: {type: "stdout"|"stderr", data} | {type: "compile_error", text, errors}
     | {type: "coverage", probes, hits} | {type: "coverage", error}   (after all output, before exit; never after compile_error)
     | {type: "exit", code, durationMs}
+Coverage is Java-only: a Python run ends with {type: "coverage", error: "Покрытие для Python пока не поддерживается"}.
 """
 
 import asyncio
@@ -49,14 +50,24 @@ async def ws_run(ws: WebSocket) -> None:
             kind = msg.get("type")
             if kind == "start" and proc is None:
                 started = time.monotonic()
-                res = await interactive.start_session(msg.get("code", ""), msg.get("mainClass"), emit)
+                try:
+                    res = await interactive.start_session(
+                        msg.get("code", ""), msg.get("mainClass"), emit, language=msg.get("language"),
+                    )
+                except Exception as exc:  # noqa: BLE001 – report instead of dropping the socket
+                    res = None
+                    await emit({"type": "stderr", "data": f"Ошибка запуска: {exc}\n"})
+                    await emit({"type": "exit", "code": 1, "durationMs": 0})
                 if res:
                     proc, tmp, plan = res
                     pump_task = asyncio.create_task(run_and_report())
             elif kind == "stdin" and proc:
                 await interactive.feed(proc, msg.get("data", ""))
             elif kind == "eof" and proc and proc.stdin:
-                proc.stdin.close()
+                try:
+                    proc.stdin.close()
+                except OSError:
+                    pass
             elif kind == "kill" and proc and proc.returncode is None:
                 proc.kill()
     except WebSocketDisconnect:

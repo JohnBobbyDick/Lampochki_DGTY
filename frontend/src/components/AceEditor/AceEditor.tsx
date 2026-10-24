@@ -3,6 +3,7 @@ import AceEditor from 'react-ace';
 import ace from 'ace-builds';
 import { diffLines } from 'diff';
 import 'ace-builds/src-noconflict/mode-java';
+import 'ace-builds/src-noconflict/mode-python';
 import 'ace-builds/src-noconflict/theme-tomorrow_night';
 import 'ace-builds/src-noconflict/theme-tomorrow';
 import 'ace-builds/src-noconflict/ext-language_tools';
@@ -14,8 +15,9 @@ import { lineStates, LineState } from '../../utils/coverage';
 const NO_COV: Map<number, LineState> = new Map();
 const SEVERITY_TYPE = { error: 'error', warning: 'warning', hint: 'info' } as const;
 
-const JavaEditor: React.FC = () => {
+const CodeEditor: React.FC = () => {
   const code = useStore((s) => s.code);
+  const language = useStore((s) => s.language);
   const originalCode = useStore((s) => s.originalCode);
   const defects = useStore((s) => s.defects);
   const runResult = useStore((s) => s.runResult);
@@ -82,9 +84,11 @@ const JavaEditor: React.FC = () => {
     const session = ref.current?.editor?.session;
     if (!session || covStates.size === 0) return;
     covStates.forEach((st, line) => session.addGutterDecoration(line - 1, `ace-cov-${st.state}`));
+    const maxLine = Math.max(...covStates.keys());
     return () => {
-      /* Ace has already shifted rows after the edit: clear every row, not the remembered ones */
-      for (let r = 0; r < session.getLength(); r++) {
+      /* Ace has already shifted rows after an edit, but not after a document switch (setValue keeps the old rows,
+         even past the new length): clear every row of both the current text and the decorated one */
+      for (let r = 0; r < Math.max(session.getLength(), maxLine); r++) {
         for (const c of ['hit', 'miss', 'partial']) session.removeGutterDecoration(r, `ace-cov-${c}`);
       }
     };
@@ -136,7 +140,7 @@ const JavaEditor: React.FC = () => {
       text: `${d.bigO ? `[${d.bigO}] ` : ''}${d.message}`,
     }));
     (runResult?.compileErrors ?? []).forEach((e) =>
-      a.push({ row: Math.max(0, e.line - 1), column: 0, type: 'error', text: `javac: ${e.message}` }),
+      a.push({ row: Math.max(0, e.line - 1), column: 0, type: 'error', text: `${e.message}` }),
     );
     return a;
   }, [defects, runResult]);
@@ -163,9 +167,9 @@ const JavaEditor: React.FC = () => {
   return (
     <AceEditor
       ref={ref}
-      mode="java"
+      mode={language === 'python' ? 'python' : 'java'}
       theme={theme === 'dark' ? 'tomorrow_night' : 'tomorrow'}
-      name="java-editor"
+      name="code-editor"
       value={code}
       onChange={onChange}
       annotations={annotations}
@@ -180,12 +184,12 @@ const JavaEditor: React.FC = () => {
         /* Enter starts editing, Esc leaves the editor so Tab moves on (no keyboard trap) */
         enableKeyboardAccessibility: true,
       }}
-      placeholder="Загрузите .java файл или вставьте код сюда…"
+      placeholder="Загрузите файл (.java / .py) или вставьте код сюда…"
       editorProps={{ $blockScrolling: true }}
     />
   );
 };
 
-export default JavaEditor;
+export default CodeEditor;
 // keep a reference so bundlers don't tree-shake the ace global used by language tools
 void ace;

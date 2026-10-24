@@ -31,12 +31,14 @@ async def explain(req: AiExplainRequest) -> AiExplainResponse:
         s.code, int(d.get("lineStart") or 1), int(d.get("lineEnd") or d.get("lineStart") or 1),
         s.ast, d.get("method", ""),
     )
-    return AiExplainResponse(**await ai_analyzer.explain(d, fragment, s.code))
+    lang = req.language or s.language
+    return AiExplainResponse(**await ai_analyzer.explain(d, fragment, s.code, language=lang))
 
 
 @router.post("/suggest", response_model=AiSuggestResponse)
 async def suggest(req: AiSuggestRequest) -> AiSuggestResponse:
-    return AiSuggestResponse(**await ai_analyzer.suggest(req.code_fragment, req.context))
+    lang = req.language or (state.SESSION.language if state.SESSION else "java")
+    return AiSuggestResponse(**await ai_analyzer.suggest(req.code_fragment, req.context, language=lang))
 
 
 @router.post("/decompose", response_model=AiDecomposeResponse)
@@ -52,11 +54,12 @@ async def review(req: AiReviewRequest, request: Request) -> AiReviewResponse:
     """Auto-review fired by the UI 5 s after the user stops typing."""
     if not llm_client.is_configured():
         return AiReviewResponse(note="LLM отключён или не настроен")
-    s = state.require(req.code)
+    lang = req.language or (state.SESSION.language if state.SESSION else "java")
+    s = state.require(req.code, language=lang)
     known = [d.message for d in detect_defects(s.ast, s.code, analyze_ast(s.ast))]
     async with _REVIEW_SLOTS:
         # the UI aborts the request when the user edits again: stop retrying then, don't burn keys
-        job = asyncio.ensure_future(ai_analyzer.review(s.code, known))
+        job = asyncio.ensure_future(ai_analyzer.review(s.code, known, language=s.language))
         while not job.done():
             if await request.is_disconnected():
                 job.cancel()

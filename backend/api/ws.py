@@ -1,6 +1,6 @@
 """WebSocket endpoint for the interactive console.
 
-Client → server: {type: "start", code, mainClass?} | {type: "stdin", data} | {type: "eof"} | {type: "kill"}
+Client → server: {type: "start", code, mainClass?, language?} | {type: "stdin", data} | {type: "eof"} | {type: "kill"}
 Server → client: {type: "stdout"|"stderr", data} | {type: "compile_error", text, errors} | {type: "exit", code, durationMs}
 """
 
@@ -41,14 +41,26 @@ async def ws_run(ws: WebSocket) -> None:
             kind = msg.get("type")
             if kind == "start" and proc is None:
                 started = time.monotonic()
-                res = await interactive.start_session(msg.get("code", ""), msg.get("mainClass"), emit)
-                if res:
-                    proc, tmp = res
-                    pump_task = asyncio.create_task(run_and_report())
+                try:
+                    res = await interactive.start_session(
+                        msg.get("code", ""),
+                        msg.get("mainClass"),
+                        emit,
+                        language=msg.get("language"),
+                    )
+                    if res:
+                        proc, tmp = res
+                        pump_task = asyncio.create_task(run_and_report())
+                except Exception as exc:
+                    await emit({"type": "stderr", "data": f"Error starting session: {exc}\n"})
+                    await emit({"type": "exit", "code": 1, "durationMs": 0})
             elif kind == "stdin" and proc:
                 await interactive.feed(proc, msg.get("data", ""))
             elif kind == "eof" and proc and proc.stdin:
-                proc.stdin.close()
+                try:
+                    proc.stdin.close()
+                except OSError:
+                    pass
             elif kind == "kill" and proc and proc.returncode is None:
                 proc.kill()
     except WebSocketDisconnect:

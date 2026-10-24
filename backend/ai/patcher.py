@@ -2,7 +2,7 @@
 
 The model returns ``old_code`` (a verbatim fragment of the user's code) and ``new_code``. We locate the
 fragment (whitespace-tolerant, must be unambiguous), re-indent the replacement, add missing imports and
-validate the result (syntax + javac) *before* anything is offered for application.
+validate the result (syntax + compiler/interpreter) *before* anything is offered for application.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import re
 
 from core import runner
 from core.parser import parse_java
+from core.py_parser import parse_python
 
 _IMPORT_RE = re.compile(r"^\s*import\s+(static\s+)?([\w.]+(?:\.\*)?)\s*;", re.M)
 
@@ -55,6 +56,18 @@ def reindent(new: str, base_indent: str) -> str:
 
 def add_imports(code: str, imports: list[str]) -> tuple[str, list[str]]:
     """Insert missing ``import`` lines; returns (new code, imports actually added)."""
+    if runner.is_python_code(code):
+        # Python imports: e.g. "math", "from typing import List"
+        lines = code.split("\n")
+        added = []
+        for raw in imports:
+            clean = raw.strip()
+            if not any(clean == l.strip() for l in lines):
+                added.append(clean if clean.startswith("import ") or clean.startswith("from ") else f"import {clean}")
+        if not added:
+            return code, []
+        return "\n".join(added) + "\n\n" + code, added
+
     have = {m.group(2) for m in _IMPORT_RE.finditer(code)}
     added: list[str] = []
     for raw in imports:
@@ -94,7 +107,10 @@ def _compile_errors(code: str) -> list[dict] | None:
 
 async def validate(original: str, patched: str) -> tuple[bool, list[str], list[str]]:
     """(valid, problems, warnings): the patch must parse and must not make compilation worse."""
-    syntax = parse_java(patched)["errors"]
+    if runner.is_python_code(patched):
+        syntax = parse_python(patched)["errors"]
+    else:
+        syntax = parse_java(patched)["errors"]
     if syntax:
         return False, [f"Синтаксическая ошибка: {syntax[0]}"], []
     before, after = await asyncio.gather(
@@ -114,12 +130,12 @@ _KIND = {"method": "метод", "variable": "переменная", "class": "�
 
 def _explain(e: dict) -> str:
     """Compile error in words: a missing symbol is the usual case — the patch calls a helper it didn't add."""
-    m = re.match(r"cannot find symbol \(symbol:\s*(\w+)\s+([\w$]+)", e["message"])
+    m = re.match(r"cannot find symbol \(symbol:\s*(\w+)\s+([\w$]+)", e.get("message", ""))
     if m:
         kind, name = _KIND.get(m[1], m[1]), m[2]
         return (f"Не компилируется (стр. {e['line']}): правка использует {kind} «{name}», "
                 f"которого нет в коде — ИИ не добавил его определение")
-    return f"Не компилируется (стр. {e['line']}): {e['message']}"
+    return f"Не компилируется (стр. {e['line']}): {e.get('message', '')}"
 
 
 async def build_patch(code: str, old: str, new: str, imports: list[str] | None,
@@ -159,6 +175,6 @@ async def apply_patch(code: str, old: str, new: str, imports: list[str] | None,
     valid, problems, warnings = await validate(code, patched)
     if not valid:
         return {"ok": False, "code": code, "problems": problems, "warnings": warnings,
-                "start_line": span[0], "end_line": span[1]}
+                "start_line": 0, "end_line": 0}
     return {"ok": True, "code": patched, "problems": [], "warnings": warnings,
             "start_line": span[0], "end_line": span[1]}

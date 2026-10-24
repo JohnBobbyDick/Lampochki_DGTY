@@ -14,8 +14,9 @@ class CamelModel(BaseModel):
 # ── Parse ──────────────────────────────────────────────────────────────────────
 
 class ParseRequest(CamelModel):
-    """Request body for parsing Java source code."""
-    code: str = Field(..., description="Java source code to parse")
+    """Request body for parsing source code."""
+    code: str = Field(..., description="Source code to parse")
+    language: str | None = Field(None, description="Source language: 'java' or 'python' (autodetected if omitted)")
 
 
 class ParseResponse(CamelModel):
@@ -25,6 +26,7 @@ class ParseResponse(CamelModel):
     errors: list[str] = Field(default_factory=list, description="Parse errors, if any")
     methods: list[str] = Field(default_factory=list, description="Method names found")
     classes: list[str] = Field(default_factory=list, description="Class names found")
+    language: str = Field("java", description="Language of the parsed source ('java' | 'python')")
 
 
 # ── Graph ──────────────────────────────────────────────────────────────────────
@@ -87,12 +89,13 @@ class AnalyzeResponse(CamelModel):
 # ── Generate ───────────────────────────────────────────────────────────────────
 
 class GenerateRequest(CamelModel):
-    """Request to generate Java code from an edited graph."""
+    """Request to generate code from an edited graph."""
     graph: dict = Field(..., description="Graph dict: {type, method, nodes:[{id,label}], edges}")
+    language: str | None = Field(None, description="Source language ('java' or 'python')")
 
 
 class GenerateResponse(CamelModel):
-    """Response with generated Java code."""
+    """Response with generated code."""
     code: str
     changed_nodes: list[str] = Field(default_factory=list)
 
@@ -100,30 +103,32 @@ class GenerateResponse(CamelModel):
 # ── Run ────────────────────────────────────────────────────────────────────────
 
 class RunRequest(CamelModel):
-    """Request to compile and run Java code."""
+    """Request to compile and run code."""
     code: str
     main_class: str | None = Field(None, description="Name of the class containing main(); autodetected if omitted")
     stdin_input: str = Field("", description="Text to feed via stdin")
     timeout_sec: int = Field(10, description="Execution timeout")
+    language: str | None = Field(None, description="Source language ('java' | 'python')")
 
 
 class RunResponse(CamelModel):
-    """Result of running Java code."""
+    """Result of running code."""
     stdout: str = ""
     stderr: str = ""
     exit_code: int = -1
     duration_ms: int = 0
-    compile_errors: list[dict] = Field(default_factory=list, description="[{line, message}] from javac")
+    compile_errors: list[dict] = Field(default_factory=list, description="[{line, message}] from compiler/interpreter")
 
 
 # ── Compare ────────────────────────────────────────────────────────────────────
 
 class CompareRequest(CamelModel):
-    """Request to run and compare two versions of Java code."""
+    """Request to run and compare two versions of code."""
     original: str
     modified: str
     main_class: str | None = None
     stdin_input: str = ""
+    language: str | None = Field(None, description="Source language ('java' | 'python')")
 
 
 class CompareResponse(CamelModel):
@@ -145,6 +150,7 @@ class DecomposedFile(CamelModel):
 
 class DecomposeRequest(CamelModel):
     code: str | None = Field(None, description="Source to decompose; defaults to last parsed code")
+    language: str | None = Field(None, description="Source language ('java' | 'python')")
 
 
 class DecomposeResponse(CamelModel):
@@ -197,6 +203,7 @@ class AiApplyResponse(CamelModel):
 class AiExplainRequest(CamelModel):
     defect: dict = Field(..., description="Defect as returned by /api/analyze")
     code_fragment: str | None = Field(None, description="Overrides the fragment taken from the parsed code")
+    language: str | None = Field(None, description="Source language ('java' | 'python')")
 
 
 class AiExplainResponse(CamelModel):
@@ -210,6 +217,7 @@ class AiExplainResponse(CamelModel):
 class AiSuggestRequest(CamelModel):
     code_fragment: str
     context: str = ""
+    language: str | None = Field(None, description="Source language ('java' | 'python')")
 
 
 class AiSuggestResponse(CamelModel):
@@ -227,6 +235,7 @@ class AiDecomposeResponse(CamelModel):
 
 class AiReviewRequest(CamelModel):
     code: str
+    language: str | None = Field(None, description="Source language ('java' | 'python')")
 
 
 class AiReviewItem(CamelModel):

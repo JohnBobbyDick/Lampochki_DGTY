@@ -13,7 +13,17 @@ PROMPTS = Path(__file__).parent / "prompts"
 MAX_CODE_CHARS = 12_000
 
 
-def _prompt(name: str, **kw: object) -> str:
+def _prompt(name: str, language: str = "java", **kw: object) -> str:
+    lang = (language or "java").lower()
+    # 1. prompts/<lang>/<name>.txt
+    sub = PROMPTS / lang / f"{name}.txt"
+    if sub.is_file():
+        return sub.read_text(encoding="utf-8").format(**kw)
+    # 2. prompts/<name>_<lang>.txt
+    suff = PROMPTS / f"{name}_{lang}.txt"
+    if suff.is_file():
+        return suff.read_text(encoding="utf-8").format(**kw)
+    # 3. default prompts/<name>.txt
     return (PROMPTS / f"{name}.txt").read_text(encoding="utf-8").format(**kw)
 
 
@@ -27,9 +37,9 @@ def fragment_for(code: str, line_start: int, line_end: int, ast: dict, method: s
     if method:
         cls_name, _, mname = method.rpartition(".")
         for c in ast.get("classes", []):
-            if cls_name and c["name"] != cls_name:
+            if cls_name and c["name"] != cls_name and c["name"] not in ("Module", ""):
                 continue
-            for m in c["methods"]:
+            for m in c.get("methods", []):
                 if m["name"] == mname and m.get("span"):
                     sp = m["span"]
                     return "\n".join(lines[sp["start"] - 1: sp["end"]])
@@ -37,11 +47,14 @@ def fragment_for(code: str, line_start: int, line_end: int, ast: dict, method: s
     return "\n".join(lines[a:b])
 
 
-async def explain(defect: dict, code: str, full_code: str | None = None) -> dict:
-    fallback_text, fallback_code = static_tips.tip_for(defect.get("message", ""), defect.get("recommendation", ""))
+async def explain(defect: dict, code: str, full_code: str | None = None, language: str = "java") -> dict:
+    fallback_text, fallback_code = static_tips.tip_for(
+        defect.get("message", ""), defect.get("recommendation", ""), language=language
+    )
     try:
         raw = await llm_client.generate(_prompt(
             "defect_explain",
+            language=language,
             message=defect.get("message", ""), method=defect.get("method", "") or "—",
             bigo=defect.get("bigO") or "—", severity=defect.get("severity", ""),
             recommendation=defect.get("recommendation", "") or "—",
@@ -63,10 +76,10 @@ async def explain(defect: dict, code: str, full_code: str | None = None) -> dict
     return {"explanation": fallback_text, "fixed_code": fallback_code, "patch": None, "source": "static", "note": note}
 
 
-async def suggest(code: str, context: str = "") -> dict:
+async def suggest(code: str, context: str = "", language: str = "java") -> dict:
     try:
         raw = await llm_client.generate(
-            _prompt("optimization", code=_clip(code), context=context or "—"),
+            _prompt("optimization", language=language, code=_clip(code), context=context or "—"),
             validate=lambda t: bool(llm_client.parse_json(t).get("suggestion")))
         data = llm_client.parse_json(raw)
         if data.get("suggestion"):
@@ -75,17 +88,18 @@ async def suggest(code: str, context: str = "") -> dict:
         note = "LLM вернул ответ в неожиданном формате."
     except llm_client.LLMUnavailable as exc:
         note = str(exc)
-    text, example = static_tips.tip_for(context or code[:200])
+    text, example = static_tips.tip_for(context or code[:200], language=language)
     return {"suggestion": text, "example": example, "source": "static", "note": note}
 
 
 async def decompose_advice(ast: dict, plan_files: list[dict]) -> dict:
     plan = "\n".join(f"- {f['name']}: {', '.join(f['methods']) or '—'}" for f in plan_files) or "(пусто)"
     calls = "\n".join(f"{k} → {', '.join(sorted(v))}" for k, v in resolve_calls(ast).items() if v) or "(нет)"
-    cls = max(ast.get("classes", [{"name": "?", "methods": []}]), key=lambda c: len(c["methods"]))["name"]
+    cls = max(ast.get("classes", [{"name": "?", "methods": []}]), key=lambda c: len(c.get("methods", [])))["name"]
+    lang = ast.get("language", "java")
     try:
         raw = await llm_client.generate(
-            _prompt("decompose_hint", class_name=cls, plan=plan, calls=calls),
+            _prompt("decompose_hint", language=lang, class_name=cls, plan=plan, calls=calls),
             validate=lambda t: bool(llm_client.parse_json(t).get("advice")))
         data = llm_client.parse_json(raw)
         if data.get("advice"):
@@ -94,7 +108,7 @@ async def decompose_advice(ast: dict, plan_files: list[dict]) -> dict:
     except llm_client.LLMUnavailable as exc:
         note = str(exc)
     return {
-        "advice": "Группы сформированы по префиксам имён методов (parse*, print*, find*…) и связям в графе вызовов. "
+        "advice": "Группы сформированы по префиксам имён функций (parse*, print*, find*…) и связям в графе вызовов. "
                   "Проверьте, что в каждом файле одна зона ответственности, а вызовы между файлами идут в одну "
                   "сторону (без циклических зависимостей).",
         "source": "static", "note": note,
@@ -104,12 +118,12 @@ async def decompose_advice(ast: dict, plan_files: list[dict]) -> dict:
 MAX_REVIEW_ITEMS = 5
 
 
-async def review(code: str, known_defects: list[str]) -> dict:
+async def review(code: str, known_defects: list[str], language: str = "java") -> dict:
     """Automatic "how could this code be better" pass; no static fallback (stays silent when AI is down)."""
     known = "\n".join(f"- {m}" for m in known_defects[:15]) or "—"
     try:
         raw = await llm_client.generate(
-            _prompt("review", code=_clip(code), known=known, max_items=MAX_REVIEW_ITEMS),
+            _prompt("review", language=language, code=_clip(code), known=known, max_items=MAX_REVIEW_ITEMS),
             validate=lambda t: isinstance(llm_client.parse_json(t).get("suggestions"), list),
         )
         data = llm_client.parse_json(raw)

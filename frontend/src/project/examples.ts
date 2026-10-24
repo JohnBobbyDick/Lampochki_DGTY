@@ -22,9 +22,26 @@ public class Demo {
 }
 `;
 
-/* the same monoliths as in /test_monoliths (copied so the frontend image builds on its own) */
-const raw = import.meta.glob('../examples/*.java', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+export const DEMO_PY = `def sum_pairs(items: list[int]) -> int:
+    total = 0
+    for a in items:
+        for b in items:
+            if a < b:
+                total += a * b
+    return total
 
-export const EXAMPLES: { name: string; code: string }[] = Object.entries(raw)
-  .map(([path, code]) => ({ name: path.split('/').pop()!, code }))
-  .sort((a, b) => a.name.localeCompare(b.name));
+def main():
+    xs = [1, 2, 3, 4]
+    print(f"pairs = {sum_pairs(xs)}")
+
+if __name__ == '__main__':
+    main()
+`;
+
+const rawJava = import.meta.glob('../examples/*.java', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const rawPy = import.meta.glob('../examples/*.py', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+
+export const EXAMPLES: { name: string; code: string }[] = [
+  ...Object.entries(rawJava).map(([path, code]) => ({ name: path.split('/').pop()!, code })),
+  ...Object.entries(rawPy).map(([path, code]) => ({ name: path.split('/').pop()!, code })),
+].sort((a, b) => a.name.localeCompare(b.name));

@@ -33,6 +33,7 @@ export interface AiAnswer {
 
 interface AppState {
   /* ── data ── */
+  language: 'java' | 'python';
   code: string;
   originalCode: string;
   ast: unknown;
@@ -71,6 +72,7 @@ interface AppState {
   error: string | null;
 
   /* ── actions ── */
+  setLanguage: (lang: 'java' | 'python') => void;
   setCode: (code: string) => void;
   setOriginalCode: (code: string) => void;
   setAst: (ast: unknown) => void;
@@ -81,7 +83,7 @@ interface AppState {
   /** set code coming from outside the typing flow (upload / generate / undo) */
   replaceCode: (code: string) => void;
   /** open a different document: new code + baseline, clears undo history and per-document results */
-  loadDocument: (code: string, original: string) => void;
+  loadDocument: (code: string, original: string, lang?: 'java' | 'python') => void;
   snapshot: () => void;
   undo: () => void;
   redo: () => void;
@@ -113,6 +115,7 @@ interface AppState {
 }
 
 export const useStore = create<AppState>((set, get) => ({
+  language: 'java',
   code: '',
   originalCode: '',
   ast: null,
@@ -151,6 +154,7 @@ export const useStore = create<AppState>((set, get) => ({
   isLoading: false,
   error: null,
 
+  setLanguage: (language) => set({ language }),
   setCode: (code) => set({ code }),
   setOriginalCode: (code) => set({ originalCode: code }),
   setAst: (ast) => set({ ast }),
@@ -162,12 +166,21 @@ export const useStore = create<AppState>((set, get) => ({
     get().snapshot();
     set({ code });
   },
-  loadDocument: (code, original) =>
+  loadDocument: (code, original, lang) => {
+    let detected = lang;
+    if (!detected) {
+      if (/^\s*(def|async\s+def)\s+\w+\s*\(/.test(code) || /__name__\s*==\s*['"]__main__['"]/.test(code)) {
+        detected = 'python';
+      } else {
+        detected = 'java';
+      }
+    }
     set({
-      code, originalCode: original, past: [], future: [],
+      code, originalCode: original, language: detected, past: [], future: [],
       runResult: null, compareResult: null, decomposition: null, gateResult: null,
       selectedMethod: null, ai: null, aiReview: null, stdin: '',
-    }),
+    });
+  },
   /** remember the current code in the undo stack (skips duplicates) */
   snapshot: () => {
     const { code, past } = get();

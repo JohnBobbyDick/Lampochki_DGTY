@@ -33,7 +33,7 @@ const Console: React.FC = () => {
 
     const ws = new WebSocket(wsUrl());
     wsRef.current = ws;
-    ws.onopen = () => ws.send(JSON.stringify({ type: 'start', code: st.code }));
+    ws.onopen = () => ws.send(JSON.stringify({ type: 'start', code: st.code, language: st.language }));
     ws.onmessage = (ev) => {
       const m = JSON.parse(ev.data);
       if (m.type === 'stdout') push({ kind: 'out', text: m.data });

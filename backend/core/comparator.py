@@ -5,7 +5,7 @@ from __future__ import annotations
 import difflib
 import re
 
-from core.runner import run_java
+from core.runner import run_code, run_java
 from models.schemas import CompareResponse, RunResponse
 
 
@@ -25,8 +25,8 @@ def unified_diff(before: str, after: str) -> str:
 
 
 def _toolchain_missing(*runs: RunResponse) -> bool:
-    """Neither version ran at all (no JDK): identical failures say nothing about behaviour."""
-    return any("Java toolchain not found" in r.stderr for r in runs)
+    """Neither version ran at all (no toolchain): identical failures say nothing about behaviour."""
+    return any("toolchain not found" in r.stderr for r in runs)
 
 
 def compare_runs(before: RunResponse, after: RunResponse) -> CompareResponse:
@@ -41,8 +41,8 @@ def compare_runs(before: RunResponse, after: RunResponse) -> CompareResponse:
     return CompareResponse(before=before, after=after, diff=diff, behavior_preserved=preserved)
 
 
-def compare_code(original: str, modified: str, main_class: str | None = None, stdin_input: str = "") -> CompareResponse:
+def compare_code(original: str, modified: str, main_class: str | None = None, stdin_input: str = "", language: str | None = None) -> CompareResponse:
     return compare_runs(
-        run_java(original, main_class, stdin_input),
-        run_java(modified, main_class, stdin_input),
+        run_code(original, main_class, stdin_input, language=language),
+        run_code(modified, main_class, stdin_input, language=language),
     )

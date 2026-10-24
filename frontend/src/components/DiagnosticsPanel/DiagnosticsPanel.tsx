@@ -42,10 +42,10 @@ const DiagnosticsPanel: React.FC = () => {
 
   return (
     <div className="panel-scroll">
-      {(compileErrors.length > 0 || syntaxErrors.length > 0) && (
+      {(compileErrors ? compileErrors.length > 0 : syntaxErrors.length > 0) && (
         <section>
           <h4>Синтаксис и компиляция</h4>
-          {compileErrors.length > 0
+          {compileErrors
             ? compileErrors.map((e, i) => (
                 <div key={i} className="defect error">
                   <FiAlertCircle className="defect-icon" aria-hidden="true" />
@@ -63,7 +63,6 @@ const DiagnosticsPanel: React.FC = () => {
                   <FiAlertCircle className="defect-icon" aria-hidden="true" />
                   <div className="defect-main">
                     <div className="defect-msg">{e}</div>
-                    {aiEnabled && <FixButton line={null} message={e} />}
                   </div>
                 </div>
               ))}

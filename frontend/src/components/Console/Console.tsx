@@ -66,9 +66,9 @@ const Console: React.FC = () => {
     };
     ws.onerror = () => {
       push({ kind: 'err', text: 'Не удалось подключиться к серверу (WebSocket /api/ws/run)\n' });
-      setRunning(false);
+      if (wsRef.current === ws) setRunning(false);
     };
-    ws.onclose = () => setRunning(false);
+    ws.onclose = () => { if (wsRef.current === ws) setRunning(false); };
   };
 
   useEffect(() => {

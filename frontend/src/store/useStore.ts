@@ -39,7 +39,8 @@ interface AppState {
   ast: unknown;
   methods: string[];
   syntaxErrors: string[];
-  compileErrors: CompileError[];
+  /** null = javac did not run (parser errors are the only signal) */
+  compileErrors: CompileError[] | null;
   lineMap: Record<string, number>;
   graphType: GraphType;
   selectedMethod: string | null;
@@ -81,7 +82,7 @@ interface AppState {
   setAst: (ast: unknown) => void;
   setMethods: (methods: string[]) => void;
   setSyntaxErrors: (errors: string[]) => void;
-  setCompileErrors: (e: CompileError[]) => void;
+  setCompileErrors: (e: CompileError[] | null) => void;
   /** drop AI tips/patches whose fragment is no longer in `code` */
   pruneStale: (code: string) => void;
   setDecomposeWarnings: (w: string[]) => void;
@@ -126,7 +127,7 @@ export const useStore = create<AppState>((set, get) => ({
   ast: null,
   methods: [],
   syntaxErrors: [],
-  compileErrors: [],
+  compileErrors: null,
   lineMap: {},
   graphType: 'cfg',
   selectedMethod: null,
@@ -194,7 +195,7 @@ export const useStore = create<AppState>((set, get) => ({
       code, originalCode: original, past: [], future: [],
       runResult: null, compareResult: null, decomposition: null, gateResult: null,
       selectedMethod: null, ai: null, aiReview: null, stdin: '',
-      compileErrors: [], defects: [], bigo: {},
+      compileErrors: null, syntaxErrors: [], defects: [], bigo: {},
     }),
   /** remember the current code in the undo stack (skips duplicates) */
   snapshot: () => {

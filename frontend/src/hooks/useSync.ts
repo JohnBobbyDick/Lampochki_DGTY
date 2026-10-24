@@ -111,16 +111,17 @@ export function useSync() {
     const st = useStore.getState();
     st.setDefects(data.defects ?? []);
     st.setBigo(data.bigo ?? {});
-    st.setCompileErrors(data.compileErrors ?? []);
+    st.setCompileErrors(data.compileErrors ?? null);
   };
 
   /* code changed → drop stale AI tips at once, then debounce 500 ms → parse, analyse, rebuild graph */
   useEffect(() => {
+    /* bump at once so an in-flight analyze for older code is ignored */
+    const cid = ++codeReq.current;
     if (!code.trim()) return;
     useStore.getState().pruneStale(code);
     const timer = setTimeout(async () => {
       const id = ++reqId.current;
-      const cid = ++codeReq.current;
       setSyncStatus('syncing');
       const parsed = await api.parseCode(code, () => cid === codeReq.current);
       if (cid !== codeReq.current) return;

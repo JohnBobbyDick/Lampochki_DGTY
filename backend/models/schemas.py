@@ -82,7 +82,7 @@ class AnalyzeResponse(CamelModel):
     """Response with defect list and Big-O analysis per method."""
     defects: list[Defect] = Field(default_factory=list)
     bigo: dict = Field(default_factory=dict, description="method_name → O(...) mapping")
-    compile_errors: list[dict] = Field(default_factory=list, description="javac errors: {file, line, message}")
+    compile_errors: list[dict] | None = Field(default=None, description="javac errors {file, line, message}; [] when javac ran clean, null when javac did not run")
 
 
 # ── Generate ───────────────────────────────────────────────────────────────────

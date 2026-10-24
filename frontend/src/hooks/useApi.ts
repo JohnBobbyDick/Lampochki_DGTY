@@ -143,7 +143,10 @@ export function useApi() {
       st.setAiLoading(true);
       const data = await call(async () => (await api.post('/ai/explain', { defect })).data, true);
       st.setAiLoading(false);
-      if (data) st.setAi({ title: '✨ Объяснение дефекта', text: data.explanation, patch: data.patch, source: data.source, note: data.note });
+      if (data) {
+        st.setAi({ title: '✨ Объяснение дефекта', text: data.explanation, patch: data.patch, source: data.source, note: data.note });
+        S().pruneStale(S().code); // the code may have changed while the answer was in flight
+      }
       return data;
     };
 
@@ -153,7 +156,10 @@ export function useApi() {
       st.setAiLoading(true);
       const data = await call(async () => (await api.post('/ai/fix', { code: st.code, line: err.line, message: err.message })).data, true);
       st.setAiLoading(false);
-      if (data) st.setAi({ title: '✨ Исправление ошибки', text: data.explanation, patch: data.patch, source: data.source, note: data.note });
+      if (data) {
+        st.setAi({ title: '✨ Исправление ошибки', text: data.explanation, patch: data.patch, source: data.source, note: data.note });
+        S().pruneStale(S().code);
+      }
       return data;
     };
 

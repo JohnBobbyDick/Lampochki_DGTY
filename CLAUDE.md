@@ -54,6 +54,14 @@ There is no linter config. Optional hardened runner image: `docker build -t lamp
 - `/api/analyze` also returns `compileErrors` (javac, `{file, line, message}`) for the diagnostics panel.
 - `api/files.py` `/api/files/zip` packs `{files:[{path, code}]}` into a zip (unsafe paths → 422); the current file is
   downloaded client-side.
+- Coverage (`core/coverage/`): `instrument.py` instruments source by javalang tokens + AST, inserting probes
+  (line/method/branch/cond/rel) without newlines so line numbers are kept; `conditions.py` parses conditions at
+  token level. `Cov.java` (`__Cov`) writes int32 counters into a memory-mapped file given by `-Djb.cov`, so data
+  survives Stop/timeout/kill. `build.py` compiles with degradation (strip decision probes → strip all probes on
+  failing lines → run the original without coverage) and reads hits (`CovPlan`, `read_hits`). Only the interactive
+  run (`core/interactive.py`, `/api/ws/run`) is instrumented: it sends `{type:"coverage", probes, hits}` or
+  `{type:"coverage", error}` after all output and before `exit`, never after a compile error (docker mode uses a
+  `/cov` mount and a `compiled` marker). Batch runs (Quality Gate, decompose verify) are not instrumented.
 - `models/schemas.py` — all Pydantic request/response models.
 
 **AI layer (`backend/ai/`).** `llm_client.generate` is the single entry point: retries with a different random
@@ -73,6 +81,10 @@ re-asks the model up to `REPAIR_ROUNDS` times (`prompts/repair.txt`) when no edi
 (active code, graph, diagnostics); `store/useProject.ts` manages the multi-file project tree (the active file's
 live text lives in `useStore.code`, not in `ProjectFile.code`). `useProject.runs` keeps the last 2 runs per
 `ProjectFile.id` in memory (`utils/runs.ts`) for the «Сравнение» tab; compile errors are never recorded there.
+`useProject.coverage`/`coverageError`/`coverageReset` (+ `recordCoverage`/`setCoverageError`/`resetCoverage`)
+accumulate coverage per `ProjectFile.id` by exact code text via `utils/coverage.ts` (`mergeCoverage`, `summarize`,
+`lineStates`, `percent`); any edit resets it for good. `AceEditor` draws gutter stripes + hover tooltip, and the
+BottomPanel tab «Покрытие» (`CoveragePanel`) shows the summary.
 `hooks/useApi.ts` wraps all backend calls;
 `hooks/useSync.ts` drives the edit → 500 ms debounce → `/parse` → `/analyze` + `/graph` loop and lays graphs
 out with dagre. `hooks/useAutoReview.ts` fires `/api/ai/review` 5 s after the last edit and cancels on new edits.

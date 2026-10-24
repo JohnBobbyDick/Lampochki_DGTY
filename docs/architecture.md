@@ -16,4 +16,9 @@ Browser SPA (React, Ace, React Flow, Zustand) → REST `/api` → FastAPI.
 (сервер сравнивает присланные label с собственным CFG, применяет изменённые) → новый код → снова `/parse`.
 Quality Gate: `/quality-gate`, `/decompose/verify` — компиляция + сравнение вывода.
 
+AI-правки: `ai/ai_analyzer.py` (запросы, повторы с `repair.txt`), `ai/patcher.py` (поиск фрагмента, проверка
+«не добавляет новых ошибок»). Эндпоинты: `POST /api/ai/fix` (правка одной ошибки javac), `POST /api/analyze`
+(поле `compileErrors`), `POST /api/files/zip` (zip изменённых файлов проекта, `api/files.py`).
+Фронтенд: история запусков по файлам — `useProject.runs` / `utils/runs.ts`; тесты — `npx vitest run`.
+
 Ограничения: см. README.

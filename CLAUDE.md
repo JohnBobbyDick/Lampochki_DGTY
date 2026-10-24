@@ -23,9 +23,10 @@ python check_llm.py                                # probe Gemini through each c
 # Frontend — Vite dev server on :3000, proxies /api (incl. WebSocket) to $API_TARGET or 127.0.0.1:8000
 cd frontend && npm install && npm run dev
 npm run build                                      # tsc -b && vite build — the only type check / "lint"
+npx vitest run                                     # frontend unit tests (also `npm test`)
 ```
 
-There is no frontend test suite or linter config. Optional hardened runner image: `docker build -t lampochki-sandbox ./sandbox`.
+There is no linter config. Optional hardened runner image: `docker build -t lampochki-sandbox ./sandbox`.
 
 ## Architecture
 
@@ -50,6 +51,9 @@ There is no frontend test suite or linter config. Optional hardened runner image
   Subprocess mode is not a sandbox.
 - `config.py` loads `backend/.env` itself (no python-dotenv; real env vars win) and enforces `ALLOWED_ORIGINS`
   / same-host Origin checks for HTTP and WebSocket.
+- `/api/analyze` also returns `compileErrors` (javac, `{file, line, message}`) for the diagnostics panel.
+- `api/files.py` `/api/files/zip` packs `{files:[{path, code}]}` into a zip (unsafe paths → 422); the current file is
+  downloaded client-side.
 - `models/schemas.py` — all Pydantic request/response models.
 
 **AI layer (`backend/ai/`).** `llm_client.generate` is the single entry point: retries with a different random
@@ -60,11 +64,16 @@ key/proxy env lists; `proxy_scheme.py` sniffs whether a proxy port is SOCKS5 or 
 When the LLM is disabled, `static_tips.py` provides fallback advice. AI edits come back as a "fragment →
 replacement" pair; `patcher.py` locates the fragment (whitespace-insensitive, must be unique), reindents, adds
 imports, and validates with parse + `javac` before the UI offers "Apply"; `/api/ai/apply` re-validates against
-the current code.
+the current code. A patch is returned only if it is *applicable*: it adds no compile errors vs. the current code
+(`/api/ai/fix` for a single javac error additionally requires removing the target error). `ai_analyzer._generate_patches`
+re-asks the model up to `REPAIR_ROUNDS` times (`prompts/repair.txt`) when no edit is valid. `/api/ai/fix` takes
+`{code, line, message}`.
 
 **Frontend (`frontend/src/`, React 18 + Zustand + React Flow + Ace).** `store/useStore.ts` is the main app state
 (active code, graph, diagnostics); `store/useProject.ts` manages the multi-file project tree (the active file's
-live text lives in `useStore.code`, not in `ProjectFile.code`). `hooks/useApi.ts` wraps all backend calls;
+live text lives in `useStore.code`, not in `ProjectFile.code`). `useProject.runs` keeps the last 2 runs per
+`ProjectFile.id` in memory (`utils/runs.ts`) for the «Сравнение» tab; compile errors are never recorded there.
+`hooks/useApi.ts` wraps all backend calls;
 `hooks/useSync.ts` drives the edit → 500 ms debounce → `/parse` → `/analyze` + `/graph` loop and lays graphs
 out with dagre. `hooks/useAutoReview.ts` fires `/api/ai/review` 5 s after the last edit and cancels on new edits.
 Example Java files live in both `frontend/src/examples/` and `test_monoliths/` (the latter used by backend tests).

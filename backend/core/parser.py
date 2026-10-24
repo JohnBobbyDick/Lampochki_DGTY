@@ -61,6 +61,8 @@ from javalang.tree import (
     ContinueStatement,
 )
 
+from core.streams import stream_of
+
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -527,6 +529,7 @@ def _stmt_to_dict(stmt: Any) -> dict:
     # ── Return / Throw ─────────────────────────────────────────────────
     if isinstance(stmt, ReturnStatement):
         d["expression"] = _expr_to_str(stmt.expression)
+        _set_stream(d, stmt.expression, "return ")
         return d
 
     if isinstance(stmt, ThrowStatement):
@@ -549,11 +552,20 @@ def _stmt_to_dict(stmt: Any) -> dict:
                 "initializer": _expr_to_str(decl.initializer),
             })
         d["declarators"] = declarators
+        if len(stmt.declarators or []) == 1 and stmt.declarators[0].initializer is not None:
+            mods = " ".join(d["modifiers"])
+            head = f"{mods + ' ' if mods else ''}{d['var_type']} {stmt.declarators[0].name} = "
+            _set_stream(d, stmt.declarators[0].initializer, head)
         return d
 
     # ── Statement expression (method call, assignment, etc.) ───────────
     if isinstance(stmt, StatementExpression):
         d["expression"] = _expr_to_str(stmt.expression)
+        e = stmt.expression
+        if isinstance(e, Assignment):
+            _set_stream(d, e.value, f"{_expr_to_str(e.expressionl)} {e.type} ")
+        else:
+            _set_stream(d, e, "")
         return d
 
     if isinstance(stmt, BreakStatement):
@@ -568,6 +580,13 @@ def _stmt_to_dict(stmt: Any) -> dict:
     return d
 
 
+def _set_stream(d: dict, expr: Any, prefix: str) -> None:
+    """Attach the Stream API chain (`core.streams`) of ``prefix + expr`` to statement dict ``d``."""
+    stream = stream_of(expr, prefix, d.get("line"))
+    if stream is not None:
+        d["stream"] = stream
+
+
 # ---------------------------------------------------------------------------
 # Expression → string helper
 # ---------------------------------------------------------------------------
@@ -575,18 +594,23 @@ def _stmt_to_dict(stmt: Any) -> dict:
 def _prefix_postfix(expr: Any, core: str) -> str:
     pre = "".join(getattr(expr, "prefix_operators", None) or [])
     post = "".join(getattr(expr, "postfix_operators", None) or [])
-    sel = ""
-    for s in (getattr(expr, "selectors", None) or []):
-        if isinstance(s, ArraySelector):
-            sel += f"[{_expr_to_str(s.index)}]"
-        elif isinstance(s, MethodInvocation):
-            args = ", ".join(_expr_to_str(a) for a in (s.arguments or []))
-            sel += f".{s.member}({args})"
-        elif isinstance(s, MemberReference):
-            sel += f".{s.member}"
-        else:
-            sel += "." + _expr_to_str(s)
+    sel = "".join(_selector_text(s) for s in (getattr(expr, "selectors", None) or []))
     return f"{pre}{core}{sel}{post}"
+
+
+def _selector_text(s: Any) -> str:
+    """Text of one selector (`.name(args)`, `.field`, `[i]`), as part of `_prefix_postfix`."""
+    if isinstance(s, ArraySelector):
+        return f"[{_expr_to_str(s.index)}]"
+    if isinstance(s, MethodInvocation):
+        return f".{s.member}({_args_text(s)})"
+    if isinstance(s, MemberReference):
+        return f".{s.member}"
+    return "." + _expr_to_str(s)
+
+
+def _args_text(call: Any) -> str:
+    return ", ".join(_expr_to_str(a) for a in (call.arguments or []))
 
 
 def _lambda_param(p: Any) -> str:

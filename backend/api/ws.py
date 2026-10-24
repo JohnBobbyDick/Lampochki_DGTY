@@ -13,7 +13,7 @@ import time
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from config import origin_allowed
-from core import interactive, runner
+from core import interactive
 
 router = APIRouter()
 
@@ -35,8 +35,9 @@ async def ws_run(ws: WebSocket) -> None:
 
     async def run_and_report() -> None:
         code = await interactive.pump(proc, emit)
-        marker = tmp / "cov" / "compiled" if runner.SANDBOX_MODE == "docker" and plan.data_file else None
-        await emit(await asyncio.to_thread(interactive.coverage_message, plan, marker))
+        cov_msg = await asyncio.to_thread(interactive.final_coverage, code, plan, tmp)
+        if cov_msg:
+            await emit(cov_msg)
         await emit({"type": "exit", "code": code, "durationMs": int((time.monotonic() - started) * 1000)})
 
     try:

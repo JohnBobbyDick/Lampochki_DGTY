@@ -23,6 +23,7 @@ SANDBOX_MODE = os.getenv("JAVA_SANDBOX_MODE", "subprocess")
 SANDBOX_IMAGE = os.getenv("JAVA_SANDBOX_IMAGE", "lampochki-sandbox")
 _ERR_RE = re.compile(r"^(?P<file>[\w./-]+\.java):(?P<line>\d+):\s*(?:error:\s*)?(?P<msg>.*)$")
 _MAX_OUT = 200_000
+DOCKER_COMPILE_EXIT = 98   # exit code of the docker script when the user's code does not compile
 _IDENT = re.compile(r"[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*")
 _FILENAME = re.compile(r"[A-Za-z_$][\w$]*\.java")
 

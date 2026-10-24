@@ -49,6 +49,15 @@ def coverage_message(plan: CovPlan, marker: Path | None = None) -> dict:
     return {"type": "coverage", "probes": [p.to_json() for p in plan.probes], "hits": hits}
 
 
+def final_coverage(exit_code: int, plan: CovPlan, tmp: Path) -> dict | None:
+    """The coverage message to send before ``exit``; None after a docker compile error (exit 98)."""
+    docker = runner.SANDBOX_MODE == "docker"
+    if docker and exit_code == runner.DOCKER_COMPILE_EXIT:
+        return None
+    marker = tmp / "cov" / "compiled" if docker and plan.data_file else None
+    return coverage_message(plan, marker)
+
+
 async def start_session(
     code: str, main_class: str | None, emit: Emit,
 ) -> tuple[asyncio.subprocess.Process, Path, CovPlan] | None:

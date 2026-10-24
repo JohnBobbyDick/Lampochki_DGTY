@@ -83,3 +83,13 @@ def test_coverage_unavailable_reason():
     cov = msgs[-2]
     assert cov["type"] == "coverage" and cov["error"].startswith("Не удалось разобрать код для покрытия")
     assert "probes" not in cov
+
+
+def test_no_coverage_after_docker_compile_error(monkeypatch, tmp_path):
+    from core import interactive, runner
+    from core.coverage.build import CovPlan
+
+    monkeypatch.setattr(runner, "SANDBOX_MODE", "docker")
+    plan = CovPlan(error="x")
+    assert interactive.final_coverage(98, plan, tmp_path) is None
+    assert interactive.final_coverage(0, plan, tmp_path) == {"type": "coverage", "error": "x"}

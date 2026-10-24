@@ -13,16 +13,19 @@ import shutil
 import stat
 import struct
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from core.coverage import instrument
+from core.coverage import instrument, py_cov
 from core.coverage.instrument import COV_CLASS, CoverageUnavailable, Probe
 from core import runner
 from core.runner import parse_compile_errors
 
 UNAVAILABLE = "инструментированный код не скомпилировался"
 USER_ERROR = "Программа не скомпилировалась"
+PY_RUN_CMD = [sys.executable, "-u", "_jb_run.py"]
+_PY_LOADER = 'import py_cov\npy_cov.run("main.py")\n'
 
 
 @dataclass
@@ -66,14 +69,18 @@ def _without_coverage(tmp: Path, fname: str, code: str, error: str):
     return None, CovPlan(error=error)
 
 
-def _success(tmp: Path, inst: instrument.Instrumented):
+def _data_file(tmp: Path, name: str, slots: int) -> Path:
     cov_dir = tmp / "cov"
     cov_dir.mkdir(exist_ok=True)
-    os.chmod(cov_dir, 0o755)              # not world-writable: the sandbox must not swap cov.bin
-    data = cov_dir / "cov.bin"
-    data.write_bytes(bytes(inst.slots * 4))
+    os.chmod(cov_dir, 0o755)              # not world-writable: the sandbox must not swap the data file
+    data = cov_dir / name
+    data.write_bytes(bytes(slots * 4))
     os.chmod(data, 0o666)                 # the docker runner maps it read-write as another user
-    return None, CovPlan(inst.probes, inst.slots, data, None)
+    return data
+
+
+def _success(tmp: Path, inst: instrument.Instrumented):
+    return None, CovPlan(inst.probes, inst.slots, _data_file(tmp, "cov.bin", inst.slots), None)
 
 
 def compile_local(tmp: Path, fname: str, code: str) -> tuple[subprocess.CompletedProcess | None, CovPlan]:
@@ -107,6 +114,36 @@ def compile_local(tmp: Path, fname: str, code: str) -> tuple[subprocess.Complete
             return _success(tmp, inst)
         bad |= _error_lines(proc.stderr, fname)
     return _without_coverage(tmp, fname, code, UNAVAILABLE)
+
+
+def prepare_python(tmp: Path, code: str) -> CovPlan:
+    """Write ``main.py``, ``py_cov.py`` and the loader ``_jb_run.py`` into *tmp* (run it with
+    :data:`PY_RUN_CMD` and :func:`python_cov_env`) and the zeroed counter file ``cov/hits.bin``.
+
+    The child instruments ``main.py`` itself with the same ``py_cov``; ``plan.error`` (no coverage,
+    the loader then runs the original) is only the reason, without the «Покрытие недоступно» prefix.
+    """
+    (tmp / "main.py").write_text(code, encoding="utf-8")
+    shutil.copyfile(Path(py_cov.__file__), tmp / "py_cov.py")
+    (tmp / "_jb_run.py").write_text(_PY_LOADER, encoding="utf-8")
+    try:
+        tree, raw = py_cov.instrument(code)
+        compile(tree, "main.py", "exec")
+    except SyntaxError as exc:
+        return CovPlan(error=f"синтаксическая ошибка в строке {exc.lineno or 1}")
+    except Exception:  # noqa: BLE001 — e.g. RecursionError on deeply nested code
+        return CovPlan(error="не удалось инструментировать код")
+    probes = [Probe(**p) for p in raw]
+    slots = sum(len(p.outcomes) for p in probes)
+    return CovPlan(probes, slots, _data_file(tmp, "hits.bin", slots), None)
+
+
+def python_cov_env(plan: CovPlan) -> dict[str, str]:
+    """``runner.python_env()`` plus ``JB_COV`` / ``JB_COV_SLOTS`` when *plan* has a counter file."""
+    env = runner.python_env()
+    if plan.data_file is not None:
+        env.update(JB_COV=str(plan.data_file), JB_COV_SLOTS=str(plan.slots))
+    return env
 
 
 def read_hits(plan: CovPlan) -> list[int] | None:

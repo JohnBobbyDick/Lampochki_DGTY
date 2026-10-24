@@ -11,6 +11,7 @@ Browser SPA (React, Ace, React Flow, Zustand) → REST `/api` → FastAPI.
 | `core/code_generator.py` | правки узлов → перегенерация тела метода и вставка в исходник по спану |
 | `core/decomposer.py` | группировка static-методов по префиксам имён + графу вызовов |
 | `core/runner.py`, `comparator.py` | javac/java (subprocess или docker), diff stdout (маскирует timestamps) |
+| `core/streams.py` | распознавание цепочек Stream API в операторе: поле `stream` (`prefix`, `source`, `ops`, `terminal`), `compose` собирает цепочку обратно; узлы CFG `stream-source`/`stream-op`/`stream-terminal` |
 | `core/coverage/` | покрытие: инструментирование исходника по токенам (`instrument.py`, `conditions.py`), счётчик `Cov.java` (mmap-файл), сборка с деградацией и чтение hits (`build.py`) |
 
 Поток: правка кода → debounce 500 мс → `/parse` → `/analyze` + `/graph`. Правка узла → `/generate`
@@ -28,5 +29,7 @@ Big O «было → станет»: `ai/bigo_diff.py` (поля `bigoBefore/big
 Покрытие: интерактивный запуск (`core/interactive.py`, `/api/ws/run`) компилирует инструментированную копию и после
 вывода, перед `exit`, шлёт `{type:"coverage", probes, hits}` (или `{type:"coverage", error}`). Фронтенд накапливает
 hits по файлу (`useProject.coverage`, `utils/coverage.ts`), рисует полосы в gutter `AceEditor` и вкладку «Покрытие».
+
+Стримы: парсер ставит оператору поле `stream` (`core/streams.py`), `cfg_builder` разворачивает его в цепочку узлов, `code_generator` правит шаги и собирает цепочку через `compose`, `bigo_analyzer._stream_cost` считает Big O по шагам, `defect_detector._stream_defects` + `ai/static_tips.py` дают 6 правил. Фронтенд: семейство узлов `stream` (`kinds.ts`, `CFGView.tsx`, `index.css`).
 
 Ограничения: см. README.

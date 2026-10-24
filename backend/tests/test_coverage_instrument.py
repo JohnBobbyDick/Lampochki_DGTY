@@ -9,7 +9,7 @@ from core.coverage.build import compile_local, read_hits
 from core.coverage.instrument import CoverageUnavailable, cov_java, instrument_java
 from core.runner import _public_class, detect_main_class, parse_compile_errors, run_java
 
-MONOLITH_NAMES = ["Analyzer", "Calculator", "Logger", "Store"]
+MONOLITH_NAMES = ["Analyzer", "Calculator", "Logger", "Store", "Streams"]
 
 
 def _names(code):

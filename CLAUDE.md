@@ -62,6 +62,13 @@ There is no linter config. Optional hardened runner image: `docker build -t lamp
   run (`core/interactive.py`, `/api/ws/run`) is instrumented: it sends `{type:"coverage", probes, hits}` or
   `{type:"coverage", error}` after all output and before `exit`, never after a compile error (docker mode uses a
   `/cov` mount and a `compiled` marker). Batch runs (Quality Gate, decompose verify) are not instrumented.
+- Streams (`core/streams.py`): `stream_of` recognises `src.stream().op(…).terminal(…)` and the parser's
+  `_stmt_to_dict` sets `stmt["stream"]` (`prefix`, `source`, `ops`, `terminal`; `compose` must reproduce the statement
+  text, otherwise no field). Only whole initializers / expression statements / assignment values / returns are
+  decomposed. `cfg_builder` emits `stream-source`/`stream-op`/`stream-terminal` nodes (new `GraphNode.type` values);
+  `code_generator` edits a step by replacing its `text` (empty op label deletes it) and renders via `compose`;
+  `bigo_analyzer._stream_cost` gives structural Big O; `defect_detector._stream_defects` has 6 rules (tips in
+  `ai/static_tips.py`). Demo: `test_monoliths/Streams.java` (+ `frontend/src/examples/`).
 - `models/schemas.py` — all Pydantic request/response models.
 
 **AI layer (`backend/ai/`).** `llm_client.generate` is the single entry point: retries with a different random

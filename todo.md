@@ -10,7 +10,7 @@
 - [x] **3. Выгрузка: текущий файл и zip изменённых**
 - [x] **4. Покрытие кода (аналог JavaScope)**
 - [x] **5. Сложность «сейчас → после ИИ» и ожидаемое ускорение**
-- [ ] **6. Stream API и Collectors (Java)**
+- [x] **6. Stream API и Collectors (Java)**
 - [ ] **7. Python**
 - [ ] **8. C++**
 - [ ] **Слить `feature/multilang-coverage` в `main`** — только после завершения всех этапов
@@ -116,24 +116,22 @@ CoverageRun = { codeHash: str, probes: [Probe], hits: { "<probeId>:<outcome>": c
 **Цель.** Стримы — полноценные граждане: конвейер на графе, правка шагов через граф, правильный Big O, дефекты/советы.
 Дизайн: раздел 6.
 
-**Задачи.**
-- [ ] **6.1 Разбор цепочек (парсер).** В `core/parser.py` для выражений с `.stream()`/`.parallelStream()`/`Arrays.stream`/`Stream.of`/`IntStream.range`:
-  поле оператора `stream: {source: str, ops: [{name, args: str, line}], terminal: {name, args}}` из дерева javalang
-  (`MethodInvocation` с `qualifier`/`selectors`). Тест на цепочку `list.stream().filter(x -> x > 0).map(String::valueOf).collect(Collectors.toList())`.
-- [ ] **6.2 Узлы конвейера (CFG).** `core/cfg_builder.py`: оператор со `stream` разворачивается в цепочку узлов типа
-  `stream-source` → `stream-op` × N → `stream-terminal`, id детерминированные (продолжают нумерацию `n…`), карта узел→шаг.
-  Фронт: новые виды узлов в `GraphCanvas/nodes/kinds.ts` и `CFGNode.tsx` (иконка/цвет по `DESIGN.md`).
-- [ ] **6.3 Правка шагов через граф.** `core/code_generator.py`: правка метки узла `stream-op` (`filter(x -> x >= 0)`) →
-  пересборка выражения цепочки и вставка в исходный оператор по спану; `/api/generate` уже сравнивает метки — добавить
-  поддержку новых типов. Тест roundtrip: без правок — тот же вывод; правка `filter` меняет код ожидаемо.
-- [ ] **6.4 Big O.** `core/bigo_analyzer.py`: вместо regex `.stream(` — по `stream.ops`: каждый проход O(n); `sorted` O(n log n);
-  `distinct`/`groupingBy`/`toSet`/`toMap` O(n); `flatMap` — умножение на внутренний размер (m → O(n·m), выводить O(n²) при той же коллекции);
-  стрим в цикле — умножение; `limit`/`findFirst`/`anyMatch` не снижают оценку. Тесты.
-- [ ] **6.5 Дефекты/советы (5–8 правил).** `core/defect_detector.py`: стрим в цикле по той же коллекции;
-  `collect(toList()).size()` → `count()`; `filter(..).findFirst().isPresent()` → `anyMatch`; `sorted().findFirst()` → `min`;
-  `forEach` с изменением внешней коллекции; `map(..).filter(Objects::nonNull)` порядок; «цикл можно заменить стримом» (hint).
-  Статические подсказки в `ai/static_tips.py`. Тесты на каждое правило.
-- [ ] **6.6 Демо-пример** со стримами в `test_monoliths/` и `frontend/src/examples/`; документация.
+**Подробный план:** `docs/superpowers/plans/2026-10-24-stage6-streams.md` (6 задач, все выполнены, 24.10).
+
+**Задачи** (фактические).
+- [x] **1. Разбор цепочек.** `core/streams.py` (`stream_of`, `compose`), поле `stmt["stream"]` в парсере — `baa54dc`.
+- [x] **2. Узлы конвейера и правка шагов.** CFG `stream-source`/`stream-op`/`stream-terminal`, правка в `code_generator` (пустая метка шага удаляет его; вставка цепочки в источник не дублирует) — `dd62ee3`, `c020bda`.
+- [x] **3. Узлы на графе (фронтенд).** `kinds.ts`, `CFGView.tsx`, `index.css` (семейство `stream`, легенда «Стрим»), высота dagre в `useSync.ts` — `95f57bf`.
+- [x] **4. Big O по шагам.** `bigo_analyzer._stream_cost` — `03c4b29`.
+- [x] **5. Дефекты и советы.** 6 правил в `defect_detector._stream_defects` + `ai/static_tips.py` — `fa6f7ad`.
+- [x] **6. Демо и документация.** `Streams.java` (`test_monoliths/`, `frontend/src/examples/`), тесты, README, CLAUDE.md, `docs/architecture.md`, этот файл.
+
+**Отложенные мелочи.**
+- `flatMap` недооценивает дорогие внутренние лямбды.
+- Правило 5: ложные срабатывания на локальной коллекции внутри лямбды-блока и на поле параметра (`p.items.add`).
+- Правило 6: жадный шаблон `add(...)`.
+- Правило 1 берёт первый `.size()` в составном условии.
+- Цвет узла стрима в светлой теме не проверен глазами.
 
 ---
 

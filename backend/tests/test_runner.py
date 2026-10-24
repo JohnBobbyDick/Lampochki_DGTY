@@ -32,7 +32,7 @@ def test_compare_same_and_different():
     assert not cmp.behavior_preserved and "-hi 3" in cmp.diff
 
 
-@pytest.mark.parametrize("name", ["Analyzer", "Calculator", "Logger", "Store"])
+@pytest.mark.parametrize("name", ["Analyzer", "Calculator", "Logger", "Store", "Streams"])
 def test_monoliths_run(read_java, name):
     assert run_java(read_java(name)).exit_code == 0
 

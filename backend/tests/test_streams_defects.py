@@ -145,7 +145,22 @@ def test_monolith_defects_unchanged():
         code = open(f).read()
         got = [d.model_dump() for d in detect_defects(parse_java(code)["ast"], code)]
         got = json.loads(json.dumps(got, ensure_ascii=False))
+        if os.path.basename(f) not in base:  # Streams.java has no pre-stage-6 baseline (new demo)
+            continue
         old = base[os.path.basename(f)]
         # every pre-existing defect is unchanged; the only additions are the new "loop -> stream" hints
         assert [d for d in got if d in old] == old, f
         assert all(d["message"].startswith("Цикл можно заменить") for d in got if d not in old), f
+
+
+# the demo example ----------------------------------------------------------------
+def test_streams_demo_has_all_rules_and_stream_nodes(read_java):
+    from core.cfg_builder import build_cfg
+    code = read_java("Streams")
+    r = parse_java(code)
+    assert r["errors"] == []
+    msgs = [d.message for d in detect_defects(r["ast"], code)]
+    for key in ("Повторный стрим", "count()", "anyMatch", "min(...)/max(...)", "изменяет внешнюю коллекцию", "Цикл можно заменить"):
+        assert any(key in m for m in msgs), key
+    m = next(m for c in r["ast"]["classes"] if c["name"] == "Streams" for m in c["methods"] if m["name"] == "expensiveNames")
+    assert any(n.type == "stream-op" for n in build_cfg(m)[0])

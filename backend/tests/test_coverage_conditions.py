@@ -76,3 +76,9 @@ def test_ternary_conditions():
     assert cond_texts("f(a, b ? 1 : c ? 2 : 3)") == ["b", "c"]
     assert cond_texts("List<? extends T> l = null;") == []
     assert cond_texts("r = v -> v ? 1 : 2;") == ["v"]
+
+
+def test_loose_operators_make_single_leaf():
+    for s in ("a ? b || c : d", "p || q ? r : s", "x = a || b"):
+        t, c = parse(s)
+        assert c.kind == "leaf" and not has_logic(c), s

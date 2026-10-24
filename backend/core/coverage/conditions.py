@@ -17,6 +17,7 @@ _FORBIDDEN = _ASSIGN | {"?", ":", "instanceof", "&", "|", "^", "->", "new"}
 _BINARY = _REL | _FORBIDDEN | {
     "+", "-", "*", "/", "%", "<<", ">>", ">>>", "&&", "||",
 }
+_LOOSE = _ASSIGN | {"?", ":", "->"}
 _TERNARY_STOP = {",", ";", "=", ":", "?", "->", "return", "throw"} | _ASSIGN
 
 
@@ -83,6 +84,9 @@ def _is_group(tokens: list, a: int, b: int) -> bool:
 
 
 def parse_condition(tokens: list, a: int, b: int) -> Cond:
+    # ternary / lambda / assignment bind looser than || and &&: keep as one leaf
+    if any(v in _LOOSE for _, v in _top_level(tokens, a, b)):
+        return Cond("leaf", a, b)
     for op, kind in (("||", "or"), ("&&", "and")):
         parts = _split(tokens, a, b, op)
         if parts:

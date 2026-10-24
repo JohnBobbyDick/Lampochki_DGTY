@@ -132,3 +132,20 @@ def test_endpoint(read_java):
     r = TestClient(app).post("/api/ai/bigo-combined", json=body)
     assert r.status_code == 200
     assert r.json()["bigo"]["Analyzer.mergeItems"] == "O(n)"
+
+
+import pytest  # noqa: E402
+
+from ai.bigo_diff import _rank  # noqa: E402
+from core.bigo_analyzer import complexity_label  # noqa: E402
+
+
+@pytest.mark.parametrize("pl", [(0, 0), (0, 1), (0, 2), (0, 6), (1, 0), (1, 1), (2, 0), (2, 1),
+                                (3, 0), (4, 0), (5, 0), (6, 0), (7, 0), (2, 3)])
+def test_rank_parses_every_analyzer_label(pl):
+    assert _rank(complexity_label(pl)) == pl
+
+
+def test_rank_exp_and_unknown():
+    assert _rank("O(2^n)") > _rank(complexity_label((7, 0)))
+    assert _rank("O(?)") is None and _rank("O(?) рекурсия") is None

@@ -36,6 +36,7 @@ def bigo_change(code: str, patched: str, start: int, end: int) -> tuple[dict[str
 
 
 _RANK_EXP = (99, 0)
+_SUP = {"²": 2, "³": 3, "⁴": 4, "⁵": 5}
 
 
 def _rank(label: str) -> tuple[int, int] | None:
@@ -47,14 +48,15 @@ def _rank(label: str) -> tuple[int, int] | None:
     inner = label[2:-1].strip()
     if inner == "1":
         return (0, 0)
-    if "^k" in inner:
-        return (4, 0)
-    sup = {"²": 2, "³": 3}
-    p = 0
-    m = re.match(r"n([²³])?", inner)
+    p = l = 0
+    m = re.search(r"log(?:([²³⁴⁵])|\^(\d+))? n", inner)
     if m:
-        p = sup.get(m.group(1), 1)
-    return (p, 1 if "log" in inner else 0)
+        l = _SUP.get(m.group(1)) or int(m.group(2) or 1)
+        inner = inner[:m.start()] + inner[m.end():]
+    m = re.search(r"n(?:([²³⁴⁵])|\^(\d+))?", inner)
+    if m:
+        p = _SUP.get(m.group(1)) or int(m.group(2) or 1)
+    return (p, l)
 
 
 def _score(before: dict[str, str], after: dict[str, str]) -> tuple[int, int]:

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { useStore } from './useStore';
 import { DEMO, EXAMPLES } from '../project/examples';
 import { pushRun, RunRecord } from '../utils/runs';
+import { Coverage, Probe, mergeCoverage } from '../utils/coverage';
 
 export interface ProjectFile {
   id: string;        // "folder/Name.java"
@@ -18,6 +19,14 @@ interface ProjectState {
   /** last runs per file id (in memory), for the previous-vs-last comparison */
   runs: Record<string, RunRecord[]>;
   recordRun: (r: RunRecord, fileId?: string) => void;
+  /** accumulated coverage per file id (valid only for the text it was collected on) */
+  coverage: Record<string, Coverage>;
+  coverageError: Record<string, string | null>;
+  /** coverage was dropped because the code was edited */
+  coverageReset: Record<string, boolean>;
+  recordCoverage: (fileId: string, code: string, probes: Probe[], hits: number[]) => void;
+  setCoverageError: (fileId: string, error: string) => void;
+  resetCoverage: (fileId: string) => void;
   open: (id: string) => void;
   close: (id: string) => void;
   addFile: (name: string, text: string) => void;
@@ -43,6 +52,30 @@ export const useProject = create<ProjectState>((set, get) => ({
   activeId: DEMO_ID,
   openIds: [DEMO_ID],
   runs: {},
+  coverage: {},
+  coverageError: {},
+  coverageReset: {},
+
+  recordCoverage: (fileId, code, probes, hits) => set((s) => {
+    const current = fileId === s.activeId
+      ? useStore.getState().code
+      : s.files.find((f) => f.id === fileId)?.code;
+    if (current !== code) return { coverageReset: { ...s.coverageReset, [fileId]: true } };
+    return {
+      coverage: { ...s.coverage, [fileId]: mergeCoverage(s.coverage[fileId], code, probes, hits) },
+      coverageError: { ...s.coverageError, [fileId]: null },
+      coverageReset: { ...s.coverageReset, [fileId]: false },
+    };
+  }),
+
+  setCoverageError: (fileId, error) => set((s) => ({ coverageError: { ...s.coverageError, [fileId]: error } })),
+
+  resetCoverage: (fileId) => set((s) => {
+    const { [fileId]: _c, ...coverage } = s.coverage;
+    const { [fileId]: _e, ...coverageError } = s.coverageError;
+    const { [fileId]: _r, ...coverageReset } = s.coverageReset;
+    return { coverage, coverageError, coverageReset };
+  }),
 
   recordRun: (r, fileId) => set((s) => ({ runs: pushRun(s.runs, fileId ?? s.activeId, r) })),
 
@@ -89,3 +122,13 @@ export const useProject = create<ProjectState>((set, get) => ({
     if (f) useStore.getState().loadDocument(f.code, f.original);
   },
 }));
+
+/* editing the active file invalidates its coverage (line numbers and probes no longer match) */
+useStore.subscribe((st, prev) => {
+  if (st.code === prev.code) return;
+  const { activeId, coverage } = useProject.getState();
+  const c = coverage[activeId];
+  if (!c || c.code === st.code) return;
+  const { [activeId]: _c, ...rest } = coverage;
+  useProject.setState((s) => ({ coverage: rest, coverageReset: { ...s.coverageReset, [activeId]: true } }));
+});

@@ -52,6 +52,12 @@ const Console: React.FC = () => {
         useStore.getState().setRunResult({
           stdout: '', stderr: m.text, exitCode: 1, durationMs: 0, compileErrors: m.errors,
         });
+      } else if (m.type === 'coverage') {
+        if (!compileFailed) {
+          const proj = useProject.getState();
+          if (m.error) proj.setCoverageError(fileId, m.error);
+          else proj.recordCoverage(fileId, st.code, m.probes, m.hits);
+        }
       } else if (m.type === 'exit') {
         push({ kind: 'sys', text: `\n[завершено · exit ${m.code} · ${m.durationMs} ms]\n` });
         setRunning(false);

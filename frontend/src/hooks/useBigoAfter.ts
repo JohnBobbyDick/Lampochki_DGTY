@@ -21,7 +21,7 @@ export function useBigoAfter() {
     let stale = false;
     const timer = setTimeout(async () => {
       const combined = await api.bigoCombined(code, patches);
-      if (stale || !combined) return;
+      if (stale || !combined || !Object.keys(combined).length) return;
       set(bigoAfter(patches, combined));
     }, BIGO_COMBINED_DELAY_MS);
     return () => { stale = true; clearTimeout(timer); };

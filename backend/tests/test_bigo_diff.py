@@ -149,3 +149,13 @@ def test_rank_parses_every_analyzer_label(pl):
 def test_rank_exp_and_unknown():
     assert _rank("O(2^n)") > _rank(complexity_label((7, 0)))
     assert _rank("O(?)") is None and _rank("O(?) рекурсия") is None
+
+
+def test_import_bigo_diff_standalone_has_no_cycle():
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    backend = Path(__file__).resolve().parent.parent
+    r = subprocess.run([sys.executable, "-c", "import ai.bigo_diff"], cwd=backend, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr

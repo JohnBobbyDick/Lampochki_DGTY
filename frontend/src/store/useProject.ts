@@ -130,5 +130,9 @@ useStore.subscribe((st, prev) => {
   const c = coverage[activeId];
   if (!c || c.code === st.code) return;
   const { [activeId]: _c, ...rest } = coverage;
-  useProject.setState((s) => ({ coverage: rest, coverageReset: { ...s.coverageReset, [activeId]: true } }));
+  useProject.setState((s) => ({
+    coverage: rest,
+    coverageError: { ...s.coverageError, [activeId]: null },
+    coverageReset: { ...s.coverageReset, [activeId]: true },
+  }));
 });

@@ -97,7 +97,8 @@ const CoveragePanel: React.FC = () => {
               {sum.missing.map((m, i) => (
                 <li key={i}>
                   <button className="cov-miss-row" onClick={() => jumpToLine(m.line)}>
-                    <span className="cov-line">строка {m.line}</span>
+                    <span className="cov-line">строка {m.line}<span aria-hidden="true"> ·</span></span>
+                    <span className="sr-only">, </span>
                     <span>{m.label} → {m.outcome}</span>
                   </button>
                 </li>

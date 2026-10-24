@@ -11,6 +11,7 @@ import { useProject } from '../../store/useProject';
 import { useTheme } from '../../hooks/useTheme';
 import { lineStates, LineState } from '../../utils/coverage';
 
+const NO_COV: Map<number, LineState> = new Map();
 const SEVERITY_TYPE = { error: 'error', warning: 'warning', hint: 'info' } as const;
 
 const JavaEditor: React.FC = () => {
@@ -71,7 +72,7 @@ const JavaEditor: React.FC = () => {
   /* coverage: gutter stripes + hover tooltip, only while the text matches the run */
   const cov = useProject((s) => s.coverage[s.activeId]);
   const covStates = useMemo<Map<number, LineState>>(
-    () => (cov && cov.code === code ? lineStates(cov) : new Map()),
+    () => (cov && cov.code === code ? lineStates(cov) : NO_COV),
     [cov, code],
   );
   const covStatesRef = useRef(covStates);
@@ -79,7 +80,7 @@ const JavaEditor: React.FC = () => {
 
   useEffect(() => {
     const session = ref.current?.editor?.session;
-    if (!session) return;
+    if (!session || covStates.size === 0) return;
     covStates.forEach((st, line) => session.addGutterDecoration(line - 1, `ace-cov-${st.state}`));
     return () => {
       /* Ace has already shifted rows after the edit: clear every row, not the remembered ones */

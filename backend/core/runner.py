@@ -152,14 +152,16 @@ def _run_local(tmp: Path, names: list[str], main_class: str, stdin_input: str, t
         )
 
 
-def docker_command(tmp: Path, names: list[str], main_class: str, cov: bool = False) -> list[str]:
+def docker_command(tmp: Path, names: list[str], main_class: str, cov: bool = False, slots: int = 0) -> list[str]:
     if cov:
+        # the container can write into the host-mounted /cov: cap file size to the counter file (512-byte blocks)
+        fsize = -(-slots * 4 // 512) + 8
         # cov/ holds the instrumented code + __Cov and is the (rw) data dir; the original is in orig/
         script = (
             "javac -encoding UTF-8 -d /tmp/out cov/*.java 2> /dev/null && touch /cov/compiled || "
             f"{{ rm -rf /tmp/out/*; javac -encoding UTF-8 -d /tmp/out {' '.join('orig/' + n for n in names)} 2> /tmp/javac.err || "
             "{ cat /tmp/javac.err >&2; exit 98; }; }; "
-            f"java -Xmx256m -Djb.cov=/cov/cov.bin -cp /tmp/out {main_class}"
+            f"ulimit -f {fsize}; java -Xmx256m -Djb.cov=/cov/cov.bin -cp /tmp/out {main_class}"
         )
     else:
         script = (

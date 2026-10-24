@@ -20,7 +20,7 @@ from core.coverage import instrument
 from core.coverage.instrument import COV_CLASS, CoverageUnavailable, Probe
 from core.runner import parse_compile_errors
 
-UNAVAILABLE = "Покрытие недоступно: инструментированный код не скомпилировался"
+UNAVAILABLE = "инструментированный код не скомпилировался"
 USER_ERROR = "Программа не скомпилировалась"
 
 
@@ -115,7 +115,7 @@ def read_hits(plan: CovPlan) -> list[int] | None:
     size = plan.slots * 4
     try:
         # never follow a symlink planted by the program: it could point at any host file
-        fd = os.open(plan.data_file, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        fd = os.open(plan.data_file, os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0))
     except OSError:
         return None
     try:

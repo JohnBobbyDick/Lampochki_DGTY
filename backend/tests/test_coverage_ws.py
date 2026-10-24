@@ -93,3 +93,15 @@ def test_no_coverage_after_docker_compile_error(monkeypatch, tmp_path):
     plan = CovPlan(error="x")
     assert interactive.final_coverage(98, plan, tmp_path) is None
     assert interactive.final_coverage(0, plan, tmp_path) == {"type": "coverage", "error": "x"}
+
+
+def test_exit_sent_when_final_coverage_raises(monkeypatch):
+    from core import interactive
+
+    def boom(*a, **k):
+        raise RuntimeError("x")
+
+    monkeypatch.setattr(interactive, "final_coverage", boom)
+    msgs = _run(ECHO, stdin="Bob\n")
+    assert [m["type"] for m in msgs][-2:] == ["coverage", "exit"]
+    assert msgs[-2]["error"] == "Данные покрытия не получены"

@@ -32,6 +32,14 @@ describe('per-file coverage', () => {
     expect(useProject.getState().coverage[id()]).toBeUndefined();
   });
 
+  it('clears a stale coverage error on edit', () => {
+    useProject.getState().recordCoverage(id(), A, probes, [1]);
+    useProject.getState().setCoverageError(id(), 'старая причина');
+    useStore.getState().setCode(B);
+    expect(useProject.getState().coverageError[id()]).toBeNull();
+    expect(useProject.getState().coverageReset[id()]).toBe(true);
+  });
+
   it('ignores a run whose code differs from the current text', () => {
     useProject.getState().recordCoverage(id(), B, probes, [1]);
     expect(useProject.getState().coverage[id()]).toBeUndefined();

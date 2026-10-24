@@ -205,7 +205,7 @@ def test_degrade(tmp_path, monkeypatch):
 def test_degrade_to_original(tmp_path, monkeypatch):
     monkeypatch.setattr(instrument, "instrument_java", _garbage_on_line_3(instrument.instrument_java, 99))
     out, plan = run_cov(tmp_path, DEG)
-    assert plan.error.startswith("Покрытие недоступно")
+    assert plan.error == "инструментированный код не скомпилировался"
     assert plan.data_file is None and read_hits(plan) is None
     assert out.returncode == 0 and out.stdout.strip() == "2"
 
@@ -328,3 +328,27 @@ def test_read_hits_rejects_symlink(tmp_path):
         pytest.skip("symlinks not available")
     assert read_hits(plan) is None
     assert (plan.data_file.parent.stat().st_mode & 0o777) == 0o755
+
+
+def test_read_hits_binary_safe(tmp_path):
+    """0x1A and CRLF bytes in a counter must survive (Windows text mode would truncate them)."""
+    import struct
+    from core.coverage.build import CovPlan
+
+    data = tmp_path / "cov.bin"
+    values = [26, 0x0A0D, 0, 3]
+    data.write_bytes(struct.pack("<4i", *values))
+    assert read_hits(CovPlan(data_file=data, slots=4)) == values
+
+
+def test_counter_saturates(tmp_path):
+    (tmp_path / "__Cov.java").write_text(cov_java(2), encoding="utf-8")
+    (tmp_path / "H.java").write_text(
+        "public class H { public static void main(String[] a) { __Cov.h(0); __Cov.c(0, true); __Cov.h(1); } }",
+        encoding="utf-8")
+    subprocess.run(["javac", "-d", "out", "H.java", "__Cov.java"], cwd=tmp_path, check=True)
+    data = tmp_path / "cov.bin"
+    data.write_bytes((0x7FFFFFFF).to_bytes(4, "little") + bytes(4))
+    subprocess.run(["java", f"-Djb.cov={data}", "-cp", "out", "H"], cwd=tmp_path, check=True)
+    raw = data.read_bytes()
+    assert int.from_bytes(raw[:4], "little") == 0x7FFFFFFF and int.from_bytes(raw[4:], "little") == 1

@@ -35,7 +35,10 @@ async def ws_run(ws: WebSocket) -> None:
 
     async def run_and_report() -> None:
         code = await interactive.pump(proc, emit)
-        cov_msg = await asyncio.to_thread(interactive.final_coverage, code, plan, tmp)
+        try:
+            cov_msg = await asyncio.to_thread(interactive.final_coverage, code, plan, tmp)
+        except Exception:  # noqa: BLE001 – the console must still get its exit
+            cov_msg = {"type": "coverage", "error": "Данные покрытия не получены"}
         if cov_msg:
             await emit(cov_msg)
         await emit({"type": "exit", "code": code, "durationMs": int((time.monotonic() - started) * 1000)})

@@ -76,7 +76,7 @@ async def start_session(
 
     if runner.SANDBOX_MODE == "docker":
         cov, plan = await asyncio.to_thread(_prepare_docker, tmp, fname, code)
-        cmd = runner.docker_command(tmp, [fname], main_class, cov=cov)
+        cmd = runner.docker_command(tmp, [fname], main_class, cov=cov, slots=plan.slots)
         cwd = None
     else:
         proc, plan = await asyncio.to_thread(build.compile_local, tmp, fname, code)

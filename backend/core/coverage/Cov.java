@@ -22,9 +22,13 @@ final class __Cov {
         return java.nio.ByteBuffer.allocate(SLOTS * 4).order(java.nio.ByteOrder.LITTLE_ENDIAN);
     }
 
+    /** Saturating increment: a hot line must not wrap around int32 on a long run. */
     static void h(int s) {
         int i = s << 2;
-        B.putInt(i, B.getInt(i) + 1);
+        int v = B.getInt(i);
+        if (v != Integer.MAX_VALUE) {
+            B.putInt(i, v + 1);
+        }
     }
 
     /** Decision / condition: true -> s, false -> s+1. */

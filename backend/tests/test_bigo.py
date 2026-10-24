@@ -155,9 +155,9 @@ def test_monolith_and_demo_estimates_unchanged(read_java):
     import json
     import re
     from pathlib import Path
-    baseline = json.loads((Path(__file__).parent / "data" / "bigo_baseline.json").read_text())
+    baseline = json.loads((Path(__file__).parent / "data" / "bigo_baseline.json").read_text(encoding="utf-8"))
     for name in ("Analyzer", "Calculator", "Logger", "Store"):
         assert analyze(read_java(name))[1] == baseline[name], name
-    ts = (Path(__file__).resolve().parents[2] / "frontend" / "src" / "project" / "examples.ts").read_text()
+    ts = (Path(__file__).resolve().parents[2] / "frontend" / "src" / "project" / "examples.ts").read_text(encoding="utf-8")
     demo = re.search(r"export const DEMO = `(.*?)`", ts, re.S).group(1)
     assert analyze(demo)[1] == baseline["DEMO"]

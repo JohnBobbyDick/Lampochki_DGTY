@@ -89,17 +89,6 @@ const ProjectTree: React.FC = () => {
           );
         })}
       </div>
-      <div className="tree-foot">
-        {language === 'python' ? (
-          <>
-            Загрузите <b>.py</b> — он появится в <b>src</b>.
-          </>
-        ) : (
-          <>
-            Загрузите <b>.java</b> — он появится в <b>src</b>.
-          </>
-        )}
-      </div>
     </nav>
   );
 };

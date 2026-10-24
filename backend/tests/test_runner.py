@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from core.comparator import compare_code
@@ -54,3 +56,19 @@ def test_docker_command_with_coverage(tmp_path):
     assert "-Xmx256m" in cmd
     assert "ulimit -f" in cmd and cmd.index("ulimit -f") < cmd.index("java -Xmx256m")
     assert "ulimit -f 9;" in " ".join(docker_command(tmp_path, ["A.java"], "A", cov=True, slots=100))
+
+
+def test_ensure_path_never_points_java_home_at_a_launcher_stub(tmp_path, monkeypatch):
+    # macOS: /usr/bin/javac is a stub; JAVA_HOME=/usr makes it exec itself forever
+    from core import runner
+    stub_bin = tmp_path / "usr" / "bin"
+    stub_bin.mkdir(parents=True)
+    monkeypatch.delenv("JAVA_HOME", raising=False)
+    monkeypatch.setenv("PATH", "/bin")
+    runner._ensure_path(stub_bin)
+    assert "JAVA_HOME" not in os.environ
+    jdk_bin = tmp_path / "jdk" / "bin"
+    jdk_bin.mkdir(parents=True)
+    (tmp_path / "jdk" / "release").write_text('JAVA_VERSION="17"')
+    runner._ensure_path(jdk_bin)
+    assert os.environ["JAVA_HOME"] == str(tmp_path / "jdk")

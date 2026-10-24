@@ -11,7 +11,7 @@ MONOLITHS = Path(__file__).resolve().parents[2] / "test_monoliths"
 
 @pytest.fixture
 def read_java():
-    return lambda name: (MONOLITHS / f"{name}.java").read_text()
+    return lambda name: (MONOLITHS / f"{name}.java").read_text(encoding="utf-8")
 
 
 @pytest.fixture(autouse=True)

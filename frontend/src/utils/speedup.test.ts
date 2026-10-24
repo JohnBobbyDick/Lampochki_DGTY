@@ -21,7 +21,7 @@ describe('speedup', () => {
     ['O(n⁵)', 'O(n^6)', '~1000× медленнее', true],
     ['O(n² log n)', 'O(n²)', '~10× быстрее', false],
   ];
-  it.each(rows)('%s -> %s = %s', (b, a, label, worse) => {
+  it.each(rows)('%s -> %s = %s', (b: string, a: string, label: string, worse: boolean) => {
     const s = speedup(b, a);
     expect(s.label).toBe(label);
     expect(s.worse).toBe(worse);

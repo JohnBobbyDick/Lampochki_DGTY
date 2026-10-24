@@ -139,10 +139,10 @@ def test_tips_for_all_messages():
 
 # existing defects unchanged ------------------------------------------------------
 def test_monolith_defects_unchanged():
-    base = json.load(open(os.path.join(os.path.dirname(__file__), "data", "monolith_defects.json")))
+    base = json.load(open(os.path.join(os.path.dirname(__file__), "data", "monolith_defects.json"), encoding="utf-8"))
     root = os.path.join(os.path.dirname(__file__), "..", "..", "test_monoliths")
     for f in sorted(glob.glob(os.path.join(root, "*.java"))):
-        code = open(f).read()
+        code = open(f, encoding="utf-8").read()
         got = [d.model_dump() for d in detect_defects(parse_java(code)["ast"], code)]
         got = json.loads(json.dumps(got, ensure_ascii=False))
         if os.path.basename(f) not in base:  # Streams.java has no pre-stage-6 baseline (new demo)

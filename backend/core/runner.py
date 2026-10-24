@@ -31,39 +31,41 @@ _JAVA_PATH: str | None = None
 
 
 def _find_jdk() -> tuple[str, str]:
-    """Find working javac and java binaries, auto-discovering on Windows if needed."""
+    """Find working javac and java binaries, prioritizing matching pairs and modern versions."""
     global _JAVAC_PATH, _JAVA_PATH
     if _JAVAC_PATH and _JAVA_PATH:
         return _JAVAC_PATH, _JAVA_PATH
 
-    jc = shutil.which("javac")
-    ja = shutil.which("java")
-    if jc and ja:
-        _JAVAC_PATH, _JAVA_PATH = jc, ja
-        return _JAVAC_PATH, _JAVA_PATH
+    candidates: list[tuple[str, str]] = []
 
-    # Check JAVA_HOME
+    # 1. Check JAVA_HOME
     jh = os.getenv("JAVA_HOME")
     if jh:
         p = Path(jh) / "bin"
         c_exe = p / ("javac.exe" if sys.platform == "win32" else "javac")
         j_exe = p / ("java.exe" if sys.platform == "win32" else "java")
         if c_exe.is_file() and j_exe.is_file():
-            _JAVAC_PATH, _JAVA_PATH = str(c_exe), str(j_exe)
-            _ensure_path(p)
-            return _JAVAC_PATH, _JAVA_PATH
+            candidates.append((str(c_exe), str(j_exe)))
 
-    # Common Windows directories
+    # 2. Check shutil.which("javac") and its sibling java in the same bin/
+    jc = shutil.which("javac")
+    if jc:
+        p = Path(jc).parent
+        j_exe = p / ("java.exe" if sys.platform == "win32" else "java")
+        if j_exe.is_file():
+            candidates.append((jc, str(j_exe)))
+
+    # 3. Common Windows installation directories (highest version patterns first)
     if sys.platform == "win32":
         import glob
         patterns = [
             r"C:\Program Files\Android\openjdk\jdk-*\bin\javac.exe",
-            r"C:\Program Files\JetBrains\*\jbr\bin\javac.exe",
             r"C:\Program Files\Java\jdk*\bin\javac.exe",
             r"C:\Program Files\Eclipse Adoptium\jdk*\bin\javac.exe",
             r"C:\Program Files\Microsoft\jdk*\bin\javac.exe",
             r"C:\Program Files\Amazon Corretto\jdk*\bin\javac.exe",
             r"C:\Program Files\Zulu\zulu-*\bin\javac.exe",
+            r"C:\Program Files\JetBrains\*\jbr\bin\javac.exe",
             os.path.expanduser(r"~/.jdks/*/bin/javac.exe"),
             os.path.expanduser(r"~\AppData\Local\Programs\Eclipse Adoptium\jdk*\bin\javac.exe"),
         ]
@@ -72,10 +74,16 @@ def _find_jdk() -> tuple[str, str]:
                 bin_dir = Path(match).parent
                 j_exe = bin_dir / "java.exe"
                 if j_exe.is_file():
-                    _JAVAC_PATH, _JAVA_PATH = match, str(j_exe)
-                    _ensure_path(bin_dir)
-                    return _JAVAC_PATH, _JAVA_PATH
+                    candidates.append((match, str(j_exe)))
 
+    # Pick first valid candidate pair
+    for c_exe, j_exe in candidates:
+        _JAVAC_PATH, _JAVA_PATH = c_exe, j_exe
+        _ensure_path(Path(c_exe).parent)
+        return _JAVAC_PATH, _JAVA_PATH
+
+    # Fallback to whatever is on PATH
+    ja = shutil.which("java")
     _JAVAC_PATH = jc or "javac"
     _JAVA_PATH = ja or "java"
     return _JAVAC_PATH, _JAVA_PATH
@@ -84,10 +92,12 @@ def _find_jdk() -> tuple[str, str]:
 def _ensure_path(bin_dir: Path) -> None:
     s = str(bin_dir)
     cur = os.environ.get("PATH", "")
-    if s.lower() not in cur.lower().split(os.pathsep):
-        os.environ["PATH"] = s + os.pathsep + cur
+    parts = [p for p in cur.split(os.pathsep) if p and p.lower() != s.lower()]
+    os.environ["PATH"] = s + (os.pathsep + os.pathsep.join(parts) if parts else "")
     jh = os.environ.get("JAVA_HOME")
-    if not jh or not Path(jh).is_dir():
+    # only a real JDK home (it has a `release` file): macOS /usr/bin/javac is a launcher stub, and
+    # JAVA_HOME=/usr makes it exec itself forever
+    if (not jh or not Path(jh).is_dir()) and (bin_dir.parent / "release").is_file():
         os.environ["JAVA_HOME"] = str(bin_dir.parent)
 
 
@@ -203,7 +213,7 @@ def _trim(s: str) -> str:
     return s if len(s) <= _MAX_OUT else s[:_MAX_OUT] + "\n…[output truncated]"
 
 
-PY_MEMORY_LIMIT = 512 * 1024 * 1024    # RLIMIT_AS for Python in subprocess mode
+PY_MEMORY_LIMIT = 100 * 1024 * 1024    # RLIMIT_AS for Python in subprocess mode
 
 
 def child_env(**extra: str) -> dict[str, str]:

@@ -102,3 +102,41 @@ def test_zip_rejects_unsafe_paths(bad):
 
 def test_zip_rejects_empty_list():
     assert client.post("/api/files/zip", json={"files": []}).status_code == 422
+
+
+STREAM_CODE = """import java.util.*;
+import java.util.stream.*;
+
+public class S {
+    static List<Integer> s(List<Integer> xs) {
+        List<Integer> r = xs.stream().filter(x -> x > 0).map(x -> x * 2).collect(Collectors.toList());
+        return r;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(s(Arrays.asList(-1, 0, 1, 2)));
+    }
+}
+"""
+
+
+def test_generate_edits_stream_step():
+    from core.runner import check_compiles
+
+    parse(STREAM_CODE)
+    g = client.get("/api/graph", params={"type": "cfg", "method": "s"}).json()
+    types = [n["type"] for n in g["nodes"]]
+    assert types.count("stream-op") == 2 and "stream-source" in types and "stream-terminal" in types
+
+    same = client.post("/api/generate", json={"graph": {"method": "s", "nodes": g["nodes"]}})
+    assert same.status_code == 200 and same.json()["changedNodes"] == []
+    assert run_java(same.json()["code"]).stdout.strip() == "[2, 4]"
+
+    op = next(n for n in g["nodes"] if n["type"] == "stream-op" and n["label"].startswith("filter"))
+    op["label"] = "filter(x -> x >= 0)"
+    r = client.post("/api/generate", json={"graph": {"method": "s", "nodes": g["nodes"]}})
+    assert r.status_code == 200 and r.json()["changedNodes"] == [op["id"]]
+    code = r.json()["code"]
+    assert ".filter(x -> x >= 0).map((x) -> x * 2).collect(Collectors.toList());" in code
+    assert check_compiles(code) == []
+    assert run_java(code).stdout.strip() == "[0, 2, 4]"

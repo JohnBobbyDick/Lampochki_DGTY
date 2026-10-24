@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from core.streams import compose
 from models.schemas import GraphEdge, GraphNode
 
 # A dangling exit of a processed fragment: (source node id, edge type, edge label)
@@ -155,11 +156,33 @@ class _CFGBuilder:
     # -- generic -----------------------------------------------------------
 
     def _process_generic(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
+        if stmt.get("stream"):
+            return self._process_stream(stmt, tails)
         snippet = _stmt_snippet(stmt)
         node = self._add_node(
             "statement", snippet[:60], stmt=stmt, line_end=max_line(stmt), code_snippet=snippet,
         )
         self._connect(tails, node.id)
+        return [_plain(node.id)]
+
+    # -- stream pipelines ---------------------------------------------------
+
+    def _process_stream(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
+        """One node per pipeline part: source -> ops -> terminal (labels are not truncated)."""
+        st = stmt["stream"]
+        src = st["source"]
+        node = self._add_node(
+            "stream-source", st["prefix"] + src["text"], stmt=src,
+            line_start=src.get("line") or stmt.get("line"), code_snippet=compose(st),
+        )
+        self._connect(tails, node.id)
+        parts = [("stream-op", op) for op in st["ops"]]
+        if st.get("terminal"):
+            parts.append(("stream-terminal", st["terminal"]))
+        for ntype, part in parts:
+            nxt = self._add_node(ntype, part["text"], stmt=part, line_start=part.get("line") or stmt.get("line"))
+            self._add_edge(node.id, nxt.id)
+            node = nxt
         return [_plain(node.id)]
 
     # -- if / else ---------------------------------------------------------
@@ -284,6 +307,10 @@ class _CFGBuilder:
     # -- jumps -------------------------------------------------------------
 
     def _process_return(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
+        if stmt.get("stream"):
+            for src, _etype, _label in self._process_stream(stmt, tails):
+                self._add_edge(src, self._end_id)
+            return []
         expr = stmt.get("expression", "")
         label = f"return {expr}" if expr else "return"
         node = self._add_node("return", label[:60], stmt=stmt, code_snippet=label)

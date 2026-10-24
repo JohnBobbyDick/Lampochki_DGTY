@@ -6,6 +6,7 @@ import copy
 import re
 
 from core.cfg_builder import build_cfg_with_map
+from core.streams import compose
 
 INDENT = "    "
 
@@ -51,6 +52,9 @@ def render_stmt(s: dict, level: int) -> list[str]:
 
     if "_text" in s:
         return [ind + line for line in _end(s["_text"]).splitlines()]
+
+    if s.get("stream"):
+        return [ind + line for line in _end(_compose_edited(s["stream"])).splitlines()]
 
     if t == "LocalVariableDeclaration":
         parts = []
@@ -107,6 +111,31 @@ def render_stmt(s: dict, level: int) -> list[str]:
     raise UnsupportedConstruct(f"Unsupported statement: {t}")
 
 
+def _prefix_re(prefix: str) -> re.Pattern[str]:
+    """Matches *prefix* at the start of a label, tolerant to whitespace differences."""
+    chunks = prefix.split()
+    pat = ""
+    for i, chunk in enumerate(chunks):
+        if i:
+            word_gap = chunks[i - 1][-1:].isalnum() or chunks[i - 1][-1:] == "_"
+            word_gap = word_gap and (chunk[:1].isalnum() or chunk[:1] == "_")
+            pat += r"\s+" if word_gap else r"\s*"
+        pat += re.escape(chunk)
+    if chunks and (chunks[-1][-1].isalnum() or chunks[-1][-1] == "_"):
+        pat += r"(?![\w$])"
+    return re.compile(r"^\s*" + pat + r"\s*")
+
+
+def _compose_edited(stream: dict) -> str:
+    """`compose` that drops a prefix the user left in an edited source label."""
+    src = stream["source"]["text"]
+    if stream["prefix"].strip():
+        m = _prefix_re(stream["prefix"]).match(src)
+        if m:
+            src = src[m.end():]
+    return compose({**stream, "source": {**stream["source"], "text": src}})
+
+
 def _render_if(s: dict, level: int, prefix: str) -> list[str]:
     ind = INDENT * level
     lines = [f"{prefix} ({s['condition']}) {{", *_block(s.get("then", []), level)]
@@ -141,6 +170,12 @@ def apply_edit(stmt: dict, text: str) -> None:
     """Mutate *stmt* so that it renders from the user-edited node *text*."""
     t = stmt.get("type", "")
     text = text.strip()
+    if t in ("StreamSource", "StreamOp", "StreamTerminal"):
+        text = text.rstrip(";").strip()
+        if t != "StreamSource":
+            text = text.lstrip(".").strip()
+        stmt["text"] = text  # the source's prefix (if left in the label) is dropped by render_stmt
+        return
     if t in _PATTERNS:
         m = _PATTERNS[t].match(text)
         stmt[_FIELD_OF[t]] = (m.group(1) if m else text).strip()

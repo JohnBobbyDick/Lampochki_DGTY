@@ -58,7 +58,7 @@
 - [ ] **Step 1: Write the failing tests**
 
 ```python
-BROKEN = CALC.replace("return result;", "return result")          # одна ошибка компиляции
+BROKEN = CALC.replace("return left / right;", "return left / right", 1)   # одна ошибка компиляции
 
 def test_patch_on_non_compiling_code_is_valid_if_it_adds_no_errors():
     p = asyncio.run(patcher.build_patch(BROKEN, OLD_LOOP, NEW_LOOP, []))   # правка в другом месте файла
@@ -69,9 +69,9 @@ def test_patch_that_adds_error_to_non_compiling_code_is_rejected():
     assert p and not p["valid"]
 
 def test_fix_mode_requires_target_error_gone():
-    line = BROKEN.split("\n").index(next(l for l in BROKEN.split("\n") if "return result" in l)) + 1
-    ok = asyncio.run(patcher.build_patch(BROKEN, "return result", "return result;", [], fix_line=line))
-    noop = asyncio.run(patcher.build_patch(BROKEN, "return result", "return  result", [], fix_line=line))
+    line = BROKEN.split("\n").index(next(l for l in BROKEN.split("\n") if l.strip() == "return left / right")) + 1
+    ok = asyncio.run(patcher.build_patch(BROKEN, "return left / right", "return left / right;", [], fix_line=line))
+    noop = asyncio.run(patcher.build_patch(BROKEN, "return left / right", "return left /  right", [], fix_line=line))
     assert ok["valid"] and (noop is None or not noop["valid"])
 ```
 
@@ -136,7 +136,7 @@ def test_explain_drops_invalid_patch(monkeypatch): ...
 
 ```python
 def test_analyze_reports_compile_errors(read_java):
-    parse(read_java("Calculator").replace("return result;", "return result", 1))
+    parse(read_java("Calculator").replace("return left / right;", "return left / right", 1))
     errs = client.post("/api/analyze").json()["compileErrors"]
     assert errs and errs[0]["line"] > 0
 
@@ -176,10 +176,10 @@ def test_fix_without_llm_is_static():
     assert r["source"] == "static" and r["patch"] is None
 
 def test_fix_with_mocked_gemini_returns_valid_patch(monkeypatch, read_java):
-    broken = read_java("Calculator").replace("return result;", "return result", 1)
-    # мок возвращает {"explanation": "...", "old_code": "return result", "new_code": "return result;", "imports": []}
+    broken = read_java("Calculator").replace("return left / right;", "return left / right", 1)
+    # мок возвращает {"explanation": "...", "old_code": "return left / right", "new_code": "return left / right;", "imports": []}
     r = client.post("/api/ai/fix", json={"code": broken, "line": LINE, "message": "';' expected"}).json()
-    assert r["patch"]["valid"] and r["patch"]["newCode"].strip() == "return result;"
+    assert r["patch"]["valid"] and r["patch"]["newCode"].strip() == "return left / right;"
 ```
 
 - [ ] **Step 2: Run** `python -m pytest tests/test_ai.py -q` — Expected: FAIL (404).
@@ -271,7 +271,7 @@ export function compareRuns(prev: RunRecord, last: RunRecord): { same: boolean; 
 ```
 
   - `pushRun` — неизменяемо, хранит последние `RUN_HISTORY` записей файла.
-  - `runStatus`: `stoppedByUser` → `'stopped'`; stderr содержит `output limit reached` → `'limit'`; содержит маркер таймаута, который выдаёт `core/interactive.py` (найдите точный текст там) → `'timeout'`; `exitCode !== 0` → `'error'`; иначе `'ok'`.
+  - `runStatus`: `stoppedByUser` → `'stopped'`; stderr содержит `output limit reached` → `'limit'`; начинается с/содержит `Timeout: сессия дольше` (маркер из `core/interactive.py`) → `'timeout'`; `exitCode !== 0` → `'error'`; иначе `'ok'`.
   - `compareRuns.same` — stdout равны после маскировки таймстемпов той же регуляркой, что `core/comparator.py` (`\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?`), и одинаковый `status`.
 - `useProject`: `runs: Record<string, RunRecord[]>`, `recordRun(r: RunRecord): void` (по `activeId`). `loadDocument` историю не трогает (она в `useProject`).
 - `useStore`: `compareResult`/`setCompareResult`/`compareCode` больше не используются панелью сравнения (удалите, если не нужны другим местам; `qualityGate` и «Проверить поведение» у ИИ-патча не трогать).

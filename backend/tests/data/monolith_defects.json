@@ -1,0 +1,100 @@
+{
+ "Analyzer.java": [
+  {
+   "big_o": "",
+   "line_end": 94,
+   "line_start": 94,
+   "message": "Пустой catch (NumberFormatException) в Analyzer.parseValue — исключение проглатывается",
+   "method": "Analyzer.parseValue",
+   "node_id": "",
+   "recommendation": "Залогировать исключение или пробросить его дальше",
+   "severity": "error"
+  },
+  {
+   "big_o": "O(n²)",
+   "line_end": 49,
+   "line_start": 47,
+   "message": "Вложенный цикл по одной и той же коллекции «items» — повторная обработка пар элементов в Analyzer.mergeItems",
+   "method": "Analyzer.mergeItems",
+   "node_id": "n4",
+   "recommendation": "Индексировать элементы через HashMap<ключ, значение> или сгруппировать за один проход — сложность упадёт до O(n)",
+   "severity": "warning"
+  },
+  {
+   "big_o": "O(n²)",
+   "line_end": 74,
+   "line_start": 70,
+   "message": "Вложенные циклы (глубина 2) в Analyzer.sortByValue",
+   "method": "Analyzer.sortByValue",
+   "node_id": "n3",
+   "recommendation": "Вынести внутренний цикл в индекс/Set/Map или объединить проходы по данным",
+   "severity": "warning"
+  }
+ ],
+ "Calculator.java": [
+  {
+   "big_o": "",
+   "line_end": 14,
+   "line_start": 14,
+   "message": "Пустой catch (NumberFormatException) в Calculator.evaluate — исключение проглатывается",
+   "method": "Calculator.evaluate",
+   "node_id": "",
+   "recommendation": "Залогировать исключение или пробросить его дальше",
+   "severity": "error"
+  },
+  {
+   "big_o": "",
+   "line_end": 172,
+   "line_start": 172,
+   "message": "Общий catch (Exception) в Calculator.main вместо конкретных исключений",
+   "method": "Calculator.main",
+   "node_id": "",
+   "recommendation": "Ловить конкретные типы исключений (IOException, NumberFormatException…)",
+   "severity": "warning"
+  }
+ ],
+ "Logger.java": [
+  {
+   "big_o": "O(n²)",
+   "line_end": 120,
+   "line_start": 114,
+   "message": "Вложенные циклы (глубина 2) в Logger.findDuplicates",
+   "method": "Logger.findDuplicates",
+   "node_id": "n4",
+   "recommendation": "Вынести внутренний цикл в индекс/Set/Map или объединить проходы по данным",
+   "severity": "warning"
+  },
+  {
+   "big_o": "",
+   "line_end": 2,
+   "line_start": 2,
+   "message": "Неиспользуемый импорт java.util.Scanner",
+   "method": "",
+   "node_id": "",
+   "recommendation": "Удалить импорт",
+   "severity": "hint"
+  }
+ ],
+ "Store.java": [
+  {
+   "big_o": "O(n²)",
+   "line_end": 59,
+   "line_start": 57,
+   "message": "Вложенные циклы (глубина 2) в Store.findProductCategory",
+   "method": "Store.findProductCategory",
+   "node_id": "n3",
+   "recommendation": "Вынести внутренний цикл в индекс/Set/Map или объединить проходы по данным",
+   "severity": "warning"
+  },
+  {
+   "big_o": "O(n²)",
+   "line_end": 78,
+   "line_start": 74,
+   "message": "Вложенные циклы (глубина 2) в Store.printInventoryReport",
+   "method": "Store.printInventoryReport",
+   "node_id": "n7",
+   "recommendation": "Вынести внутренний цикл в индекс/Set/Map или объединить проходы по данным",
+   "severity": "warning"
+  }
+ ]
+}

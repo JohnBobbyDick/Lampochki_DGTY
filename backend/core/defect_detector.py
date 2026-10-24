@@ -117,6 +117,8 @@ def detect_defects(ast: dict, code: str, bigo: dict[str, str] | None = None) -> 
                                 recommendation="Удалить неиспользуемую переменную",
                             ))
 
+    defects.extend(_stream_defects(ast))
+
     # 5. unused imports -------------------------------------------------------
     body_text = "\n".join(l for l in lines if not l.strip().startswith("import "))
     for imp in ast.get("imports", []):
@@ -199,3 +201,121 @@ def _enclosing_loop(stmts: list[dict], target: dict) -> dict | None:
 
     r = rec(stmts, None)
     return r or None
+
+
+# ---------------------------------------------------------------------------
+# Stream API rules (decomposed chains only: see `stmt["stream"]`)
+# ---------------------------------------------------------------------------
+
+_TO_COLLECTION = re.compile(r"^Collectors\.(toList|toSet)\(\)$")
+_MUTATE = re.compile(r"\b([A-Za-z_]\w*)\s*\.\s*(add|put|remove)\s*\(")
+_LAMBDA_PARAMS = re.compile(r"^\s*(?:\(([^)]*)\)|([A-Za-z_]\w*))\s*->")
+_LIST_ADD = re.compile(r"^[A-Za-z_][\w.]*\.add\(.*\)$", re.S)
+
+
+def _loop_collection(loop: dict) -> str | None:
+    it = _iterable(loop)
+    if it:
+        return it
+    if loop.get("type") == "ForStatement":
+        m = re.search(r"([A-Za-z_][\w.]*)\.size\(\)", loop.get("control", ""))
+        if m:
+            return m.group(1)
+    return None
+
+
+def _unwrap(stmts: list[dict]) -> list[dict]:
+    out: list[dict] = []
+    for s in stmts:
+        if s.get("type") == "BlockStatement":
+            out.extend(_unwrap(s.get("body", [])))
+        else:
+            out.append(s)
+    return out
+
+
+def _is_add_loop(loop: dict) -> bool:
+    if loop.get("type") != "ForStatement" or _iterable(loop) is None:
+        return False
+    body = _unwrap(loop.get("body", []))
+    if len(body) != 1:
+        return False
+    s = body[0]
+    if s.get("type") == "IfStatement":
+        if _unwrap(s.get("else", [])):
+            return False
+        inner = _unwrap(s.get("then", []))
+        if len(inner) != 1:
+            return False
+        s = inner[0]
+    return s.get("type") == "StatementExpression" and bool(_LIST_ADD.match(s.get("expression", "")))
+
+
+def _stream_defects(ast: dict) -> list[Defect]:
+    found: list[Defect] = []
+    for cls in ast.get("classes", []):
+        for m in cls["methods"] + cls.get("constructors", []):
+            qname = f"{cls['name']}.{m['name']}"
+            body = m.get("body", [])
+
+            def add(line, severity, message, rec, big_o=""):
+                found.append(Defect(
+                    line_start=line or 0, line_end=line or 0, node_id=_node_id_for_line(m, line),
+                    method=qname, severity=severity, big_o=big_o, message=message, recommendation=rec,
+                ))
+
+            # 1. stream over the collection that the enclosing loop iterates
+            reported: set[int] = set()
+            for loop, _ in find_loops(body):
+                coll = _loop_collection(loop)
+                if not coll:
+                    continue
+                for s in _walk_stmts(list(_children(loop))):
+                    st = s.get("stream")
+                    if not st or id(s) in reported:
+                        continue
+                    if st["source"]["text"] in (f"{coll}.stream()", f"{coll}.parallelStream()"):
+                        reported.add(id(s))
+                        add(st["source"]["line"], "warning",
+                            f"Повторный стрим по коллекции «{coll}» внутри цикла по ней в {qname} — "
+                            f"на каждый элемент коллекция обходится заново",
+                            "Вынести стрим из цикла или посчитать результат за один проход (Map/Set) — O(n) вместо O(n²)",
+                            "O(n²)")
+
+            for s in _walk_stmts(body):
+                st = s.get("stream")
+                if st:
+                    ops, term = st["ops"], st["terminal"]
+                    if term:
+                        name, tail = term["name"], term["tail"]
+                        if name == "collect" and _TO_COLLECTION.match(term["args"].strip()) \
+                                and tail.startswith(".size()"):
+                            add(term["line"], "hint",
+                                f"Подсчёт элементов через сбор в коллекцию и size() в {qname} — используйте count()",
+                                "Заменить collect(...).size() на count(): список не нужно создавать ради размера")
+                        if name in ("findFirst", "findAny") and tail.startswith(".isPresent()") \
+                                and ops and ops[-1]["name"] == "filter":
+                            add(term["line"], "hint",
+                                f"filter(...).{name}().isPresent() в {qname} — используйте anyMatch(...)",
+                                "Заменить на anyMatch(условие): короче и сразу прекращает обход")
+                        if name == "findFirst" and ops and ops[-1]["name"] == "sorted":
+                            add(term["line"], "warning",
+                                f"sorted(...).findFirst() в {qname} сортирует всё ради одного элемента — "
+                                f"используйте min(...)/max(...)",
+                                "Заменить на min(...)/max(...) с компаратором — O(n) вместо O(n log n)",
+                                "O(n log n)")
+                        if name in ("forEach", "forEachOrdered"):
+                            args = term["args"]
+                            lm = _LAMBDA_PARAMS.match(args)
+                            params = set()
+                            if lm:
+                                params = {p.strip().split()[-1] for p in (lm.group(1) or lm.group(2)).split(",") if p.strip()}
+                            if lm and any(mm.group(1) not in params for mm in _MUTATE.finditer(args)):
+                                add(term["line"], "hint",
+                                    f"forEach в {qname} изменяет внешнюю коллекцию — соберите результат через collect(...)",
+                                    "Заменить forEach(x -> list.add(x)) на collect(Collectors.toList()) и т. п.")
+                if _is_add_loop(s):
+                    add(s.get("line"), "hint",
+                        f"Цикл можно заменить стримом в {qname}: xs.stream().filter(...).collect(...)",
+                        "Заменить цикл на xs.stream().filter(условие).map(...).collect(Collectors.toList())")
+    return found

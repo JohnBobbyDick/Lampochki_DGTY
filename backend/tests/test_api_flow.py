@@ -64,3 +64,14 @@ def test_quality_gate(read_java):
     assert ok["passed"]
     bad = client.post("/api/quality-gate", json={"original": code, "modified": code.replace("Fibonacci sequence:", "Fib sequence:")}).json()
     assert not bad["passed"]
+
+
+def test_analyze_reports_compile_errors(read_java):
+    parse(read_java("Calculator").replace("return left / right;", "return left / right", 1))
+    errs = client.post("/api/analyze").json()["compileErrors"]
+    assert errs and errs[0]["line"] > 0
+
+
+def test_analyze_compiles_clean_code(read_java):
+    parse(read_java("Calculator"))
+    assert client.post("/api/analyze").json()["compileErrors"] == []

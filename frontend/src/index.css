@@ -462,8 +462,10 @@ kbd { font: 600 0.6875rem var(--font-mono); padding: 1px 6px; border-radius: 6px
 .cov-name { color: var(--ink); font-size: 0.8125rem; }
 .cov-num { font: 0.75rem var(--font-mono); color: var(--body); }
 .cov-bar { grid-column: 1 / -1; height: 6px; border-radius: var(--r-pill); background: var(--surface-elevated); overflow: hidden; }
-.cov-bar > span { display: block; height: 100%; background: var(--accent); }
+.cov-bar > span { display: block; height: 100%; background: var(--accent-ink); }
+.cov-methods { grid-column: 1 / -1; }
 .cov-scroll { overflow-x: auto; }
+.cov-scroll:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
 .cov-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
 .cov-table th, .cov-table td { padding: 5px 8px; text-align: left; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
 .cov-table thead th { color: var(--muted); font-weight: 600; }

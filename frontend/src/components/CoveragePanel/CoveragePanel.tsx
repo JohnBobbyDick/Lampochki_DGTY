@@ -67,9 +67,9 @@ const CoveragePanel: React.FC = () => {
             <MetricRow label="Сравнения (реляционное)" m={sum.relational} />
           </ul>
         </section>
-        <section className="check-card">
+        <section className="check-card cov-methods">
           <header><span className="cov-title">По методам</span></header>
-          <div className="cov-scroll">
+          <div className="cov-scroll" tabIndex={0} role="region" aria-label="Покрытие по методам">
             <table className="cov-table">
               <thead>
                 <tr><th scope="col">Метод</th><th scope="col">Строки</th><th scope="col">Ветвления</th><th scope="col">Условия</th><th scope="col">Сравнения</th></tr>

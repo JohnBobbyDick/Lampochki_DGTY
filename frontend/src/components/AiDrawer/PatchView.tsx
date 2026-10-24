@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { diffLines } from 'diff';
 import { useStore, AiPatch } from '../../store/useStore';
 import { useApi } from '../../hooks/useApi';
+import { FiXOctagon, FiInfo, FiCheckCircle, FiCheck } from 'react-icons/fi';
 
 /** Diff preview of an AI-suggested edit with an "apply" button; the server re-validates on apply. */
 const PatchView: React.FC<{ patch: AiPatch }> = ({ patch }) => {
@@ -58,19 +59,19 @@ const PatchView: React.FC<{ patch: AiPatch }> = ({ patch }) => {
         ))}
       </pre>
 
-      {blocked && patch.problems.map((p, i) => <div key={i} className="patch-err">⛔ {p}</div>)}
-      {errors.map((p, i) => <div key={i} className="patch-err">⛔ {p}</div>)}
-      {warnings.map((w, i) => <div key={i} className="patch-warn">ℹ {w}</div>)}
+      {blocked && patch.problems.map((p, i) => <div key={i} className="patch-err"><FiXOctagon /> {p}</div>)}
+      {errors.map((p, i) => <div key={i} className="patch-err"><FiXOctagon /> {p}</div>)}
+      {warnings.map((w, i) => <div key={i} className="patch-warn"><FiInfo /> {w}</div>)}
 
       {state === 'applied' ? (
         <div className="patch-done">
-          ✅ Применено · <span className="muted">Ctrl+Z — отменить</span>
+          <FiCheckCircle /> Применено <span className="muted">· Ctrl+Z — отменить</span>
           <button className="btn small" onClick={checkBehaviour}>Проверить поведение</button>
         </div>
       ) : (
         <button className="btn primary small" disabled={blocked || state === 'busy'} onClick={apply}
                 title={blocked ? 'Правка не проходит проверку компиляции' : 'Заменить фрагмент в коде'}>
-          {state === 'busy' ? 'Проверяю…' : '✓ Применить'}
+          {state === 'busy' ? 'Проверяю…' : <><FiCheck /> Применить</>}
         </button>
       )}
     </div>

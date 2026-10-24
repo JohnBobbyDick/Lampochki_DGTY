@@ -1,12 +1,13 @@
 import React from 'react';
-import { FiX, FiCopy } from 'react-icons/fi';
+import { FiX, FiCopy, FiInfo, FiCheckCircle, FiCornerDownRight } from 'react-icons/fi';
+import { LuSparkles } from 'react-icons/lu';
 import { useStore } from '../../store/useStore';
 import PatchView from './PatchView';
 
 const SOURCE_LABEL: Record<string, string> = {
-  gemini: '✨ Gemini',
-  ollama: '✨ Ollama',
-  static: '📚 База паттернов (без LLM)',
+  gemini: 'Gemini',
+  ollama: 'Ollama',
+  static: 'База паттернов (без LLM)',
 };
 
 /** Slide-in panel with the LLM answer; never replaces the static analysis. */
@@ -17,25 +18,39 @@ const AiDrawer: React.FC = () => {
   if (!ai && !loading) return null;
 
   return (
-    <aside className="ai-drawer">
+    <aside className="ai-drawer" aria-label="Ответ ИИ">
       <div className="ai-head">
-        <b>{ai?.title ?? '✨ AI'}</b>
-        <span className="spacer" />
-        <button className="btn small" onClick={close} aria-label="close"><FiX /></button>
+        <span className="ai-head-icon" aria-hidden="true"><LuSparkles /></span>
+        <div className="ai-head-text">
+          <b title={ai?.title ?? undefined}>{ai?.title?.replace(/^\p{Extended_Pictographic}️?\s*/u, '') || 'ИИ-помощник'}</b>
+          {ai && !loading && <span className="muted">{SOURCE_LABEL[ai.source] ?? ai.source}</span>}
+        </div>
+        <button className="btn small icon ghost" onClick={close} aria-label="Закрыть"><FiX /></button>
       </div>
-      {loading && <div className="ai-body"><span className="spinner" /> Думаю…</div>}
+      {loading && (
+        <div className="ai-body">
+          <div className="ai-loading"><span className="spinner" /> Думаю над вашим кодом…</div>
+          <div className="skeleton" /><div className="skeleton short" /><div className="skeleton" />
+        </div>
+      )}
       {ai && !loading && (
         <div className="ai-body">
-          <div className="muted">{SOURCE_LABEL[ai.source] ?? ai.source}</div>
-          {ai.note && <div className="ai-note">ℹ {ai.note}</div>}
+          {ai.note && <div className="ai-note"><FiInfo /> {ai.note}</div>}
           {ai.text && <p className="ai-text">{ai.text}</p>}
-          {ai.items && ai.items.length === 0 && !ai.note && <div className="muted">Идей для улучшения не найдено 👍</div>}
+          {ai.items && ai.items.length === 0 && !ai.note && (
+            <div className="state-card"><FiCheckCircle className="state-icon ok" /><div className="state-title">Идей для улучшения не найдено</div></div>
+          )}
           {ai.items?.map((it, i) => (
-            <div key={i} className={`ai-item ${it.line ? 'clickable' : ''}`} onClick={() => it.line && useStore.getState().jumpToLine(it.line)}>
+            <div key={i} className="ai-item">
               <div className="ai-item-title">
-                {it.line && <span className="bigo-badge">стр. {it.line}</span>} {it.title}
+                {it.title}
+                {it.line && (
+                  <button className="ai-line" onClick={() => useStore.getState().jumpToLine(it.line!)} title="Перейти к строке в редакторе">
+                    <FiCornerDownRight aria-hidden="true" /> стр. {it.line}
+                  </button>
+                )}
               </div>
-              <div>{it.detail}</div>
+              <div className="ai-item-detail">{it.detail}</div>
               {it.patch ? (
                 <div onClick={(e) => e.stopPropagation()}><PatchView key={it.patch.oldCode + it.patch.newCode} patch={it.patch} /></div>
               ) : (
@@ -53,7 +68,7 @@ const AiDrawer: React.FC = () => {
               <pre className="code-preview">{ai.code}</pre>
             </>
           )}
-          <div className="muted ai-privacy">Код отправляется во внешний LLM по кнопке «✨ AI» и, если включено «Авто-ИИ», через 5 с после последней правки.</div>
+          <div className="muted ai-privacy">Код отправляется во внешний LLM по кнопке «Объяснить с ИИ» и, если включено «Авто-ИИ», через 5 с после последней правки.</div>
         </div>
       )}
     </aside>

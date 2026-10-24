@@ -15,9 +15,12 @@ function errorMessage(err: unknown): string {
     const d = err.response?.data?.detail;
     if (typeof d === 'string') return d;
     if (Array.isArray(d)) return d.map((x) => x.msg).join('; ');
-    return err.response?.data?.message ?? err.message;
+    if (err.code === AxiosError.ECONNABORTED) return 'Сервер слишком долго не отвечает. Повторите действие или уменьшите объём кода.';
+    if (!err.response) return 'Нет связи с сервером. Проверьте, что бэкенд запущен (порт 8000), и повторите действие.';
+    if (err.response.status >= 500) return 'Сервер не смог обработать запрос. Повторите действие; если ошибка останется, посмотрите журнал бэкенда.';
+    return err.response.data?.message ?? `Запрос не выполнен (код ${err.response.status}). Повторите действие.`;
   }
-  return err instanceof Error ? err.message : 'Unknown error';
+  return err instanceof Error ? err.message : 'Неизвестная ошибка. Повторите действие.';
 }
 
 /**

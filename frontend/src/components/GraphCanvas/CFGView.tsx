@@ -1,6 +1,10 @@
 import React, { useEffect } from 'react';
-import ReactFlow, { useReactFlow, Controls, MiniMap, Background, BackgroundVariant } from 'reactflow';
+import ReactFlow, { useReactFlow } from 'reactflow';
 import 'reactflow/dist/style.css';
+import GraphChrome from './GraphChrome';
+import LabeledEdge from './LabeledEdge';
+
+const edgeTypes = { labeled: LabeledEdge };
 import CFGNode from './nodes/CFGNode';
 import { useStore } from '../../store/useStore';
 
@@ -34,6 +38,7 @@ const CFGView: React.FC = () => {
       nodes={nodes}
       edges={edges}
       nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
       onNodeClick={(_, n) => n.data.lineStart && jumpToLine(n.data.lineStart as number)}
       onNodeDoubleClick={(_, n) => !['start', 'end', 'try', 'finally', 'case'].includes(n.type ?? '') && setEditingNode(n.id)}
       fitView
@@ -41,17 +46,11 @@ const CFGView: React.FC = () => {
       minZoom={0.2}
       maxZoom={2}
       nodesConnectable={false}
+      edgesFocusable={false}
+      onSelectionChange={({ nodes: sel }) => sel[0]?.data.lineStart && jumpToLine(sel[0].data.lineStart as number)}
       proOptions={{ hideAttribution: true }}
     >
-      <Controls
-        style={{ background: '#333', borderRadius: 6, border: '1px solid #555' }}
-      />
-      <MiniMap
-        style={{ background: '#1e1e1e', border: '1px solid #333' }}
-        nodeColor="#4ec9b0"
-        maskColor="rgba(0,0,0,.6)"
-      />
-      <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#333" />
+      <GraphChrome />
     </ReactFlow>
   );
 };

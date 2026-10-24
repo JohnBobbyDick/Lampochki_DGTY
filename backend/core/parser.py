@@ -589,6 +589,17 @@ def _prefix_postfix(expr: Any, core: str) -> str:
     return f"{pre}{core}{sel}{post}"
 
 
+def _lambda_param(p: Any) -> str:
+    """Lambda parameter text. javalang parses a bare `x -> …` parameter as a MemberReference."""
+    if isinstance(p, InferredFormalParameter):
+        return p.name
+    if isinstance(p, MemberReference):
+        return p.member
+    if getattr(p, "type", None) is not None:
+        return f"{_type_to_str(p.type)} {p.name}"
+    return str(getattr(p, "name", p))
+
+
 def _wrap(expr: Any, parent_op: str) -> str:
     text = _expr_to_str(expr)
     if isinstance(expr, BinaryOperation) and expr.operator != parent_op:
@@ -655,10 +666,7 @@ def _expr_to_str(expr: Any) -> str:
         return "{" + ", ".join(_expr_to_str(i) for i in (expr.initializers or [])) + "}"
 
     if isinstance(expr, LambdaExpression):
-        params = ", ".join(
-            p.name if isinstance(p, InferredFormalParameter) else f"{_type_to_str(p.type)} {p.name}"
-            for p in (expr.parameters or [])
-        )
+        params = ", ".join(_lambda_param(p) for p in (expr.parameters or []))
         body = expr.body
         if isinstance(body, list):
             body_s = "{ " + " ".join(_stmt_text(s) for s in body) + " }"

@@ -59,6 +59,9 @@ def parse_compile_errors(text: str) -> list[dict]:
         m = _ERR_RE.match(line.strip())
         if m:
             errors.append({"file": m["file"], "line": int(m["line"]), "message": m["msg"]})
+        elif errors and line.strip().startswith("symbol:"):
+            # javac names the missing symbol on a separate line: "  symbol:   method swap(int[],int,int)"
+            errors[-1]["message"] += " (" + " ".join(line.split()) + ")"
     return errors
 
 

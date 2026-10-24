@@ -78,6 +78,8 @@ interface AppState {
   setGateResult: (r: QualityGateResult | null) => void;
   /** set code coming from outside the typing flow (upload / generate / undo) */
   replaceCode: (code: string) => void;
+  /** open a different document: new code + baseline, clears undo history and per-document results */
+  loadDocument: (code: string, original: string) => void;
   snapshot: () => void;
   undo: () => void;
   redo: () => void;
@@ -157,6 +159,12 @@ export const useStore = create<AppState>((set, get) => ({
     get().snapshot();
     set({ code });
   },
+  loadDocument: (code, original) =>
+    set({
+      code, originalCode: original, past: [], future: [],
+      runResult: null, compareResult: null, decomposition: null, gateResult: null,
+      selectedMethod: null, ai: null, aiReview: null, stdin: '',
+    }),
   /** remember the current code in the undo stack (skips duplicates) */
   snapshot: () => {
     const { code, past } = get();

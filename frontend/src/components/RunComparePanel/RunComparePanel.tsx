@@ -2,14 +2,15 @@ import React, { useMemo } from 'react';
 import { diffLines } from 'diff';
 import { useStore } from '../../store/useStore';
 import { RunResult } from '../../types';
+import { compareVerdict, VERDICT_TITLE } from '../../utils/verdict';
 
 const Out: React.FC<{ title: string; r: RunResult | null; lines?: React.ReactNode }> = ({ title, r, lines }) => (
   <div className="out-col">
     <div className="out-title">
       {title}
-      {r && <span className="muted"> · exit {r.exitCode} · {r.durationMs} ms</span>}
+      {r && <span className="muted"> · exit {r.exitCode} · {r.durationMs} мс</span>}
     </div>
-    <pre>{lines ?? r?.stdout}</pre>
+    <pre tabIndex={0} aria-label={`Вывод: ${title}`}>{lines ?? r?.stdout}</pre>
     {r?.stderr && <pre className="stderr">{r.stderr}</pre>}
   </div>
 );
@@ -33,16 +34,20 @@ const RunComparePanel: React.FC = () => {
   if (cmp) {
     return (
       <div className="run-panel">
-        <div className={`status ${cmp.behaviorPreserved ? 'ok' : 'fail'}`}>
-          {cmp.behaviorPreserved ? '✅ Поведение сохранено' : '❌ Поведение изменилось'}
-          <button className="btn small" style={{ marginLeft: 10 }} onClick={() => useStore.getState().setCompareResult(null)}>✕ к консоли</button>
-        </div>
-        <Out title="BEFORE (оригинал)" r={cmp.before} lines={left} />
-        <Out title="AFTER (текущий код)" r={cmp.after} lines={right} />
+        <div className={`status ${compareVerdict(cmp)}`}>{VERDICT_TITLE[compareVerdict(cmp)]}</div>
+        <Out title="До (оригинал)" r={cmp.before} lines={left} />
+        <Out title="После (текущий код)" r={cmp.after} lines={right} />
       </div>
     );
   }
-  return <div className="empty small">Run ▶ (Ctrl+Enter) — запустить код · Compare — сравнить с оригиналом</div>;
+  return (
+    <div className="checks-empty">
+      <div>
+        <div className="state-title">Сравнение вывода «до» и «после»</div>
+        <div className="muted">Нажмите <kbd>Сравнить</kbd>: исходный и текущий код запустятся, а различия в выводе подсветятся здесь.</div>
+      </div>
+    </div>
+  );
 };
 
 export default RunComparePanel;

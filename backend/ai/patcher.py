@@ -106,7 +106,20 @@ async def validate(original: str, patched: str) -> tuple[bool, list[str], list[s
         return True, [], []
     if before and len(after) <= len(before):
         return True, [], ["В исходном коде уже были ошибки компиляции — патч их не добавляет"]
-    return False, [f"Не компилируется (стр. {e['line']}): {e['message']}" for e in after[:3]], []
+    return False, [_explain(e) for e in after[:3]], []
+
+
+_KIND = {"method": "метод", "variable": "переменная", "class": "класс"}
+
+
+def _explain(e: dict) -> str:
+    """Compile error in words: a missing symbol is the usual case — the patch calls a helper it didn't add."""
+    m = re.match(r"cannot find symbol \(symbol:\s*(\w+)\s+([\w$]+)", e["message"])
+    if m:
+        kind, name = _KIND.get(m[1], m[1]), m[2]
+        return (f"Не компилируется (стр. {e['line']}): правка использует {kind} «{name}», "
+                f"которого нет в коде — ИИ не добавил его определение")
+    return f"Не компилируется (стр. {e['line']}): {e['message']}"
 
 
 async def build_patch(code: str, old: str, new: str, imports: list[str] | None,

@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { useApi } from '../../hooks/useApi';
+import Dialog from '../Layout/Dialog';
+import { CFG_KINDS } from './nodes/kinds';
 
 /** Modal for editing a CFG node's text; Enter applies → POST /api/generate. */
 const NodeEditor: React.FC = () => {
@@ -19,43 +21,46 @@ const NodeEditor: React.FC = () => {
     }
   }, [editingNode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!node) return null;
+  const close = () => setEditingNode(null);
 
   const apply = async () => {
+    if (!node) return;
     const st = useStore.getState();
     const graphNodes = st.nodes.map((n) => ({ id: n.id, label: n.id === node.id ? text.trim() : n.data.label }));
     // labels sent to the server are the *displayed* labels; the server diffs them against its own
     const res = await api.generateCode({ type: 'cfg', method: st.selectedMethod, nodes: graphNodes });
     if (res?.code) {
       st.replaceCode(res.code);
-      setEditingNode(null);
+      close();
     }
   };
 
+  const kind = node ? (CFG_KINDS[node.data.nodeType] ?? CFG_KINDS.statement).label : '';
+
   return (
-    <div className="modal-backdrop" onClick={() => setEditingNode(null)}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-title">Редактирование узла · {node.data.nodeType}</div>
-        <textarea
-          ref={ref}
-          value={text}
-          rows={3}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              apply();
-            }
-            if (e.key === 'Escape') setEditingNode(null);
-          }}
-        />
-        <div className="modal-hint">Enter — применить и перегенерировать код · Shift+Enter — перенос · Esc — отмена</div>
-        <div className="modal-actions">
-          <button className="btn" onClick={() => setEditingNode(null)}>Отмена</button>
-          <button className="btn primary" onClick={apply}>Применить</button>
-        </div>
+    <Dialog open={!!node} onClose={close} labelledBy="node-editor-title">
+      <div className="modal-title" id="node-editor-title">Изменить узел · {kind}</div>
+      <label className="modal-label" htmlFor="node-editor-text">Код узла</label>
+      <textarea
+        id="node-editor-text"
+        ref={ref}
+        value={text}
+        rows={3}
+        spellCheck={false}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            apply();
+          }
+        }}
+      />
+      <div className="modal-hint"><kbd>Enter</kbd> применить и пересобрать код · <kbd>Shift</kbd> + <kbd>Enter</kbd> новая строка · <kbd>Esc</kbd> отмена</div>
+      <div className="modal-actions">
+        <button className="btn" onClick={close}>Отмена</button>
+        <button className="btn primary" onClick={apply}>Применить</button>
       </div>
-    </div>
+    </Dialog>
   );
 };
 

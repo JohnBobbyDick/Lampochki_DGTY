@@ -1,20 +1,9 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
+import { FiAlertTriangle } from 'react-icons/fi';
 import { useStore } from '../../../store/useStore';
-
-const COLOR_MAP: Record<string, string> = {
-  start: '#2d6a4f',
-  end: '#9d0208',
-  condition: '#b5851e',
-  loop: '#1d3557',
-  try: '#5e548e',
-  catch: '#774c60',
-  finally: '#5e548e',
-  switch: '#b5851e',
-  return: '#9d0208',
-  throw: '#9d0208',
-  statement: '#3a3a3c',
-};
+import { classifyBigO } from '../../../utils/bigo';
+import { CFG_KINDS } from './kinds';
 
 const CFGNode: React.FC<NodeProps> = ({ id, data }) => {
   const hoveredNode = useStore((s) => s.hoveredNode);
@@ -23,35 +12,21 @@ const CFGNode: React.FC<NodeProps> = ({ id, data }) => {
   const hoveredLine = useStore((s) => s.hoveredLine);
   const isHovered = hoveredNode === id || (hoveredLine != null && data.lineStart === hoveredLine);
   const nodeType: string = data.nodeType ?? 'statement';
-  const bg = COLOR_MAP[nodeType] ?? COLOR_MAP.statement;
+  const k = CFG_KINDS[nodeType] ?? CFG_KINDS.statement;
+  const defects = (data.defects as string[] | undefined) ?? [];
 
   const tooltip = [
-    `${nodeType}${data.lineStart ? ` · строка ${data.lineStart}` : ''}`,
+    `${k.label}${data.lineStart ? ` · строка ${data.lineStart}` : ''}`,
     data.bigO ? `Big O: ${data.bigO}` : '',
-    ...((data.defects as string[] | undefined) ?? []).map((d) => `⚠ ${d}`),
+    ...defects.map((d) => `⚠ ${d}`),
     'двойной клик — редактировать',
   ].filter(Boolean).join('\n');
-  const hasDefect = ((data.defects as string[] | undefined) ?? []).length > 0;
 
   return (
     <div
       title={tooltip}
-      style={{
-        background: bg,
-        border: isHovered ? '2px solid #007acc' : hasDefect ? '2px solid #e5c07b' : '2px solid transparent',
-        borderRadius: nodeType === 'condition' || nodeType === 'switch' ? 4 : 8,
-        padding: '8px 14px',
-        color: '#e0e0e0',
-        fontSize: 12,
-        fontFamily: "'JetBrains Mono', Consolas, monospace",
-        minWidth: 140,
-        maxWidth: 220,
-        textAlign: 'center',
-        boxShadow: isHovered ? '0 0 12px rgba(0,122,204,.6)' : '0 2px 6px rgba(0,0,0,.4)',
-        transition: 'border .15s, box-shadow .15s',
-        cursor: 'pointer',
-        position: 'relative',
-      }}
+      data-kind={k.kind}
+      className={`g-node g-cfg ${isHovered ? 'is-hover' : ''} ${defects.length ? 'has-defect' : ''}`}
       onMouseEnter={() => {
         setHoveredNode(id);
         if (data.lineStart) setHoveredLine(data.lineStart as number);
@@ -61,39 +36,21 @@ const CFGNode: React.FC<NodeProps> = ({ id, data }) => {
         setHoveredLine(null);
       }}
     >
-      <Handle type="target" position={Position.Top} style={{ background: '#555' }} />
-
-      <div
-        style={{
-          fontSize: 10,
-          textTransform: 'uppercase',
-          letterSpacing: 1,
-          opacity: 0.7,
-          marginBottom: 4,
-        }}
-      >
-        {nodeType}
+      <Handle type="target" position={Position.Top} />
+      <div className="g-kind">
+        <i className="g-dot" />
+        {k.label}
+        {data.lineStart ? <span className="g-line">стр. {data.lineStart as number}</span> : null}
       </div>
-      <div style={{ wordBreak: 'break-word' }}>{data.label as string}</div>
-      {data.bigO && (
-        <span
-          style={{
-            position: 'absolute',
-            top: -8,
-            right: -8,
-            background: '#007acc',
-            color: '#fff',
-            fontSize: 9,
-            fontWeight: 700,
-            padding: '2px 6px',
-            borderRadius: 8,
-          }}
-        >
-          {data.bigO as string}
-        </span>
-      )}
-
-      <Handle type="source" position={Position.Bottom} style={{ background: '#555' }} />
+      <div className="g-label">{data.label as string}</div>
+      {defects.length > 0 && <span className="g-flag" aria-label="Есть дефект"><FiAlertTriangle /></span>}
+      {data.bigO && <span className={`g-bigo ${classifyBigO(data.bigO as string).grade}`}>{data.bigO as string}</span>}
+      <Handle type="source" position={Position.Bottom} />
+      {/* side handles for loop back edges: the loop is drawn on the side facing away from the flow */}
+      <Handle type="source" position={Position.Right} id="back-out-r" className="g-handle-side" style={{ top: '65%' }} />
+      <Handle type="target" position={Position.Right} id="back-in-r" className="g-handle-side" style={{ top: '35%' }} />
+      <Handle type="source" position={Position.Left} id="back-out-l" className="g-handle-side" style={{ top: '65%' }} />
+      <Handle type="target" position={Position.Left} id="back-in-l" className="g-handle-side" style={{ top: '35%' }} />
     </div>
   );
 };

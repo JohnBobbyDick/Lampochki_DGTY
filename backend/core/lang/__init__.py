@@ -23,12 +23,15 @@ def _check(language: str) -> Callable[[str], list[dict]]:
     return check
 
 
-def _regenerate(language: str) -> Callable[[str, dict, dict[str, str]], tuple[str, list[str]]]:
-    def regenerate(code: str, method: dict, edits: dict[str, str]) -> tuple[str, list[str]]:
-        from core.code_generator import regenerate_method, splice_method
-        body, changed = regenerate_method(method, edits, language=language)
-        return splice_method(code, method, body, language=language), changed
-    return regenerate
+def _java_regenerate(code: str, method: dict, edits: dict[str, str]) -> tuple[str, list[str]]:
+    from core.code_generator import regenerate_method, splice_method
+    body, changed = regenerate_method(method, edits)
+    return splice_method(code, method, body), changed
+
+
+def _py_regenerate(code: str, method: dict, edits: dict[str, str]) -> tuple[str, list[str]]:
+    from core.py_codegen import apply_edits
+    return apply_edits(code, method, edits)
 
 
 def _decompose(code: str, ast: dict):
@@ -48,8 +51,8 @@ class Language:
     decompose: Callable[[str, dict], object]
 
 
-JAVA = Language("java", "Java", (".java",), "Main.java", _java_parse, _check("java"), _regenerate("java"), _decompose)
-PYTHON = Language("python", "Python", (".py",), "main.py", _py_parse, _check("python"), _regenerate("python"),
+JAVA = Language("java", "Java", (".java",), "Main.java", _java_parse, _check("java"), _java_regenerate, _decompose)
+PYTHON = Language("python", "Python", (".py",), "main.py", _py_parse, _check("python"), _py_regenerate,
                   _decompose)
 
 LANGS: dict[str, Language] = {"java": JAVA, "python": PYTHON}

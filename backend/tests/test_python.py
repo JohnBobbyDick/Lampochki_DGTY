@@ -9,7 +9,7 @@ from core.bigo_analyzer import analyze_ast
 from core.defect_detector import detect_defects
 from core.runner import run_code, check_compiles, is_python_code
 from core.comparator import compare_code
-from core.code_generator import regenerate_method, splice_method
+from core.py_codegen import apply_edits
 from core.decomposer import decompose
 
 
@@ -181,10 +181,8 @@ def test_python_code_generator_edit():
     res = parse_python(code)
     method = res["ast"]["classes"][0]["methods"][0]
     edits = {"n2": "total = 100"}  # edit first statement
-    body, changed = regenerate_method(method, edits, language="python")
-    assert "total = 100" in "\n".join(body)
-    new_code = splice_method(code, method, body, language="python")
-    assert "total = 100" in new_code
+    new_code, changed = apply_edits(code, method, edits)
+    assert new_code == code.replace("total = 0", "total = 100") and changed == ["n2"]
 
 
 def test_top_level_pseudo_method_does_not_clash_with_def_main():

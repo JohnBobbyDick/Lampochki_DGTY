@@ -1,7 +1,9 @@
 """WebSocket endpoint for the interactive console.
 
 Client → server: {type: "start", code, mainClass?} | {type: "stdin", data} | {type: "eof"} | {type: "kill"}
-Server → client: {type: "stdout"|"stderr", data} | {type: "compile_error", text, errors} | {type: "exit", code, durationMs}
+Server → client: {type: "stdout"|"stderr", data} | {type: "compile_error", text, errors}
+    | {type: "coverage", probes, hits} | {type: "coverage", error}   (after all output, before exit; never after compile_error)
+    | {type: "exit", code, durationMs}
 """
 
 import asyncio
@@ -11,7 +13,7 @@ import time
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from config import origin_allowed
-from core import interactive
+from core import interactive, runner
 
 router = APIRouter()
 
@@ -22,7 +24,7 @@ async def ws_run(ws: WebSocket) -> None:
         await ws.close(code=1008)  # policy violation: cross-site WebSocket
         return
     await ws.accept()
-    proc = tmp = pump_task = None
+    proc = tmp = plan = pump_task = None
     started = 0.0
 
     async def emit(msg: dict) -> None:
@@ -33,6 +35,8 @@ async def ws_run(ws: WebSocket) -> None:
 
     async def run_and_report() -> None:
         code = await interactive.pump(proc, emit)
+        marker = tmp / "cov" / "compiled" if runner.SANDBOX_MODE == "docker" and plan.data_file else None
+        await emit(await asyncio.to_thread(interactive.coverage_message, plan, marker))
         await emit({"type": "exit", "code": code, "durationMs": int((time.monotonic() - started) * 1000)})
 
     try:
@@ -43,7 +47,7 @@ async def ws_run(ws: WebSocket) -> None:
                 started = time.monotonic()
                 res = await interactive.start_session(msg.get("code", ""), msg.get("mainClass"), emit)
                 if res:
-                    proc, tmp = res
+                    proc, tmp, plan = res
                     pump_task = asyncio.create_task(run_and_report())
             elif kind == "stdin" and proc:
                 await interactive.feed(proc, msg.get("data", ""))

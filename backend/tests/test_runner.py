@@ -41,3 +41,14 @@ def test_monoliths_run(read_java, name):
 def test_rejects_bad_main_class(bad):
     r = run_java(HELLO, main_class=bad)
     assert r.exit_code == 2 and "Недопустимое" in r.stderr
+
+
+def test_docker_command_with_coverage(tmp_path):
+    from core.runner import docker_command
+
+    plain = " ".join(docker_command(tmp_path, ["A.java"], "A"))
+    assert "/cov" not in plain and "-Djb.cov" not in plain
+    cmd = " ".join(docker_command(tmp_path, ["A.java"], "A", cov=True))
+    assert f"{tmp_path / 'cov'}:/cov:rw" in cmd
+    assert "-Djb.cov=/cov/cov.bin" in cmd and "touch /cov/compiled" in cmd
+    assert "-Xmx256m" in cmd

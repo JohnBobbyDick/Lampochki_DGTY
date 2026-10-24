@@ -137,13 +137,66 @@ def test_review_returns_applicable_patch_and_apply_endpoint_uses_it(monkeypatch)
         {"line": 6, "title": "Битый патч", "detail": "x", "old_code": OLD, "new_code": "int x = ;"}]})
     c = TestClient(app)
     items = c.post("/api/ai/review", json={"code": CODE}).json()["suggestions"]
+    assert [i["title"] for i in items] == ["Один проход"]
     assert items[0]["patch"]["valid"] and items[0]["line"] == 6
-    assert items[1]["patch"] is None
-    assert items[2]["patch"]["valid"] is False
 
     patch = items[0]["patch"]
     r = c.post("/api/ai/apply", json={"code": CODE, "patch": patch}).json()
     assert r["ok"] and "prefix" in r["code"]
+
+
+def mock_llm_seq(monkeypatch, payloads):
+    """Each HTTP request gets the next payload (the last one repeats); returns the list of prompts seen."""
+    monkeypatch.setenv("LLM_ENABLED", "true")
+    monkeypatch.setenv("GEMINI_API_KEY", "k")
+    prompts = []
+    real = httpx.AsyncClient
+
+    def handler(request):
+        prompts.append(json.loads(request.content)["contents"][0]["parts"][0]["text"])
+        text = json.dumps(payloads[min(len(prompts), len(payloads)) - 1])
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": text}]}}]})
+
+    monkeypatch.setattr(llm_client.httpx, "AsyncClient", lambda **kw: real(transport=httpx.MockTransport(handler), **kw))
+    return prompts
+
+
+GOOD = {"line": 6, "title": "валидная", "detail": "d", "old_code": OLD, "new_code": NEW, "imports": []}
+BAD = {"line": 6, "title": "битая", "detail": "d", "old_code": OLD, "new_code": "int x = ;", "imports": []}
+
+
+def test_review_hides_invalid_and_adviceonly_items(monkeypatch):
+    mock_llm(monkeypatch, {"summary": "ok", "suggestions": [
+        BAD, GOOD, {"line": 3, "title": "совет", "detail": "javadoc", "old_code": "", "new_code": ""}]})
+    r = TestClient(app).post("/api/ai/review", json={"code": CODE}).json()
+    assert [s["title"] for s in r["suggestions"]] == ["валидная"]
+
+
+def test_review_repairs_when_all_patches_invalid(monkeypatch):
+    prompts = mock_llm_seq(monkeypatch, [{"summary": "s", "suggestions": [BAD]}, {"summary": "s", "suggestions": [GOOD]}])
+    r = TestClient(app).post("/api/ai/review", json={"code": CODE}).json()
+    assert len(prompts) == 2 and "не компилируются" in prompts[1] and "не компилируются" not in prompts[0]
+    assert len(r["suggestions"]) == 1
+
+
+def test_review_does_not_repair_advice_only_answer(monkeypatch):
+    prompts = mock_llm_seq(monkeypatch, [{"summary": "s", "suggestions": [
+        {"title": "совет", "detail": "x", "old_code": "", "new_code": ""}]}])
+    r = TestClient(app).post("/api/ai/review", json={"code": CODE}).json()
+    assert len(prompts) == 1 and r["suggestions"] == []
+
+
+def test_explain_drops_invalid_patch(monkeypatch):
+    prompts = mock_llm_seq(monkeypatch, [{"explanation": "Лишний цикл", "old_code": OLD, "fixed_code": "int x = ;",
+                                          "imports": []}])
+    c = TestClient(app)
+    c.post("/api/parse", json={"code": CODE})
+    d = {"message": "Вложенные циклы", "lineStart": 6, "lineEnd": 12, "method": "Demo.sumPairs",
+         "severity": "warning", "bigO": "O(n²)"}
+    r = c.post("/api/ai/explain", json={"defect": d}).json()
+    assert len(prompts) == 3      # 1 + REPAIR_ROUNDS
+    assert r["patch"] is None and r["fixedCode"] == "" and "безопасно применить" in r["note"]
+    assert r["explanation"] == "Лишний цикл"
 
 
 def test_explain_returns_patch(monkeypatch):

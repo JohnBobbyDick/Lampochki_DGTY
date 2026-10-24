@@ -158,7 +158,7 @@ def test_review_endpoint(env, monkeypatch, read_java):
     install(monkeypatch, lambda r: ok(json.dumps(review)))
     r = TestClient(app).post("/api/ai/review", json={"code": read_java("Analyzer")}).json()
     assert r["source"] == "gemini" and r["summary"] == "Хороший код"
-    assert [i["line"] for i in r["suggestions"]] == [47, None] and r["suggestions"][1]["example"] == ""
+    assert r["suggestions"] == []     # advice-only items (no applicable patch) are hidden
 
 
 def test_review_is_silent_when_llm_is_off(monkeypatch, read_java):

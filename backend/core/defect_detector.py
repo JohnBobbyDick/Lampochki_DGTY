@@ -16,17 +16,33 @@ from models.schemas import Defect
 GENERIC_EXC = {"Exception", "Throwable", "RuntimeException"}
 
 
-def _node_id_for_line(method: dict, line: int | None) -> str:
-    if line is None:
-        return ""
+_CFG_CACHE: dict[int, tuple[dict, list]] = {}
+
+
+def _cfg_nodes(method: dict) -> list:
+    """CFG nodes of *method*, cached during one detect_defects run (the cache holds the dict, so ids stay unique)."""
+    hit = _CFG_CACHE.get(id(method))
+    if hit is not None and hit[0] is method:
+        return hit[1]
     try:
         nodes, _ = build_cfg(method)
     except Exception:  # noqa: BLE001
+        nodes = []
+    _CFG_CACHE[id(method)] = (method, nodes)
+    return nodes
+
+
+def _node_id_for_line(method: dict, line: int | None) -> str:
+    if line is None:
         return ""
-    for n in nodes:
+    for n in _cfg_nodes(method):
         if n.data.get("line_start") == line and n.type not in ("start", "end"):
             return n.id
     return ""
+
+
+def _start_node_id(method: dict) -> str:
+    return next((n.id for n in _cfg_nodes(method) if n.type == "start"), "")
 
 
 def _node_id_for_part(method: dict, part: dict | None, line: int | None) -> str:
@@ -58,6 +74,14 @@ def _contains(stmts: list[dict], pred) -> bool:
 
 
 def detect_defects(ast: dict, code: str, bigo: dict[str, str] | None = None) -> list[Defect]:
+    _CFG_CACHE.clear()          # CFGs are cached only within one detection run (ASTs may change in between)
+    try:
+        return _detect(ast, code, bigo)
+    finally:
+        _CFG_CACHE.clear()
+
+
+def _detect(ast: dict, code: str, bigo: dict[str, str] | None) -> list[Defect]:
     defects: list[Defect] = []
     lines = code.splitlines()
     python = ast.get("language") == "python"
@@ -160,7 +184,7 @@ def detect_defects(ast: dict, code: str, bigo: dict[str, str] | None = None) -> 
         for m in cls["methods"]:
             if len(m.get("body", [])) < 2:
                 continue
-            key = json.dumps(_strip_lines(m["body"]), sort_keys=True)
+            key = json.dumps(_strip_lines(m["body"], _PY_POS_KEYS if python else ("line",)), sort_keys=True)
             q = f"{cls['name']}.{m['name']}"
             if key in seen:
                 defects.append(Defect(
@@ -203,11 +227,15 @@ def detect_defects(ast: dict, code: str, bigo: dict[str, str] | None = None) -> 
     return defects
 
 
-def _strip_lines(o):
+_PY_POS_KEYS = ("line", "line_end", "id", "span", "header")
+
+
+def _strip_lines(o, keys: tuple[str, ...] = ("line",)):
+    """*o* without its position keys (Python statements also carry ids and spans)."""
     if isinstance(o, dict):
-        return {k: _strip_lines(v) for k, v in o.items() if k != "line"}
+        return {k: _strip_lines(v, keys) for k, v in o.items() if k not in keys}
     if isinstance(o, list):
-        return [_strip_lines(i) for i in o]
+        return [_strip_lines(i, keys) for i in o]
     return o
 
 
@@ -454,13 +482,13 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
     """The Python rules; the shared ones (duplication, recursion) run in detect_defects."""
     found: list[Defect] = []
     analyzer = _Analyzer(ast)
-    by_line: dict[int, str] = {}
+    by_line: dict[int, tuple[str, dict]] = {}
 
     for cls in ast.get("classes", []):
         for m in cls["methods"]:
             qname = f"{cls['name']}.{m['name']}"
             if not m.get("synthetic"):
-                by_line.setdefault(m.get("line_start") or 0, qname)
+                by_line.setdefault(m.get("line_start") or 0, (qname, m))
             body = m.get("body", [])
             loops = find_loops(body)
             str_names = _py_str_names(m)
@@ -489,7 +517,7 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
                         continue        # `in` on a string is a substring search, a set does not help
                     types = types if types is not None else analyzer._py_types(cls, m)
                     text = pyast.unparse(coll)
-                    if analyzer._py_kind(types, coll) != "seq" or (id(s), text) in seen:
+                    if not analyzer._py_searches_seq(types, coll) or (id(s), text) in seen:
                         continue
                     seen.add((id(s), text))
                     add(s.get("line"), "warning",
@@ -546,7 +574,7 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
                 if s.get("type") != "TryStatement":
                     continue
                 for c in s.get("catches", []):
-                    exc = c.get("types", []) or []
+                    exc = [t for raw in c.get("types", []) or [] for t in re.split(r"[\s(),]+", raw) if t]
                     label = f"except {', '.join(exc)}" if exc else "except"
                     line = c.get("line") or s.get("line")
                     cbody = c.get("body", [])
@@ -579,7 +607,7 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
         positional = args.posonlyargs + args.args
         pairs = list(zip(positional[len(positional) - len(args.defaults):], args.defaults))
         pairs += [(a, d) for a, d in zip(args.kwonlyargs, args.kw_defaults) if d is not None]
-        qname = by_line.get(node.lineno, node.name)
+        qname, owner = by_line.get(node.lineno, (node.name, None))
         for arg, default in pairs:
             mutable = isinstance(default, (pyast.List, pyast.Dict, pyast.Set, *_PY_COMPS)) or (
                 isinstance(default, pyast.Call) and isinstance(default.func, pyast.Name)
@@ -589,6 +617,7 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
             seg = pyast.get_source_segment(code, default) or pyast.unparse(default)
             found.append(Defect(
                 line_start=default.lineno, line_end=default.end_lineno or default.lineno, method=qname,
+                node_id=_start_node_id(owner) if owner is not None else "",
                 severity="warning",
                 message=f"Изменяемое значение по умолчанию «{arg.arg}={seg}» в {qname} — один и тот же объект "
                         f"общий для всех вызовов",
@@ -604,6 +633,12 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
                 used.add(tok.string)
     except (tokenize.TokenError, SyntaxError):
         return found
+    for node in tree.body:                                   # names exported through __all__ count as used
+        if isinstance(node, (pyast.Assign, pyast.AugAssign, pyast.AnnAssign)) and node.value is not None:
+            targets = node.targets if isinstance(node, pyast.Assign) else [node.target]
+            if any(isinstance(t, pyast.Name) and t.id == "__all__" for t in targets)                     and isinstance(node.value, (pyast.List, pyast.Tuple)):
+                used |= {e.value for e in node.value.elts
+                         if isinstance(e, pyast.Constant) and isinstance(e.value, str)}
     for imp in sorted(imports, key=lambda i: (i.lineno, i.col_offset)):
         if isinstance(imp, pyast.ImportFrom) and imp.module == "__future__":
             continue

@@ -324,3 +324,86 @@ def test_every_python_defect_has_a_python_tip(name):
         assert text != DEFAULT[0] and text != d.recommendation, d.message
         assert "catch" not in text and "HashMap" not in text
 
+
+
+# fix round -----------------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("lit", ["(1, 2, 3)", '["a", "b"]', "{1, 2}"])
+def test_membership_in_constant_literal_is_fine(lit):
+    code = f"""
+        def f(xs):
+            n = 0
+            for x in xs:
+                if x in {lit}:
+                    n += 1
+            return n
+    """
+    assert not _with(_defects(code), "поиск в списке")
+    ast = parse_python(textwrap.dedent(code))["ast"]
+    assert analyze_ast(ast)["Module.f"] == "O(n)"
+
+
+def test_membership_in_literal_of_names_is_still_seq():
+    code = """
+        def f(xs, a, b):
+            n = 0
+            for x in xs:
+                if x in [a, b, *xs]:
+                    n += 1
+            return n
+    """
+    assert _with(_defects(code), "поиск в списке")
+
+
+def test_mutable_default_points_to_method_node():
+    d = _with(_defects("""
+        def f(a=[]):
+            return a
+    """), "изменяемое значение по умолчанию")[0]
+    assert d.node_id
+
+
+def test_python_duplicates_reported():
+    ds = _with(_defects("""
+        def f(xs):
+            total = 0
+            for x in xs:
+                total += x
+            return total
+
+        def g(xs):
+            total = 0
+            for x in xs:
+                total += x
+            return total
+    """), "дублирование")
+    assert len(ds) == 1 and ds[0].method == "Module.g"
+
+
+def test_tuple_except_with_generic_type_is_swallowed():
+    assert _with(_defects("""
+        def f(p):
+            try:
+                return int(p)
+            except (ValueError, Exception):
+                pass
+            return 0
+    """), "проглатывается")
+
+
+def test_tuple_except_specific_is_fine():
+    assert not _with(_defects("""
+        def f(p):
+            try:
+                return int(p)
+            except (ValueError, KeyError):
+                pass
+            return 0
+    """), "проглатывается")
+
+
+def test_import_listed_in_all_is_used():
+    assert not _with(_defects("""
+        from os import path
+        __all__ = ["path"]
+    """), "неиспользуемый импорт")

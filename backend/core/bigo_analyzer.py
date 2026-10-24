@@ -528,6 +528,10 @@ class _Analyzer:
                 return "seq"
         return ""
 
+    def _py_searches_seq(self, types: dict[str, str], node) -> bool:
+        """Whether `x in node` scans a sequence of input-dependent size (a literal of constants does not)."""
+        return self._py_kind(types, node) == "seq" and not _py_const_size(node)
+
     def _py_iterations(self, loop: dict) -> Cost:
         nodes = _py_parse(loop.get("control", "") or "", "control", "ForStatement")
         return ZERO if nodes and _py_const_size(nodes[0]) else LINEAR
@@ -561,7 +565,7 @@ class _Analyzer:
         costs = [cost(c) for c in pyast.iter_child_nodes(node)]
         if isinstance(node, pyast.Compare):
             for op, right in zip(node.ops, node.comparators):
-                if isinstance(op, (pyast.In, pyast.NotIn)) and self._py_kind(types, right) == "seq":
+                if isinstance(op, (pyast.In, pyast.NotIn)) and self._py_searches_seq(types, right):
                     costs.append(LINEAR)
         elif isinstance(node, pyast.Call):
             costs.append(self._py_call_cost(cls, method, types, node))

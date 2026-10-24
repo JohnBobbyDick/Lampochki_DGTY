@@ -192,6 +192,7 @@ class AiPatch(CamelModel):
 class AiBigoCombinedRequest(CamelModel):
     code: str
     patches: list[AiPatch] = Field(default_factory=list)
+    language: str | None = Field(None, description="Source language ('java' | 'python'); session language if omitted")
 
 
 class AiBigoCombinedResponse(CamelModel):
@@ -201,6 +202,7 @@ class AiBigoCombinedResponse(CamelModel):
 class AiApplyRequest(CamelModel):
     code: str = Field(..., description="Current editor content")
     patch: AiPatch
+    language: str | None = Field(None, description="Source language ('java' | 'python'); session language if omitted")
 
 
 class AiApplyResponse(CamelModel):

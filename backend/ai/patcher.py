@@ -11,8 +11,7 @@ import asyncio
 import re
 
 from core import runner
-from core.parser import parse_java
-from core.py_parser import parse_python
+from core import lang
 
 from ai import bigo_diff
 
@@ -56,9 +55,9 @@ def reindent(new: str, base_indent: str) -> str:
     return "\n".join((base_indent + r[common:]).rstrip() if r.strip() else "" for r in rows)
 
 
-def add_imports(code: str, imports: list[str]) -> tuple[str, list[str]]:
+def add_imports(code: str, imports: list[str], language: str | None = None) -> tuple[str, list[str]]:
     """Insert missing ``import`` lines; returns (new code, imports actually added)."""
-    if runner.is_python_code(code) and not _IMPORT_RE.search(code):
+    if runner.is_python_code(code, language) and not _IMPORT_RE.search(code):
         # Python imports: e.g. "math", "from typing import List"
         lines = code.split("\n")
         added = []
@@ -95,7 +94,8 @@ def add_imports(code: str, imports: list[str]) -> tuple[str, list[str]]:
     return "\n".join(lines), added
 
 
-def replace_range(code: str, start: int, end: int, new: str, imports: list[str] | None = None) -> tuple[str, list[str]]:
+def replace_range(code: str, start: int, end: int, new: str, imports: list[str] | None = None,
+                  language: str | None = None) -> tuple[str, list[str]]:
     lines = code.split("\n")
     first = lines[start - 1]
     base = first[: len(first) - len(first.lstrip())]
@@ -108,17 +108,18 @@ def _compile_errors(code: str, language: str | None = None) -> list[dict] | None
 
 
 def _syntax_errors(code: str, language: str) -> list:
-    return (parse_python(code) if language == "python" else parse_java(code))["errors"]
+    return lang.get(language).parse(code)["errors"]
 
 
-async def validate(original: str, patched: str, *, fix_line: int | None = None) -> tuple[bool, list[str], list[str]]:
+async def validate(original: str, patched: str, *, fix_line: int | None = None,
+                   language: str | None = None) -> tuple[bool, list[str], list[str]]:
     """(valid, problems, warnings): a patch must not add compile errors; in fix mode it must also remove the target one.
 
     Ordinary mode: ``len(E(patched)) <= len(E(original))`` and a compiling original stays compiling.
     Fix mode (*fix_line* set): strictly fewer errors and no error left on *fix_line* with its original text.
     Without a local javac only syntax is checked. Python is checked by its parser + ``compile()`` instead of javac.
     """
-    language = "python" if runner.is_python_code(original) else "java"
+    language = "python" if runner.is_python_code(original, language) else "java"
     syntax_before = _syntax_errors(original, language)
     syntax_after = _syntax_errors(patched, language)
     if syntax_after and not syntax_before:
@@ -185,7 +186,8 @@ async def build_patch(code: str, old: str, new: str, imports: list[str] | None,
 
 
 async def apply_patch(code: str, old: str, new: str, imports: list[str] | None,
-                      hint_line: int | None, *, fix_line: int | None = None) -> dict:
+                      hint_line: int | None, *, fix_line: int | None = None,
+                      language: str | None = None) -> dict:
     """Apply to the *current* code (which may have changed since the suggestion was made)."""
     code = normalize(code)
     span = locate(code, old, hint_line)
@@ -193,8 +195,8 @@ async def apply_patch(code: str, old: str, new: str, imports: list[str] | None,
         return {"ok": False, "code": code, "problems": ["Код изменился: исходный фрагмент не найден или встречается "
                                                         "несколько раз. Дождитесь нового ревью."],
                 "warnings": [], "start_line": 0, "end_line": 0}
-    patched, _ = replace_range(code, span[0], span[1], new, imports)
-    valid, problems, warnings = await validate(code, patched, fix_line=fix_line)
+    patched, _ = replace_range(code, span[0], span[1], new, imports, language)
+    valid, problems, warnings = await validate(code, patched, fix_line=fix_line, language=language)
     if not valid:
         return {"ok": False, "code": code, "problems": problems, "warnings": warnings,
                 "start_line": 0, "end_line": 0}

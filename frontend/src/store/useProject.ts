@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { useStore } from './useStore';
 import { DEMO, DEMO_PY, EXAMPLES } from '../project/examples';
 import { pushRun, RunRecord } from '../utils/runs';
+import { languageOf } from '../utils/language';
 import { Coverage, Probe, mergeCoverage } from '../utils/coverage';
 
 export interface ProjectFile {
@@ -47,7 +48,7 @@ const mk = (folder: string, name: string, code: string): ProjectFile => ({
   folder,
   code,
   original: code,
-  language: name.endsWith('.py') ? 'python' : 'java',
+  language: languageOf(name),
 });
 
 const DEMO_JAVA_ID = 'src/Demo.java';

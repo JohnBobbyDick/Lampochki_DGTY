@@ -6,8 +6,6 @@ from dataclasses import dataclass, field
 
 from fastapi import HTTPException
 
-from core.parser import parse_java
-
 
 @dataclass
 class Session:
@@ -22,13 +20,10 @@ SESSION = Session()
 
 
 def load(code: str, language: str | None = None) -> Session:
+    from core import lang as langs
     from core.runner import is_python_code
     lang = "python" if is_python_code(code, language) else "java"
-    if lang == "python":
-        from core.py_parser import parse_python
-        parsed = parse_python(code)
-    else:
-        parsed = parse_java(code)
+    parsed = langs.get(lang).parse(code)
     SESSION.code = code
     SESSION.ast = parsed["ast"]
     SESSION.line_map = parsed["line_map"]

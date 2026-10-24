@@ -178,12 +178,12 @@ export function useApi() {
 
     /** Replace the suggested fragment in the current code (server re-validates against the live text). */
     const aiApply = (patch: unknown) =>
-      call(async () => (await api.post('/ai/apply', { code: S().code, patch })).data, true);
+      call(async () => (await api.post('/ai/apply', { code: S().code, patch, language: S().language })).data, true);
 
     /** Big O after applying several patches together; silent (no spinner, no error toast). */
     const bigoCombined = async (code: string, patches: AiPatch[]): Promise<Record<string, string> | null> => {
       try {
-        const { data } = await api.post('/ai/bigo-combined', { code, patches });
+        const { data } = await api.post('/ai/bigo-combined', { code, patches, language: S().language });
         return (data?.bigo ?? null) as Record<string, string> | null;
       } catch {
         return null;

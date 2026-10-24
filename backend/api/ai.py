@@ -76,15 +76,21 @@ async def review(req: AiReviewRequest, request: Request) -> AiReviewResponse:
         return AiReviewResponse(**job.result())
 
 
+def _req_language(language: str | None) -> str | None:
+    """Request language, else the session's; None → legacy autodetect from the text."""
+    return language or (state.SESSION.language if state.SESSION and state.SESSION.code else None)
+
+
 @router.post("/apply", response_model=AiApplyResponse)
 async def apply(req: AiApplyRequest) -> AiApplyResponse:
     """Replace the suggested fragment in the *current* code, after re-validating the result."""
     p = req.patch
-    return AiApplyResponse(**await patcher.apply_patch(req.code, p.old_code, p.new_code, p.imports, p.start_line))
+    return AiApplyResponse(**await patcher.apply_patch(req.code, p.old_code, p.new_code, p.imports, p.start_line,
+                                                       language=_req_language(req.language)))
 
 
 @router.post("/bigo-combined", response_model=AiBigoCombinedResponse)
 def bigo_combined(req: AiBigoCombinedRequest) -> AiBigoCombinedResponse:
     """Big O of the affected methods if several suggestions are applied together (no LLM, no session state)."""
     patches = [p.model_dump() for p in req.patches]
-    return AiBigoCombinedResponse(bigo=bigo_diff.combined_bigo(req.code, patches))
+    return AiBigoCombinedResponse(bigo=bigo_diff.combined_bigo(req.code, patches, language=_req_language(req.language)))

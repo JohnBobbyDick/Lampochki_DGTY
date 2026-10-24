@@ -5,26 +5,23 @@ import re
 
 from ai import patcher
 from core.bigo_analyzer import analyze_ast
-from core.parser import parse_java
 
 
-def _parse(code: str) -> dict:
+def _parse(code: str, language: str | None = None) -> dict:
     """Normalised AST of Java or Python source (Python module functions live in the pseudo-class "Module")."""
+    from core import lang
     from core.runner import is_python_code
-    if is_python_code(code):
-        from core.py_parser import parse_python
-        return parse_python(code)["ast"] or {}
-    return parse_java(code)["ast"] or {}
+    return lang.get("python" if is_python_code(code, language) else "java").parse(code)["ast"] or {}
 
 
-def _labels(code: str) -> dict[str, str]:
-    return {k: v for k, v in analyze_ast(_parse(code)).items() if "." in k}
+def _labels(code: str, language: str | None = None) -> dict[str, str]:
+    return {k: v for k, v in analyze_ast(_parse(code, language)).items() if "." in k}
 
 
-def affected_methods(code: str, start: int, end: int) -> set[str]:
+def affected_methods(code: str, start: int, end: int, language: str | None = None) -> set[str]:
     """``Class.method`` whose span intersects lines [start, end]."""
     out: set[str] = set()
-    for cls in _parse(code).get("classes", []):
+    for cls in _parse(code, language).get("classes", []):
         for m in cls.get("methods", []) + cls.get("constructors", []):
             span = m.get("span") or {}
             s, e = span.get("start"), span.get("end")
@@ -33,10 +30,10 @@ def affected_methods(code: str, start: int, end: int) -> set[str]:
     return out
 
 
-def bigo_change(code: str, patched: str, start: int, end: int) -> tuple[dict[str, str], dict[str, str]]:
+def bigo_change(code: str, patched: str, start: int, end: int, language: str | None = None) -> tuple[dict[str, str], dict[str, str]]:
     """(before, after): methods touched by the patch plus any method whose label changed."""
-    before_all, after_all = _labels(code), _labels(patched)
-    names = affected_methods(code, start, end) | {
+    before_all, after_all = _labels(code, language), _labels(patched, language)
+    names = affected_methods(code, start, end, language) | {
         k for k in before_all.keys() & after_all.keys() if before_all[k] != after_all[k]
     }
     names = {n for n in names if n in before_all and n in after_all}
@@ -76,7 +73,7 @@ def _score(before: dict[str, str], after: dict[str, str]) -> tuple[int, int]:
     return tp, tl
 
 
-def combined_bigo(code: str, patches: list[dict]) -> dict[str, str]:
+def combined_bigo(code: str, patches: list[dict], language: str | None = None) -> dict[str, str]:
     """``after`` labels when several patches are applied together (estimate, not compiled).
 
     Overlapping patches form a group of which only the best single one is applied.
@@ -105,19 +102,19 @@ def combined_bigo(code: str, patches: list[dict]) -> dict[str, str]:
             if len(g) == 1:
                 best = (s, e, p)
                 break
-            patched, _ = patcher.replace_range(code, s, e, p["new_code"], p.get("imports"))
-            sc = _score(*bigo_change(code, patched, s, e))
+            patched, _ = patcher.replace_range(code, s, e, p["new_code"], p.get("imports"), language)
+            sc = _score(*bigo_change(code, patched, s, e, language))
             if best_score is None or sc < best_score:
                 best, best_score = (s, e, p), sc
         chosen.append(best)
     patched, imports = code, []
     for s, e, p in sorted(chosen, key=lambda t: -t[0]):
-        patched, _ = patcher.replace_range(patched, s, e, p["new_code"])
+        patched, _ = patcher.replace_range(patched, s, e, p["new_code"], None, language)
         imports += list(p.get("imports") or [])
-    patched, _ = patcher.add_imports(patched, imports)
-    before_all, after_all = _labels(code), _labels(patched)
+    patched, _ = patcher.add_imports(patched, imports, language)
+    before_all, after_all = _labels(code, language), _labels(patched, language)
     names: set[str] = set()
     for s, e, _ in chosen:
-        names |= affected_methods(code, s, e)
+        names |= affected_methods(code, s, e, language)
     names |= {k for k in before_all.keys() & after_all.keys() if before_all[k] != after_all[k]}
     return {n: after_all[n] for n in sorted(names) if n in before_all and n in after_all}

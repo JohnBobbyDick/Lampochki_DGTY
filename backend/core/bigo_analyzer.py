@@ -4,10 +4,14 @@ A cost is ``(p, l)`` meaning ``n^p · log^l n``. A method's cost is the worst of
 sequential code takes the maximum, a loop multiplies its body by the loop's own cost, and a call
 adds the cost of what it calls — methods of the project (resolved recursively, with memoisation)
 and well-known library operations whose cost depends on the receiver's type.
+
+Python methods (``language: "python"``) have their statement texts parsed with ``ast`` (comprehensions,
+builtins, ``in`` by the known collection type); a text that does not parse falls back to the regexes.
 """
 
 from __future__ import annotations
 
+import ast as pyast
 import re
 
 LOOP_TYPES = ("ForStatement", "WhileStatement", "DoStatement")
@@ -54,14 +58,26 @@ def _children(stmt: dict):
         yield from c.get("body", [])
 
 
+def _loop_else(stmt: dict) -> list[dict]:
+    """The `else` of a Python for/while: it runs once after the loop, so it is not nested in it."""
+    return (stmt.get("else") or []) if stmt.get("type") in LOOP_TYPES else []
+
+
+def _nested(stmt: dict) -> list[dict]:
+    """Children of a statement that run inside it (for a loop: on every iteration)."""
+    if stmt.get("type") in LOOP_TYPES and stmt.get("else"):
+        return [c for k in ("body", "then", "finally") for c in (stmt.get(k) or [])]
+    return list(_children(stmt))
+
+
 def loop_depth(stmts: list[dict]) -> int:
     """Maximum loop nesting depth in a statement list."""
     best = 0
     for s in stmts:
-        d = loop_depth(list(_children(s)))
+        d = loop_depth(_nested(s))
         if s.get("type") in LOOP_TYPES:
             d += 1
-        best = max(best, d)
+        best = max(best, d, loop_depth(_loop_else(s)))
     return best
 
 
@@ -72,7 +88,8 @@ def find_loops(stmts: list[dict], depth: int = 0, out: list | None = None) -> li
         d = depth + (1 if s.get("type") in LOOP_TYPES else 0)
         if s.get("type") in LOOP_TYPES:
             out.append((s, d))
-        find_loops(list(_children(s)), d, out)
+        find_loops(_nested(s), d, out)
+        find_loops(_loop_else(s), depth, out)
     return out
 
 
@@ -143,6 +160,14 @@ def _worst(*costs: Cost) -> Cost:
     return max(costs, default=ZERO)
 
 
+def _mul_u(a: Cost | None, b: Cost | None) -> Cost | None:
+    return UNKNOWN if a is UNKNOWN or b is UNKNOWN else _mul(a, b)
+
+
+def _worst_u(*costs: Cost | None) -> Cost | None:
+    return UNKNOWN if UNKNOWN in costs else _worst(*costs)
+
+
 def _sup(k: int) -> str:
     return "²³⁴⁵"[k - 2] if 2 <= k <= 5 else f"^{k}"
 
@@ -165,7 +190,7 @@ def complexity_label(cost: Cost | None, recursive: bool = True) -> str:
 
 _DOUBLING = re.compile(r"\b2\s*\*\s*\w|\w\s*\*\s*2\b|<<\s*1\b")
 _HALVING_RHS = re.compile(r"/\s*2\b|>>\s*1\b|\*\s*2\b|<<\s*1\b")
-_COMPOUND_LOG = re.compile(r"(\w+)\s*(?:\*=|/=)\s*\d+|(\w+)\s*(?:<<=|>>=)\s*\d+")
+_COMPOUND_LOG = re.compile(r"(\w+)\s*(?:\*=|/?/=)\s*\d+|(\w+)\s*(?:<<=|>>=)\s*\d+")
 _ASSIGN = re.compile(r"(?<![=!<>])\b([A-Za-z_]\w*)\s*=(?!=)\s*([^;]+)")
 
 
@@ -208,7 +233,64 @@ def _loop_cost(loop: dict) -> Cost:
     return LINEAR
 
 
-# ── per-class context ───────────────────────────────────────────────────────────────────────────
+# ── Python expressions ──────────────────────────────────────────────────────────────────────────
+
+_PY_SEQ_TYPES = {"list", "List", "Sequence", "MutableSequence", "tuple", "Tuple", "str", "deque", "Deque"}
+_PY_HASH_TYPES = {"set", "Set", "frozenset", "FrozenSet", "AbstractSet", "MutableSet", "dict", "Dict", "Mapping",
+                  "MutableMapping", "defaultdict", "DefaultDict", "OrderedDict", "Counter"}
+_PY_SEQ_CTORS = {"list", "tuple", "sorted"}
+_PY_HASH_CTORS = {"set", "frozenset", "dict", "defaultdict", "OrderedDict", "Counter"}
+# builtins that walk their (collection) arguments once
+_PY_LINEAR_BUILTINS = {"sum", "any", "all", "min", "max", "list", "set", "tuple", "dict", "frozenset", "map", "filter",
+                       "enumerate", "zip", "reversed"}
+_PY_LINEAR_ANY = {"join", "extend", "copy", "reverse"}             # linear whatever the receiver
+_PY_LINEAR_SEQ = {"index", "count", "remove", "insert"}            # linear on a known sequence
+
+
+def _py_type_kind(annotation: str) -> str:
+    """'seq' / 'hash' / a bare type name from an annotation like `Optional[List[int]]` or `set[str] | None`."""
+    m = re.match(r"\s*(?:typing\.)?(?:Optional\s*\[\s*)?(?:typing\.|collections\.)?([A-Za-z_]\w*)", annotation or "")
+    if not m:
+        return ""
+    name = m.group(1)
+    return "seq" if name in _PY_SEQ_TYPES else "hash" if name in _PY_HASH_TYPES else name
+
+
+def _py_const_size(node) -> bool:
+    """A collection whose size does not depend on the input: a literal of constants, range(10)."""
+    if isinstance(node, pyast.Constant):
+        return True
+    if isinstance(node, (pyast.List, pyast.Tuple, pyast.Set)):
+        return all(isinstance(e, pyast.Constant) for e in node.elts)
+    if isinstance(node, pyast.Dict):
+        return all(isinstance(e, pyast.Constant) for e in node.keys + node.values if e is not None)
+    if isinstance(node, pyast.Call) and isinstance(node.func, pyast.Name) and node.func.id == "range":
+        return all(isinstance(a, pyast.Constant)
+                   or (isinstance(a, pyast.UnaryOp) and isinstance(a.operand, pyast.Constant)) for a in node.args)
+    return False
+
+
+def _py_parse(text: str, key: str = "", stype: str = ""):
+    """The ast nodes of a statement text (by the key it came from), or None if it does not parse."""
+    try:
+        if key == "control" and stype == "ForStatement":
+            return [pyast.parse(f"for {text}:\n pass").body[0].iter]
+        if key == "items":
+            return [i.context_expr for i in pyast.parse(f"with {text}:\n pass").body[0].items]
+        try:
+            return [pyast.parse(text, mode="eval").body]
+        except SyntaxError:
+            return pyast.parse(text).body[:1]
+    except (SyntaxError, ValueError, IndexError, AttributeError):
+        return None
+
+
+def _short(name: str) -> str:
+    """`inner` of a nested def `outer.inner`."""
+    return name.rpartition(".")[2]
+
+
+# ── per-class context───────────────────────────────────────────────────────────────────────────
 
 class _Analyzer:
     def __init__(self, ast: dict):
@@ -226,6 +308,8 @@ class _Analyzer:
 
     # types of names visible inside a method
     def _types(self, cls: dict, method: dict) -> dict[str, str]:
+        if method.get("language") == "python":
+            return self._py_types(cls, method)
         types = {f["name"]: f.get("type", "") for f in cls.get("fields", [])}
         types.update({p["name"]: p.get("type", "") for p in method.get("parameters", [])})
         for s in _walk_stmts(method.get("body", [])):
@@ -321,26 +405,193 @@ class _Analyzer:
         return _worst(*costs)
 
     def _stmts_cost(self, cls: dict, method: dict, types: dict[str, str], stmts: list[dict]) -> Cost | None:
+        py = method.get("language") == "python"
         worst = ZERO
         for s in stmts:
+            if s.get("nested_def"):    # a definition, not execution: its body is costed as its own method
+                continue
             if s.get("stream"):    # the chain is the statement's whole expression: cost it by its steps
                 own = [self._stream_cost(cls, method, types, s["stream"])]
+            elif py:
+                own = self._py_own_costs(cls, method, types, s)
             else:
                 own = [self._expr_cost(cls, method, types, e) for e in _own_exprs(s)]
-            inner = self._stmts_cost(cls, method, types, list(_children(s)))
-            if UNKNOWN in own or inner is UNKNOWN:
+            inner = self._stmts_cost(cls, method, types, _nested(s))
+            after = self._stmts_cost(cls, method, types, _loop_else(s))
+            if UNKNOWN in own or inner is UNKNOWN or after is UNKNOWN:
                 return UNKNOWN
-            c = _worst(inner, *own)
-            if s.get("type") in LOOP_TYPES:
-                c = _mul(_loop_cost(s), c)
-            worst = _worst(worst, c)
+            if py and s.get("type") == "ForStatement":     # the iterable is evaluated once, the body per item
+                c = _worst(_mul(self._py_iterations(s), inner), *own)
+            else:
+                c = _worst(inner, *own)
+                if s.get("type") in LOOP_TYPES:
+                    c = _mul(_loop_cost(s), c)
+            worst = _worst(worst, c, after)
         return worst
+
+    # ── Python ──
+
+    def _py_types(self, cls: dict, method: dict) -> dict[str, str]:
+        """Collection kinds ('seq' / 'hash') or class names of the names a Python method sees."""
+        types: dict[str, str] = {}
+        for m in self.classes.get("Module", {}).get("methods", []):     # module-level globals
+            if m.get("synthetic"):
+                self._py_absorb(m.get("body", []), types)
+        if cls.get("name") != "Module":                                  # self.attr = ... anywhere in the class
+            for m in cls.get("methods", []):
+                if m is not method:
+                    self._py_absorb(m.get("body", []), types, only_self=True)
+        for p in method.get("parameters", []):
+            types[p["name"]] = _py_type_kind(p.get("type", ""))
+        self._py_absorb(method.get("body", []), types)
+        return types
+
+    def _py_absorb(self, stmts: list[dict], types: dict[str, str], only_self: bool = False) -> None:
+        """Record the kinds of names assigned in a statement subtree (`ys = set()`, `ys: list = []`)."""
+        for s in _walk_stmts(stmts):
+            if s.get("type") != "StatementExpression" or s.get("nested_def") or not s.get("expression"):
+                continue
+            nodes = _py_parse(s["expression"])
+            node = nodes[0] if nodes else None
+            if isinstance(node, pyast.Assign):
+                targets, kind = node.targets, self._py_kind(types, node.value)
+            elif isinstance(node, pyast.AnnAssign):
+                targets = [node.target]
+                kind = _py_type_kind(pyast.unparse(node.annotation)) or self._py_kind(types, node.value)
+            else:
+                continue
+            for t in targets:
+                if isinstance(t, pyast.Name) and not only_self:
+                    types[t.id] = kind
+                elif isinstance(t, pyast.Attribute) and isinstance(t.value, pyast.Name) and t.value.id == "self":
+                    types[f"self.{t.attr}"] = kind
+
+    def _py_kind(self, types: dict[str, str], node) -> str:
+        """'seq' (a list/tuple/str: `in` is O(n)), 'hash' (a set/dict: O(1)), a project class name, or ''."""
+        if isinstance(node, (pyast.List, pyast.Tuple, pyast.ListComp)):
+            return "seq"
+        if isinstance(node, (pyast.Set, pyast.Dict, pyast.SetComp, pyast.DictComp)):
+            return "hash"
+        if isinstance(node, pyast.Name):
+            return types.get(node.id, "")
+        if isinstance(node, pyast.Attribute) and isinstance(node.value, pyast.Name) and node.value.id == "self":
+            return types.get(f"self.{node.attr}", "")
+        if isinstance(node, pyast.Call):
+            f = node.func
+            if isinstance(f, pyast.Name):
+                if f.id in _PY_SEQ_CTORS:
+                    return "seq"
+                if f.id in _PY_HASH_CTORS:
+                    return "hash"
+                if f.id in self.classes:
+                    return f.id
+            if isinstance(f, pyast.Attribute) and f.attr == "keys":
+                return "hash"
+        return ""
+
+    def _py_iterations(self, loop: dict) -> Cost:
+        nodes = _py_parse(loop.get("control", "") or "", "control", "ForStatement")
+        return ZERO if nodes and _py_const_size(nodes[0]) else LINEAR
+
+    def _py_own_costs(self, cls: dict, method: dict, types: dict[str, str], stmt: dict) -> list[Cost | None]:
+        texts = [(k, stmt[k]) for k in _EXPR_KEYS if isinstance(stmt.get(k), str)]
+        if stmt.get("type") == "SwitchStatement":            # guards run at most once, like the subject
+            texts += [("guard", c["guard"]) for c in stmt.get("cases", []) or [] if c.get("guard")]
+        out: list[Cost | None] = []
+        for key, text in texts:
+            nodes = _py_parse(text, key, stmt.get("type", ""))
+            if nodes is None:                                  # not Python we can read: the regex estimate
+                out.append(self._expr_cost(cls, method, types, text))
+            else:
+                out.extend(self._py_cost(cls, method, types, n) for n in nodes)
+        return out
+
+    def _py_cost(self, cls: dict, method: dict, types: dict[str, str], node) -> Cost | None:
+        def cost(n):
+            return self._py_cost(cls, method, types, n)
+
+        if isinstance(node, (pyast.ListComp, pyast.SetComp, pyast.GeneratorExp, pyast.DictComp)):
+            mult, costs = ZERO, []
+            for g in node.generators:              # each `for` multiplies everything after it
+                costs.append(_mul_u(mult, cost(g.iter)))
+                mult = _mul(mult, ZERO if _py_const_size(g.iter) else LINEAR)
+                costs.extend(_mul_u(mult, cost(c)) for c in g.ifs)
+            elts = [node.key, node.value] if isinstance(node, pyast.DictComp) else [node.elt]
+            costs.extend(_mul_u(mult, cost(e)) for e in elts)
+            return _worst_u(*costs)
+        costs = [cost(c) for c in pyast.iter_child_nodes(node)]
+        if isinstance(node, pyast.Compare):
+            for op, right in zip(node.ops, node.comparators):
+                if isinstance(op, (pyast.In, pyast.NotIn)) and self._py_kind(types, right) == "seq":
+                    costs.append(LINEAR)
+        elif isinstance(node, pyast.Call):
+            costs.append(self._py_call_cost(cls, method, types, node))
+        return _worst_u(*costs)
+
+    def _py_call_cost(self, cls: dict, method: dict, types: dict[str, str], call) -> Cost | None:
+        """Own cost of a call (its arguments are costed separately)."""
+        f, args = call.func, call.args
+        if isinstance(f, pyast.Name):
+            name = f.id
+            data = args[1:] if name in ("map", "filter") else args
+            if name == "sorted":
+                return ZERO if data and all(_py_const_size(a) for a in data) else NLOGN
+            if name == "len":
+                return ZERO
+            if name in _PY_LINEAR_BUILTINS:
+                if not data or all(_py_const_size(a) for a in data) or (name in ("min", "max") and len(args) > 1):
+                    return ZERO
+                return LINEAR
+            return self._py_local_call(cls, method, name)
+        if isinstance(f, pyast.Attribute):
+            op, recv = f.attr, f.value
+            kind = self._py_kind(types, recv)
+            if op == "sort":
+                return NLOGN
+            if op in _PY_LINEAR_ANY:
+                return LINEAR
+            if kind == "seq" and (op in _PY_LINEAR_SEQ or (op == "pop" and args)):
+                return LINEAR
+            target = None
+            if isinstance(recv, pyast.Name):
+                if recv.id in ("self", "cls") and cls["name"] != "Module":
+                    if op == _short(method["name"]):
+                        return ZERO                    # self-recursion: handled by _recursion
+                    target = cls["name"]
+                elif kind in self.classes:
+                    target = kind
+                elif recv.id in self.classes:
+                    target = recv.id
+            if target:
+                return self._method_cost(target, op)
+        return ZERO
+
+    def _py_local_call(self, cls: dict, method: dict, name: str) -> Cost | None:
+        """An unqualified call: a nested def of this (or an enclosing) function, a module function, a class."""
+        if name == _short(method["name"]):
+            return ZERO                                # self-recursion: handled by _recursion
+        own = {m["name"] for m in cls.get("methods", [])}
+        prefix = method["name"]
+        while prefix:
+            if f"{prefix}.{name}" in own:
+                return self._method_cost(cls["name"], f"{prefix}.{name}")
+            prefix = prefix.rpartition(".")[0]
+        if any(m["name"] == name for m in self.classes.get("Module", {}).get("methods", [])):
+            return self._method_cost("Module", name)
+        if name in self.classes:
+            return self._method_cost(name, "__init__")
+        return ZERO
 
     def _recursion(self, method: dict, base: Cost) -> Cost | None:
         """Cost of a directly recursive method, from how it calls itself."""
         text = " ".join(_walk_exprs(method.get("body", [])))
-        own_argc = len(method.get("parameters", []))
-        calls = [a for a in _call_args(text, method["name"]) if _argc(a) == own_argc]
+        if method.get("language") == "python":      # f(...) or self.f(...); no overloads, defaults change argc
+            name = _short(method["name"])
+            text = re.sub(rf"\b(?:self|cls)\s*\.\s*(?={re.escape(name)}\s*\()", "", text)
+            calls = _call_args(text, name)
+        else:
+            own_argc = len(method.get("parameters", []))
+            calls = [a for a in _call_args(text, method["name"]) if _argc(a) == own_argc]
         if not calls:
             return base
         halving = bool(re.search(r"/\s*2\b|>>\s*1\b", text))
@@ -380,8 +631,12 @@ class _Analyzer:
 
 
 def is_recursive(method: dict) -> bool:
-    name = method["name"]
-    pat = re.compile(rf"(?<![\w.]){re.escape(name)}\s*\(|this\.{re.escape(name)}\s*\(")
+    if method.get("language") == "python":
+        name = _short(method["name"])
+        pat = re.compile(rf"(?<![\w.]){re.escape(name)}\s*\(|\b(?:self|cls)\s*\.\s*{re.escape(name)}\s*\(")
+    else:
+        name = method["name"]
+        pat = re.compile(rf"(?<![\w.]){re.escape(name)}\s*\(|this\.{re.escape(name)}\s*\(")
     return any(pat.search(t) for t in _walk_exprs(method.get("body", [])))
 
 
@@ -396,7 +651,7 @@ def _rank(cost: Cost | None) -> Cost:
 
 
 def analyze_ast(ast: dict) -> dict[str, str]:
-    """Return {'Class.method': 'O(...)'} plus bare 'method' keys when unambiguous."""
+    """Return {'Class.method': 'O(...)'} plus bare 'method' keys when unambiguous (Java only)."""
     a = _Analyzer(ast)
     costs: dict[str, Cost | None] = {}
     recursive: dict[str, bool] = {}
@@ -413,6 +668,8 @@ def analyze_ast(ast: dict) -> dict[str, str]:
         for n in names:
             counts[n] = counts.get(n, 0) + 1
     result = {k: complexity_label(c, recursive[k]) for k, c in costs.items()}
+    if ast.get("language") == "python":
+        return result
     for cls in ast.get("classes", []):
         for m in cls["methods"]:
             if counts[m["name"]] == 1:

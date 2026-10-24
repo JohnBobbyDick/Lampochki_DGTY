@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import ast as pyast
+import io
 import json
 import re
+import tokenize
 
-from core.bigo_analyzer import LOOP_TYPES, _children, _walk_exprs, find_loops
+from core.bigo_analyzer import (LOOP_TYPES, _Analyzer, _children, _loop_else, _nested, _py_parse, _walk_exprs,
+                                find_loops, is_recursive)
 from core.cfg_builder import build_cfg, build_cfg_with_map, max_line
 from models.schemas import Defect
 
@@ -56,8 +60,9 @@ def _contains(stmts: list[dict], pred) -> bool:
 def detect_defects(ast: dict, code: str, bigo: dict[str, str] | None = None) -> list[Defect]:
     defects: list[Defect] = []
     lines = code.splitlines()
+    python = ast.get("language") == "python"
 
-    for cls in ast.get("classes", []):
+    for cls in ([] if python else ast.get("classes", [])):
         for m in cls["methods"] + cls.get("constructors", []):
             qname = f"{cls['name']}.{m['name']}"
             body = m.get("body", [])
@@ -130,11 +135,14 @@ def detect_defects(ast: dict, code: str, bigo: dict[str, str] | None = None) -> 
                                 recommendation="Удалить неиспользуемую переменную",
                             ))
 
-    defects.extend(_stream_defects(ast))
+    if python:
+        defects.extend(_python_defects(ast, code))
+    else:
+        defects.extend(_stream_defects(ast))
 
     # 5. unused imports -------------------------------------------------------
     body_text = "\n".join(l for l in lines if not l.strip().startswith("import "))
-    for imp in ast.get("imports", []):
+    for imp in ([] if python else ast.get("imports", [])):
         if imp.get("wildcard") or imp.get("static"):
             continue
         simple = imp["path"].split(".")[-1]
@@ -172,6 +180,8 @@ def detect_defects(ast: dict, code: str, bigo: dict[str, str] | None = None) -> 
             for cls in ast.get("classes", []):
                 for m in cls["methods"]:
                     if cls["name"] == cls_name and m["name"] == mname:
+                        if python and not is_recursive(m, cls_name):
+                            continue        # O(2^n) inherited from a call (print_table → fib), not its own recursion
                         span = dict(line_start=m.get("line_start") or 0, line_end=(m.get("span") or {}).get("end", 0), method=key)
                         if exponential:
                             defects.append(Defect(
@@ -207,7 +217,9 @@ def _enclosing_loop(stmts: list[dict], target: dict) -> dict | None:
             if s is target:
                 return parent if parent is not None else False
             nxt = s if s.get("type") in LOOP_TYPES else parent
-            r = rec(list(_children(s)), nxt)
+            r = rec(_nested(s), nxt)
+            if r is None:
+                r = rec(_loop_else(s), parent)     # a Python loop's `else` runs after the loop, not in it
             if r is not None:
                 return r
         return None
@@ -283,7 +295,7 @@ def _stream_defects(ast: dict) -> list[Defect]:
                 coll = _loop_collection(loop)
                 if not coll:
                     continue
-                for s in _walk_stmts(list(_children(loop))):
+                for s in _walk_stmts(_nested(loop)):
                     st = s.get("stream")
                     if not st or id(s) in reported:
                         continue
@@ -334,4 +346,281 @@ def _stream_defects(ast: dict) -> list[Defect]:
                     add(s.get("line"), "hint",
                         f"Цикл можно заменить стримом в {qname}: xs.stream().filter(...).collect(...)",
                         "Заменить цикл на xs.stream().filter(условие).map(...).collect(Collectors.toList())")
+    return found
+
+
+# ---------------------------------------------------------------------------
+# Python rules (methods with `language: "python"`, see core/py_parser.py)
+# ---------------------------------------------------------------------------
+
+_PY_GENERIC_EXC = {"Exception", "BaseException"}
+_PY_MUTABLE_CALLS = {"list", "dict", "set", "bytearray", "defaultdict", "OrderedDict", "Counter", "deque"}
+_PY_STR_ANN = re.compile(r"^\s*(?:typing\.)?(?:Optional\s*\[\s*)?str\b")
+_PY_EXPR_KEYS = ("expression", "condition", "control", "items")
+_PY_COMPS = (pyast.ListComp, pyast.SetComp, pyast.DictComp, pyast.GeneratorExp)
+
+
+def _py_for(loop: dict):
+    """The `ast.For` of a Python for loop's header, or None."""
+    if loop.get("type") != "ForStatement":
+        return None
+    try:
+        return pyast.parse(f"for {loop.get('control', '')}:\n pass").body[0]
+    except (SyntaxError, ValueError, IndexError):
+        return None
+
+
+def _py_iterable(loop: dict) -> str | None:
+    node = _py_for(loop)
+    return pyast.unparse(node.iter) if node is not None else None
+
+
+def _py_is_str_expr(node) -> bool:
+    if isinstance(node, pyast.Constant):
+        return isinstance(node.value, str)
+    if isinstance(node, pyast.JoinedStr):
+        return True
+    return isinstance(node, pyast.Call) and isinstance(node.func, pyast.Name) and node.func.id == "str"
+
+
+def _py_stmt_node(s: dict):
+    if s.get("type") != "StatementExpression" or s.get("nested_def") or not s.get("expression"):
+        return None
+    nodes = _py_parse(s["expression"])
+    return nodes[0] if nodes else None
+
+
+def _py_str_names(method: dict) -> set[str]:
+    """Names a Python method binds to a string: `s = ""`, `s = str(x)`, `s: str = …`, a `str` parameter."""
+    names = {p["name"] for p in method.get("parameters", []) if _PY_STR_ANN.match(p.get("type", "") or "")}
+    for s in _walk_stmts(method.get("body", [])):
+        node = _py_stmt_node(s)
+        if isinstance(node, pyast.Assign) and _py_is_str_expr(node.value):
+            names |= {t.id for t in node.targets if isinstance(t, pyast.Name)}
+        elif isinstance(node, pyast.AnnAssign) and isinstance(node.target, pyast.Name) \
+                and (_PY_STR_ANN.match(pyast.unparse(node.annotation))
+                     or (node.value is not None and _py_is_str_expr(node.value))):
+            names.add(node.target.id)
+    return names
+
+
+def _py_concat_target(node, str_names: set[str]) -> str | None:
+    """`s` of `s += …` / `s = s + …` where `s` is a known string."""
+    if isinstance(node, pyast.AugAssign) and isinstance(node.op, pyast.Add) \
+            and isinstance(node.target, pyast.Name) and node.target.id in str_names:
+        return node.target.id
+    if isinstance(node, pyast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], pyast.Name) \
+            and isinstance(node.value, pyast.BinOp) and isinstance(node.value.op, pyast.Add):
+        name, left = node.targets[0].id, node.value
+        while isinstance(left, pyast.BinOp) and isinstance(left.op, pyast.Add):
+            left = left.left
+        if name in str_names and isinstance(left, pyast.Name) and left.id == name:
+            return name
+    return None
+
+
+def _py_memberships(node, in_loop: bool, out: list) -> None:
+    """Collections searched by `x in c` / `x not in c` once per iteration (of a loop or a comprehension)."""
+    if isinstance(node, _PY_COMPS):
+        for i, gen in enumerate(node.generators):
+            _py_memberships(gen.iter, in_loop or i > 0, out)
+            for cond in gen.ifs:
+                _py_memberships(cond, True, out)
+        for part in ((node.key, node.value) if isinstance(node, pyast.DictComp) else (node.elt,)):
+            _py_memberships(part, True, out)
+        return
+    if isinstance(node, pyast.Compare) and in_loop:
+        out += [right for op, right in zip(node.ops, node.comparators) if isinstance(op, (pyast.In, pyast.NotIn))]
+    for child in pyast.iter_child_nodes(node):
+        _py_memberships(child, in_loop, out)
+
+
+def _py_range_len(loop: dict) -> str | None:
+    """`x` of `for i in range(len(x))`."""
+    node = _py_for(loop)
+    if node is None or not isinstance(node.target, pyast.Name):
+        return None
+    it = node.iter
+    if isinstance(it, pyast.Call) and isinstance(it.func, pyast.Name) and it.func.id == "range" \
+            and len(it.args) == 1 and not it.keywords:
+        inner = it.args[0]
+        if isinstance(inner, pyast.Call) and isinstance(inner.func, pyast.Name) and inner.func.id == "len" \
+                and len(inner.args) == 1 and not inner.keywords:
+            return pyast.unparse(inner.args[0])
+    return None
+
+
+def _python_defects(ast: dict, code: str) -> list[Defect]:
+    """The Python rules; the shared ones (duplication, recursion) run in detect_defects."""
+    found: list[Defect] = []
+    analyzer = _Analyzer(ast)
+    by_line: dict[int, str] = {}
+
+    for cls in ast.get("classes", []):
+        for m in cls["methods"]:
+            qname = f"{cls['name']}.{m['name']}"
+            if not m.get("synthetic"):
+                by_line.setdefault(m.get("line_start") or 0, qname)
+            body = m.get("body", [])
+            loops = find_loops(body)
+            str_names = _py_str_names(m)
+            types: dict[str, str] | None = None
+            seen: set[tuple[int, str]] = set()
+
+            def add(line, severity, message, rec, big_o="", line_end=None, m=m, qname=qname):
+                found.append(Defect(
+                    line_start=line or 0, line_end=line_end or line or 0, node_id=_node_id_for_line(m, line),
+                    method=qname, severity=severity, big_o=big_o, message=message, recommendation=rec,
+                ))
+
+            def memberships(s: dict, keys: tuple[str, ...], in_loop: bool, m=m, cls=cls, qname=qname,
+                            str_names=str_names, seen=seen):
+                nonlocal types
+                if s.get("nested_def"):
+                    return
+                colls: list = []
+                for key in keys:
+                    text = s.get(key)
+                    if isinstance(text, str) and text:
+                        for node in _py_parse(text, key, s.get("type", "")) or ():
+                            _py_memberships(node, in_loop, colls)
+                for coll in colls:
+                    if isinstance(coll, pyast.Name) and coll.id in str_names:
+                        continue        # `in` on a string is a substring search, a set does not help
+                    types = types if types is not None else analyzer._py_types(cls, m)
+                    text = pyast.unparse(coll)
+                    if analyzer._py_kind(types, coll) != "seq" or (id(s), text) in seen:
+                        continue
+                    seen.add((id(s), text))
+                    add(s.get("line"), "warning",
+                        f"Поиск в списке «{text}» внутри цикла в {qname} — каждая проверка in перебирает весь список",
+                        f"Превратите «{text}» в set до цикла (или храните элементы сразу в set) — проверка in "
+                        f"станет O(1)", "O(n²)")
+
+            # 3. nested loops (the same collection → pairs) --------------------------------
+            for loop, depth in loops:
+                if depth < 2:
+                    continue
+                outer = _enclosing_loop(body, loop)
+                it = _py_iterable(loop)
+                big = "O(n²)" if depth == 2 else "O(n³)" if depth == 3 else f"O(n^{depth})"
+                if outer is not None and it is not None and _py_iterable(outer) == it:
+                    msg = f"Вложенный цикл по одной и той же коллекции «{it}» — повторная обработка пар элементов в {qname}"
+                    rec = ("Сгруппировать элементы по ключу в dict/set за один проход, а пары перебирать через "
+                           "itertools.combinations — без повторной обработки")
+                else:
+                    msg = f"Вложенные циклы (глубина {depth}) в {qname}"
+                    rec = "Заменить внутренний поиск проверкой в set/dict или объединить проходы по данным"
+                line = loop.get("line")
+                add(line, "error" if depth >= 3 else "warning", msg, rec, big, max_line(loop, line) or line)
+
+            # 1/2. string concatenation and list membership once per iteration --------------
+            in_loops: set[int] = set()
+            for loop, _ in loops:
+                if loop.get("type") == "WhileStatement":      # the condition is evaluated on every iteration
+                    memberships(loop, ("condition",), True)
+                for s in _walk_stmts(_nested(loop)):
+                    in_loops.add(id(s))
+                    name = _py_concat_target(_py_stmt_node(s), str_names)
+                    if name and (id(s), "+=") not in seen:
+                        seen.add((id(s), "+="))
+                        add(s.get("line"), "warning",
+                            f"Конкатенация строки «{name}» в цикле в {qname} — каждое сложение копирует всю строку",
+                            "Собрать части в список и объединить один раз: ''.join(parts)", "O(n²)")
+                    memberships(s, _PY_EXPR_KEYS, True)
+            for s in _walk_stmts(body):                       # comprehensions outside loops
+                if id(s) not in in_loops:
+                    memberships(s, _PY_EXPR_KEYS, False)
+
+            # 6. for i in range(len(x)) ----------------------------------------------------
+            for loop, _ in loops:
+                coll = _py_range_len(loop)
+                if coll is not None:
+                    add(loop.get("line"), "hint",
+                        f"Перебор индексов «for {loop.get('control', '')}» в {qname} — элементы удобнее "
+                        f"перебирать напрямую",
+                        f"Писать for item in {coll}, а если нужен индекс — for i, item in enumerate({coll})")
+
+            # 4. swallowed / general except ------------------------------------------------
+            for s in _walk_stmts(body):
+                if s.get("type") != "TryStatement":
+                    continue
+                for c in s.get("catches", []):
+                    exc = c.get("types", []) or []
+                    label = f"except {', '.join(exc)}" if exc else "except"
+                    line = c.get("line") or s.get("line")
+                    cbody = c.get("body", [])
+                    stub = (cbody[0].get("expression") or "").strip() \
+                        if len(cbody) == 1 and cbody[0].get("type") == "StatementExpression" else ""
+                    generic = not exc or any(t.split(".")[-1] in _PY_GENERIC_EXC for t in exc)
+                    if stub in ("pass", "...") and generic:
+                        add(line, "error",
+                            f"Исключение проглатывается: «{label}: {stub}» в {qname} — ошибка исчезает без следа",
+                            "Перехватывать конкретное исключение и залогировать его (logging.exception) "
+                            "или пробросить дальше через raise", line_end=max_line(c, line) or line)
+                    if not exc:
+                        add(line, "warning",
+                            f"Общий except без типа в {qname} перехватывает все исключения, включая "
+                            f"KeyboardInterrupt и SystemExit",
+                            "Указать конкретный тип исключения: except ValueError: (или хотя бы except Exception:)")
+
+    # 5. mutable default arguments and unused imports: straight from the source -----------------
+    try:
+        tree = pyast.parse(code)
+    except (SyntaxError, ValueError):
+        return found
+    imports: list = []
+    for node in pyast.walk(tree):
+        if isinstance(node, (pyast.Import, pyast.ImportFrom)):
+            imports.append(node)
+        if not isinstance(node, (pyast.FunctionDef, pyast.AsyncFunctionDef)):
+            continue
+        args = node.args
+        positional = args.posonlyargs + args.args
+        pairs = list(zip(positional[len(positional) - len(args.defaults):], args.defaults))
+        pairs += [(a, d) for a, d in zip(args.kwonlyargs, args.kw_defaults) if d is not None]
+        qname = by_line.get(node.lineno, node.name)
+        for arg, default in pairs:
+            mutable = isinstance(default, (pyast.List, pyast.Dict, pyast.Set, *_PY_COMPS)) or (
+                isinstance(default, pyast.Call) and isinstance(default.func, pyast.Name)
+                and default.func.id in _PY_MUTABLE_CALLS)
+            if not mutable:
+                continue
+            seg = pyast.get_source_segment(code, default) or pyast.unparse(default)
+            found.append(Defect(
+                line_start=default.lineno, line_end=default.end_lineno or default.lineno, method=qname,
+                severity="warning",
+                message=f"Изменяемое значение по умолчанию «{arg.arg}={seg}» в {qname} — один и тот же объект "
+                        f"общий для всех вызовов",
+                recommendation=f"Используйте None по умолчанию и создавайте объект в теле: "
+                               f"if {arg.arg} is None: {arg.arg} = {seg}",
+            ))
+
+    skip = {ln for imp in imports for ln in range(imp.lineno, (imp.end_lineno or imp.lineno) + 1)}
+    used: set[str] = set()
+    try:
+        for tok in tokenize.generate_tokens(io.StringIO(code).readline):
+            if tok.type == tokenize.NAME and tok.start[0] not in skip:
+                used.add(tok.string)
+    except (tokenize.TokenError, SyntaxError):
+        return found
+    for imp in sorted(imports, key=lambda i: (i.lineno, i.col_offset)):
+        if isinstance(imp, pyast.ImportFrom) and imp.module == "__future__":
+            continue
+        for alias in imp.names:
+            if alias.name == "*":
+                continue
+            if isinstance(imp, pyast.ImportFrom):
+                bound = alias.asname or alias.name
+                what = f"{alias.name} из {'.' * imp.level}{imp.module or ''}"
+            else:
+                bound = alias.asname or alias.name.split(".")[0]
+                what = alias.name
+            if alias.asname:
+                what += f" (как {alias.asname})"
+            if bound not in used:
+                found.append(Defect(
+                    line_start=imp.lineno, line_end=imp.lineno, severity="hint",
+                    message=f"Неиспользуемый импорт {what}", recommendation="Удалить импорт",
+                ))
     return found

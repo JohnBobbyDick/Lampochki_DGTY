@@ -151,17 +151,27 @@ def detect_defects(ast: dict, code: str, bigo: dict[str, str] | None = None) -> 
 
     # 7. recursion hint ----------------------------------------------------------
     for key, val in (bigo or {}).items():
-        if "рекурсия" in val and "." in key:
+        exponential = val == "O(2^n)"
+        if ("рекурсия" in val or exponential) and "." in key:
             cls_name, mname = key.split(".", 1)
             for cls in ast.get("classes", []):
                 for m in cls["methods"]:
                     if cls["name"] == cls_name and m["name"] == mname:
-                        defects.append(Defect(
-                            line_start=m.get("line_start") or 0, line_end=(m.get("span") or {}).get("end", 0),
-                            method=key, severity="hint", big_o="O(?)",
-                            message=f"Рекурсия в {key} — сложность требует анализа",
-                            recommendation="Проверить глубину рекурсии и рассмотреть мемоизацию/итерацию",
-                        ))
+                        span = dict(line_start=m.get("line_start") or 0, line_end=(m.get("span") or {}).get("end", 0), method=key)
+                        if exponential:
+                            defects.append(Defect(
+                                **span, severity="warning", big_o="O(2^n)",
+                                message=f"Рекурсия в {key} вызывает себя дважды с уменьшением на 1 — "
+                                        f"время растёт экспоненциально",
+                                recommendation="Запоминать уже посчитанные значения (мемоизация) или считать "
+                                               "итеративно снизу вверх — сложность упадёт до O(n)",
+                            ))
+                        else:
+                            defects.append(Defect(
+                                **span, severity="hint", big_o="O(?)",
+                                message=f"Рекурсия в {key} — сложность требует анализа",
+                                recommendation="Проверить глубину рекурсии и рассмотреть мемоизацию/итерацию",
+                            ))
 
     order = {"error": 0, "warning": 1, "hint": 2, "info": 2}
     defects.sort(key=lambda d: (order.get(d.severity, 3), d.line_start))

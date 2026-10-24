@@ -24,6 +24,11 @@ def unified_diff(before: str, after: str) -> str:
     ))
 
 
+def _toolchain_missing(*runs: RunResponse) -> bool:
+    """Neither version ran at all (no JDK): identical failures say nothing about behaviour."""
+    return any("Java toolchain not found" in r.stderr for r in runs)
+
+
 def compare_runs(before: RunResponse, after: RunResponse) -> CompareResponse:
     nb, na = normalize(before.stdout), normalize(after.stdout)
     diff = unified_diff(nb, na)
@@ -31,6 +36,7 @@ def compare_runs(before: RunResponse, after: RunResponse) -> CompareResponse:
         nb == na
         and before.exit_code == after.exit_code
         and not after.compile_errors
+        and not _toolchain_missing(before, after)
     )
     return CompareResponse(before=before, after=after, diff=diff, behavior_preserved=preserved)
 

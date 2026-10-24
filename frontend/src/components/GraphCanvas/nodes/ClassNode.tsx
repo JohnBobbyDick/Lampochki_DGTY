@@ -18,75 +18,27 @@ const ClassNode: React.FC<NodeProps> = ({ id, data }) => {
 
   return (
     <div
-      style={{
-        background: isInterface ? '#1e3a5f' : '#2d2d30',
-        border: isHovered ? '2px solid #007acc' : '2px solid #444',
-        borderRadius: 6,
-        minWidth: 200,
-        maxWidth: 280,
-        color: '#d4d4d4',
-        fontSize: 12,
-        fontFamily: "'JetBrains Mono', Consolas, monospace",
-        boxShadow: isHovered ? '0 0 12px rgba(0,122,204,.5)' : '0 2px 6px rgba(0,0,0,.4)',
-        transition: 'all .15s',
-        cursor: 'pointer',
-        overflow: 'hidden',
-      }}
+      data-kind={isInterface ? 'iface' : 'class'}
+      className={`g-node g-class ${isHovered ? 'is-hover' : ''}`}
       onMouseEnter={() => setHoveredNode(id)}
       onMouseLeave={() => setHoveredNode(null)}
     >
-      <Handle type="target" position={Position.Top} style={{ background: '#555' }} />
-
-      {/* Header */}
-      <div
-        style={{
-          padding: '8px 12px',
-          borderBottom: '1px solid #444',
-          textAlign: 'center',
-          fontWeight: 700,
-          fontStyle: isAbstract ? 'italic' : 'normal',
-          background: isInterface ? '#1a4a6f' : '#333',
-        }}
-      >
-        {isInterface && (
-          <div style={{ fontSize: 9, opacity: 0.6, marginBottom: 2 }}>«interface»</div>
-        )}
-        {displayName}
+      <Handle type="target" position={Position.Top} />
+      <div className="g-class-head">
+        <span className="g-stereo">{isInterface ? '«interface»' : isAbstract ? '«abstract»' : 'class'}</span>
+        <span className={`g-class-name ${isAbstract ? 'abstract' : ''}`}>{displayName}</span>
       </div>
-
-      {/* Fields */}
-      <div
-        style={{
-          padding: '6px 12px',
-          borderBottom: '1px solid #444',
-          minHeight: 20,
-        }}
-      >
-        {fields.length === 0 ? (
-          <div style={{ opacity: 0.4, fontSize: 10 }}>— нет полей —</div>
-        ) : (
-          fields.map((f, i) => (
-            <div key={i} style={{ fontSize: 11, lineHeight: '18px' }}>
-              {f}
-            </div>
-          ))
-        )}
+      <div className="g-class-sec">
+        {fields.length === 0
+          ? <div className="g-empty">нет полей</div>
+          : fields.map((f, i) => <div key={i} className="g-member" title={f}>{f}</div>)}
       </div>
-
-      {/* Methods */}
-      <div style={{ padding: '6px 12px', minHeight: 20 }}>
-        {methods.length === 0 ? (
-          <div style={{ opacity: 0.4, fontSize: 10 }}>— нет методов —</div>
-        ) : (
-          methods.map((m, i) => (
-            <div key={i} style={{ fontSize: 11, lineHeight: '18px' }}>
-              {m}()
-            </div>
-          ))
-        )}
+      <div className="g-class-sec">
+        {methods.length === 0
+          ? <div className="g-empty">нет методов</div>
+          : methods.map((m, i) => { const sig = m.includes('(') ? m : `${m}()`; return <div key={i} className="g-member" title={sig}>{sig}</div>; })}
       </div>
-
-      <Handle type="source" position={Position.Bottom} style={{ background: '#555' }} />
+      <Handle type="source" position={Position.Bottom} />
     </div>
   );
 };

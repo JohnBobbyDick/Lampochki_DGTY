@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { FiSquare } from 'react-icons/fi';
 import { useStore } from '../../store/useStore';
 
 type Seg = { kind: 'out' | 'err' | 'in' | 'sys'; text: string };
@@ -81,19 +82,20 @@ const Console: React.FC = () => {
   return (
     <div className="console" onClick={() => inputRef.current?.focus()}>
       <div className="out-title console-bar">
-        <span>Console {running ? <span className="muted">· выполняется</span> : null}</span>
+        <span className={`run-dot ${running ? 'on' : ''}`} aria-hidden="true" />
+        <span className="console-status">{running ? 'Выполняется…' : segs.length ? 'Готово' : 'Ожидает запуска'}</span>
         <span className="spacer" />
         {running && (
           <>
-            <button className="btn small" onClick={() => wsRef.current?.send(JSON.stringify({ type: 'eof' }))} title="Закрыть stdin (Ctrl+D)">EOF</button>
-            <button className="btn small" onClick={stop}>■ Stop</button>
+            <button className="btn small" onClick={() => wsRef.current?.send(JSON.stringify({ type: 'eof' }))} title="Закрыть ввод программы (Ctrl+D)">Завершить ввод</button>
+            <button className="btn small" onClick={stop}><FiSquare /> Остановить</button>
           </>
         )}
-        <button className="btn small" onClick={() => setSegs([])}>Clear</button>
+        <button className="btn small" onClick={() => setSegs([])}>Очистить</button>
       </div>
       <div className="console-scroll" ref={scrollRef}>
         {segs.length === 0 && !running && (
-          <div className="muted">Run ▶ (Ctrl+Enter) — запустить. Ввод для программы набирайте прямо здесь.</div>
+          <div className="muted console-hint">Нажмите <kbd>Запустить</kbd> или <kbd>Ctrl</kbd> + <kbd>Enter</kbd>, чтобы запустить программу. Если ей нужен ввод, набирайте его прямо здесь.</div>
         )}
         <pre className="console-text">
           {segs.map((s, i) => <span key={i} className={`seg-${s.kind}`}>{s.text}</span>)}

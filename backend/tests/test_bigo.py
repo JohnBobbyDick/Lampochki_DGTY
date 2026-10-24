@@ -1,3 +1,5 @@
+import pytest
+
 from core.bigo_analyzer import analyze_ast
 from core.defect_detector import detect_defects
 from core.parser import parse_java
@@ -23,9 +25,65 @@ def test_constant_linear_quadratic_cubic():
     assert b["A.k"] == "O(n³)"
 
 
-def test_recursion_is_flagged(read_java):
+def test_recursion_is_estimated(read_java):
     _, b = analyze(read_java("Calculator"))
-    assert "рекурсия" in b["Calculator.factorial"]
+    assert b["Calculator.factorial"] == "O(n)"          # f(n - 1): one call per level
+    assert b["Calculator.fibonacci"] == "O(2^n)"        # f(n - 1) + f(n - 2)
+    assert b["Calculator.gcd"] == "O(log n)"            # Euclid: b = a % b
+    assert "рекурсия" in b["Calculator.evaluate"]       # recursive descent: not classified, stays honest
+    assert b["Calculator.main"] == "O(?)"               # depends on evaluate, but is not recursive itself
+
+
+def test_exponential_recursion_is_a_defect(read_java):
+    code = read_java("Calculator")
+    ast, b = analyze(code)
+    exp = [d for d in detect_defects(ast, code, b) if d.method == "Calculator.fibonacci"]
+    assert exp and exp[0].big_o == "O(2^n)" and exp[0].severity == "warning"
+
+
+@pytest.mark.parametrize("name, code, expected", [
+    ("constant-bound loop", "class A { void f(){ for (int i = 0; i < 10; i++) { g(); } } void g(){} }", "O(1)"),
+    ("List.contains in a loop", "import java.util.*; class A { int f(List<Integer> a, List<Integer> b){ int c=0; "
+     "for (Integer x : a) { if (b.contains(x)) c++; } return c; } }", "O(n²)"),
+    ("HashSet.contains in a loop", "import java.util.*; class A { int f(List<Integer> a, Set<Integer> b){ int c=0; "
+     "for (Integer x : a) { if (b.contains(x)) c++; } return c; } }", "O(n)"),
+    ("calls a quadratic method", "import java.util.*; class A { int q(List<Integer> a){ int t=0; for (Integer x : a) "
+     "for (Integer y : a) t+=x*y; return t; } int f(List<Integer> a){ return q(a); } }", "O(n²)"),
+    ("loop calls a linear method", "class A { int l(int[] a){ int s=0; for (int v : a) s+=v; return s; } "
+     "int f(int[] a){ int t=0; for (int v : a) t += l(a); return t; } }", "O(n²)"),
+    ("iterative binary search", "class A { int f(int[] a, int k){ int lo=0, hi=a.length-1; while (lo <= hi) { "
+     "int mid = (lo + hi) / 2; if (a[mid] < k) lo = mid + 1; else if (a[mid] > k) hi = mid - 1; else return mid; } "
+     "return -1; } }", "O(log n)"),
+    ("linear outer, halving inner", "class A { void f(int n){ for (int i = 0; i < n; i++) { int j = n; "
+     "while (j > 1) { j /= 2; } } } }", "O(n log n)"),
+    ("doubling for loop", "class A { void f(int n){ for (int i = 1; i < n; i *= 2) { g(); } } void g(){} }", "O(log n)"),
+    ("sort inside a loop", "import java.util.*; class A { void f(List<List<Integer>> xs){ for (List<Integer> x : xs) "
+     "{ Collections.sort(x); } } }", "O(n² log n)"),
+    ("sort once", "import java.util.*; class A { void f(List<Integer> xs){ Collections.sort(xs); } }", "O(n log n)"),
+    ("merge sort", "class A { void s(int[] a, int l, int r){ if (l >= r) return; int m = (l + r) / 2; s(a, l, m); "
+     "s(a, m + 1, r); int[] t = new int[r - l + 1]; for (int i = l; i <= r; i++) { t[i - l] = a[i]; } } }", "O(n log n)"),
+    ("heap sort", "class A { static void f(int[] arr){ int n = arr.length; for (int i = n / 2 - 1; i >= 0; i--) "
+     "{ h(arr, n, i); } for (int i = n - 1; i > 0; i--) { int t = arr[0]; arr[0] = arr[i]; arr[i] = t; h(arr, i, 0); } } "
+     "static void h(int[] arr, int n, int i){ int largest = i; int left = 2 * i + 1; int right = 2 * i + 2; "
+     "if (left < n && arr[left] > arr[largest]) { largest = left; } if (right < n && arr[right] > arr[largest]) "
+     "{ largest = right; } if (largest != i) { int t = arr[i]; arr[i] = arr[largest]; arr[largest] = t; "
+     "h(arr, n, largest); } } }", "O(n log n)"),
+    ("overload is not recursion", "class A { int f(int x){ return f(x, 1); } int f(int x, int y){ return x + y; } }", "O(1)"),
+    ("stream pipeline with a lambda", "import java.util.*; class A { long f(List<Integer> a){ "
+     "return a.stream().filter(x -> x > 0).count(); } }", "O(n)"),
+    ("call through a field of a project class", "import java.util.*; class B { int q(List<Integer> a){ int t=0; "
+     "for (Integer x : a) for (Integer y : a) t++; return t; } } class A { B b = new B(); "
+     "int f(List<Integer> a){ return b.q(a); } }", "O(n²)"),
+])
+def test_complexity_cases(name, code, expected):
+    _, b = analyze(code)
+    method = "A.s" if "A.s" in b else "A.f"
+    assert b[method] == expected, name
+
+
+def test_unparenthesised_lambda_parameter_parses():
+    ast, _ = analyze("import java.util.*; class A { void f(List<Integer> a){ a.forEach(x -> System.out.println(x)); } }")
+    assert ast["classes"][0]["methods"][0]["name"] == "f"
 
 
 def test_log_loop():

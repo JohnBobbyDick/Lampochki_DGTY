@@ -4,8 +4,10 @@ import ace from 'ace-builds';
 import { diffLines } from 'diff';
 import 'ace-builds/src-noconflict/mode-java';
 import 'ace-builds/src-noconflict/theme-tomorrow_night';
+import 'ace-builds/src-noconflict/theme-tomorrow';
 import 'ace-builds/src-noconflict/ext-language_tools';
 import { useStore } from '../../store/useStore';
+import { useTheme } from '../../hooks/useTheme';
 
 const SEVERITY_TYPE = { error: 'error', warning: 'warning', hint: 'info' } as const;
 
@@ -19,6 +21,7 @@ const JavaEditor: React.FC = () => {
   const setCode = useStore((s) => s.setCode);
   const setHoveredLine = useStore((s) => s.setHoveredLine);
   const ref = useRef<AceEditor>(null);
+  const theme = useTheme();
 
   /* debounced snapshots → undo/redo history covers manual typing too */
   const snapTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -100,7 +103,7 @@ const JavaEditor: React.FC = () => {
     <AceEditor
       ref={ref}
       mode="java"
-      theme="tomorrow_night"
+      theme={theme === 'dark' ? 'tomorrow_night' : 'tomorrow'}
       name="java-editor"
       value={code}
       onChange={onChange}
@@ -111,7 +114,11 @@ const JavaEditor: React.FC = () => {
       fontSize={13}
       tabSize={4}
       showPrintMargin={false}
-      setOptions={{ useWorker: false, enableBasicAutocompletion: true, enableLiveAutocompletion: false }}
+      setOptions={{
+        useWorker: false, enableBasicAutocompletion: true, enableLiveAutocompletion: false,
+        /* Enter starts editing, Esc leaves the editor so Tab moves on (no keyboard trap) */
+        enableKeyboardAccessibility: true,
+      }}
       placeholder="Загрузите .java файл или вставьте код сюда…"
       editorProps={{ $blockScrolling: true }}
     />

@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
-import { FiDownload, FiCheckCircle, FiFile } from 'react-icons/fi';
+import { FiDownload, FiShield, FiLayers, FiRefreshCw, FiChevronRight, FiCheckCircle, FiXCircle, FiInfo } from 'react-icons/fi';
+import { LuFileCode } from 'react-icons/lu';
+import { LuSparkles } from 'react-icons/lu';
 import { useStore } from '../../store/useStore';
 import { useApi } from '../../hooks/useApi';
+
+const methodsWord = (n: number) => {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return 'метод';
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'метода';
+  return 'методов';
+};
 
 const DecomposePanel: React.FC = () => {
   const files = useStore((s) => s.decomposition);
@@ -14,45 +23,62 @@ const DecomposePanel: React.FC = () => {
   if (!files) {
     return (
       <div className="panel-scroll">
-        <p className="muted">Анализ связности методов и предложение разбиения монолита на файлы.</p>
-        <button className="btn primary" onClick={() => api.decomposeCode()}>🧩 Предложить декомпозицию (Ctrl+D)</button>
+        <div className="state-card">
+          <FiLayers className="state-icon" />
+          <div className="state-title">Разбить код на файлы</div>
+          <div className="muted">Мы посмотрим, какие методы связаны между собой, и предложим, как разложить большой класс по файлам.</div>
+          <button className="btn primary" onClick={() => api.decomposeCode()}>Предложить разбиение <kbd>Ctrl+D</kbd></button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="panel-scroll">
-      <div className="row">
-        <button className="btn" onClick={() => api.decomposeCode()}>↻ Пересчитать</button>
-        <button className="btn" onClick={() => api.verifyDecomposition()} disabled={isLoading || !files.length}>
-          <FiCheckCircle /> Quality Gate
-        </button>
-        <button className="btn" onClick={() => api.aiDecompose()}>✨ AI-совет</button>
+      <div className="decomp-actions">
         <button className="btn primary" onClick={() => api.downloadDecomposition()} disabled={!files.length}>
-          <FiDownload /> Применить (zip)
+          <FiDownload /> Скачать файлы (zip)
         </button>
+        <button className="btn" onClick={() => api.verifyDecomposition()} disabled={isLoading || !files.length}
+                title="Собрать файлы, запустить и сравнить вывод с исходным кодом">
+          <FiShield /> Quality Gate
+        </button>
+        <button className="btn icon" onClick={() => api.decomposeCode()} title="Пересчитать" aria-label="Пересчитать"><FiRefreshCw /></button>
+        <button className="btn icon" onClick={() => api.aiDecompose()} title="Совет ИИ по разбиению" aria-label="Совет ИИ по разбиению"><LuSparkles /></button>
       </div>
 
       {gate && (
-        <div className={`gate ${gate.passed ? 'ok' : 'fail'}`}>
-          {gate.passed ? '✅ Поведение сохранено — программа даёт тот же вывод' : '❌ Поведение изменилось или код не компилируется'}
-          {!gate.passed && gate.details?.stderr && <pre>{gate.details.stderr}</pre>}
-          {!gate.passed && gate.details?.diff && <pre>{gate.details.diff}</pre>}
+        <div className={`check-card ${gate.passed ? 'ok' : 'fail'} gate-card`}>
+          <span className="verdict">{gate.passed ? <FiCheckCircle /> : <FiXCircle />}
+            {gate.passed ? 'Поведение сохранено' : 'Проверка не пройдена'}</span>
+          <div className="muted">{gate.passed ? 'Файлы собираются, программа даёт тот же вывод, что и исходный код.' : 'Код не компилируется или вывод отличается от исходного.'}</div>
+          {!gate.passed && gate.details?.stderr && <pre className="code-preview">{gate.details.stderr}</pre>}
+          {!gate.passed && gate.details?.diff && <pre className="code-preview">{gate.details.diff}</pre>}
         </div>
       )}
-      {warnings.map((w, i) => <div key={i} className="defect hint"><span>💡</span><div>{w}</div></div>)}
+
+      {warnings.map((w, i) => <div key={i} className="decomp-note"><FiInfo /> {w}</div>)}
       {files.length === 0 && <div className="muted">Нечего выделять: нет подходящих static-методов.</div>}
 
-      <div className="tree">
-        {files.map((f) => (
-          <div key={f.name}>
-            <div className="tree-file" onClick={() => setOpen(open === f.name ? null : f.name)}>
-              <FiFile /> <b>{f.name}</b> <span className="muted">· {f.methods.length} методов</span>
+      <h4>Предлагаемые файлы <span className="count">{files.length}</span></h4>
+      <div className="decomp-files">
+        {files.map((f) => {
+          const isOpen = open === f.name;
+          return (
+            <div key={f.name} className={`decomp-file ${isOpen ? 'open' : ''}`}>
+              <button className="decomp-file-head" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : f.name)}>
+                <LuFileCode className="file-ico" aria-hidden="true" />
+                <b>{f.name}</b>
+                <span className="muted">{f.methods.length} {methodsWord(f.methods.length)}</span>
+                <FiChevronRight className={`chev ${isOpen ? 'open' : ''}`} />
+              </button>
+              <div className="decomp-methods">
+                {f.methods.map((m) => <span key={m} className="method-chip">{m}</span>)}
+              </div>
+              {isOpen && <pre className="code-preview">{f.code}</pre>}
             </div>
-            {f.methods.map((m) => <div key={m} className="tree-method">ƒ {m}</div>)}
-            {open === f.name && <pre className="code-preview">{f.code}</pre>}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -1,30 +1,29 @@
 import React from 'react';
 import { ReactFlowProvider } from 'reactflow';
 import { toPng } from 'html-to-image';
-import { FiImage } from 'react-icons/fi';
+import { FiImage, FiShare2, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import CFGView from './CFGView';
 import CallGraphView from './CallGraphView';
 import ClassDiagramView from './ClassDiagramView';
 import NodeEditor from './NodeEditor';
 import { useStore } from '../../store/useStore';
 import { GraphType } from '../../types';
+import { LEGEND } from './nodes/kinds';
 
 const TABS: { id: GraphType; label: string }[] = [
-  { id: 'cfg', label: 'CFG' },
-  { id: 'call', label: 'Call Graph' },
-  { id: 'class', label: 'Classes' },
+  { id: 'cfg', label: 'Блок-схема' },
+  { id: 'call', label: 'Вызовы' },
+  { id: 'class', label: 'Классы' },
 ];
 
-const LEGEND: [string, string][] = [
-  ['#2d6a4f', 'start'], ['#9d0208', 'end/return'], ['#b5851e', 'if/switch'],
-  ['#1d3557', 'loop'], ['#5e548e', 'try'], ['#3a3a3c', 'statement'],
-];
+
+const SYNC_TEXT = { idle: 'Схема совпадает с кодом', syncing: 'Схема обновляется…', error: 'Не удалось обновить схему' } as const;
 
 async function exportPng() {
   const root = document.querySelector<HTMLElement>('.graph-body .react-flow');
   if (!root) return;
   const url = await toPng(root, {
-    backgroundColor: '#1e1e1e',
+    backgroundColor: getComputedStyle(root).getPropertyValue('--graph-bg').trim() || '#0d0d0d',
     filter: (n) => {
       const cl = (n as HTMLElement).classList;
       return !(cl?.contains('react-flow__minimap') || cl?.contains('react-flow__controls'));
@@ -49,22 +48,30 @@ const GraphCanvas: React.FC = () => {
     <div className="graph-panel">
       <div className="tabs">
         {TABS.map((t) => (
-          <button key={t.id} className={`tab ${graphType === t.id ? 'active' : ''}`} onClick={() => setGraphType(t.id)}>
+          <button key={t.id} className={`tab ${graphType === t.id ? 'active' : ''}`} aria-pressed={graphType === t.id} onClick={() => setGraphType(t.id)}>
             {t.label}
           </button>
         ))}
         {graphType === 'cfg' && methods.length > 0 && (
-          <select className="method-select" value={selectedMethod ?? ''} onChange={(e) => setSelectedMethod(e.target.value)}>
+          <select className="method-select" aria-label="Метод для блок-схемы" value={selectedMethod ?? ''} onChange={(e) => setSelectedMethod(e.target.value)}>
             {methods.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         )}
         <span className="spacer" />
-        <span className={`sync-dot ${syncStatus}`} title={`sync: ${syncStatus}`} />
-        <button className="btn small" onClick={exportPng} title="Export graph as PNG"><FiImage /> PNG</button>
+        <span className={`sync-state ${syncStatus}`} role="status" title={SYNC_TEXT[syncStatus]}>
+          {syncStatus === 'syncing' ? <span className="spinner small" aria-hidden="true" />
+            : syncStatus === 'error' ? <FiAlertCircle aria-hidden="true" /> : <FiCheckCircle aria-hidden="true" />}
+          <span className="sr-only">{SYNC_TEXT[syncStatus]}</span>
+        </span>
+        <button className="btn small icon" onClick={exportPng} title="Сохранить граф картинкой (PNG)" aria-label="Сохранить граф картинкой"><FiImage /></button>
       </div>
       <div className="graph-body">
         {!hasNodes ? (
-          <div className="empty">Граф появится после загрузки или ввода Java-кода</div>
+          <div className="empty graph-empty">
+            <FiShare2 className="state-icon" />
+            <div className="state-title">Здесь появится граф</div>
+            <div className="muted">Откройте файл слева или вставьте Java-код в редактор.</div>
+          </div>
         ) : (
           <ReactFlowProvider key={graphType}>
             {graphType === 'cfg' && <CFGView />}
@@ -74,7 +81,8 @@ const GraphCanvas: React.FC = () => {
         )}
         {graphType === 'cfg' && hasNodes && (
           <div className="legend">
-            {LEGEND.map(([c, l]) => <span key={l}><i style={{ background: c }} />{l}</span>)}
+            {LEGEND.map((l) => <span key={l.kind} data-kind={l.kind}><i />{l.label}</span>)}
+            <span className="legend-back"><b aria-hidden="true" />повтор цикла</span>
           </div>
         )}
       </div>

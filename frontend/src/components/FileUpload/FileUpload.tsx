@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { FiUpload } from 'react-icons/fi';
 import { useStore } from '../../store/useStore';
+import { useProject } from '../../store/useProject';
 
 /** Header button + drag-n-drop target covering the whole window. */
 const FileUpload: React.FC = () => {
@@ -14,14 +15,7 @@ const FileUpload: React.FC = () => {
       return;
     }
     const text = await file.text();
-    const st = useStore.getState();
-    st.setOriginalCode(text);
-    st.replaceCode(text);
-    st.setRunResult(null);
-    st.setCompareResult(null);
-    st.setDecomposition(null);
-    st.setGateResult(null);
-    st.setSelectedMethod(null);
+    useProject.getState().addFile(file.name, text);
   };
 
   React.useEffect(() => {
@@ -49,8 +43,8 @@ const FileUpload: React.FC = () => {
 
   return (
     <>
-      <button className="btn" onClick={() => inputRef.current?.click()} title="Загрузить .java (или перетащите файл в окно)">
-        <FiUpload /> Upload .java
+      <button className="btn" onClick={() => inputRef.current?.click()} title="Загрузить .java (или перетащите файл в окно)" aria-label="Загрузить .java">
+        <FiUpload /><span className="lbl">Загрузить .java</span>
       </button>
       <input
         ref={inputRef}

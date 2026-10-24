@@ -5,15 +5,18 @@ import { useStore } from '../store/useStore';
 import { useApi } from './useApi';
 import { GraphNode, GraphEdge } from '../types';
 
+/* mid-tone hues that read on both the light and the dark graph canvas */
 const EDGE_COLOR: Record<string, string> = {
   normal: '#8a8a8a',
-  true: '#4ec9b0',
-  false: '#f48771',
-  back: '#569cd6',
-  exception: '#f44747',
-  extends: '#c586c0',
-  implements: '#c586c0',
+  true: '#22a55b',
+  false: '#e5534b',
+  back: '#4f8ef7',
+  exception: '#e5534b',
+  extends: '#9b7af0',
+  implements: '#9b7af0',
 };
+
+const EDGE_LABEL: Record<string, string> = { true: 'да', false: 'нет', back: 'повтор' };
 
 function layoutGraph(
   graphNodes: GraphNode[],
@@ -22,11 +25,11 @@ function layoutGraph(
 ): { nodes: Node[]; edges: Edge[] } {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: direction, nodesep: 50, ranksep: 70 });
+  g.setGraph({ rankdir: direction, nodesep: 60, ranksep: 84 });
 
   const size = (n: GraphNode) =>
     n.type === 'class' || n.type === 'interface'
-      ? { width: 240, height: 60 + 16 * ((n.data.fields?.length ?? 0) + (n.data.methods?.length ?? 0)) }
+      ? { width: 280, height: 64 + 12 * 2 + 18 * (Math.max(1, n.data.fields?.length ?? 0) + Math.max(1, n.data.methods?.length ?? 0)) }
       : n.type === 'method'
         ? { width: 170, height: 90 }
         : { width: 220, height: 70 };
@@ -46,22 +49,29 @@ function layoutGraph(
     };
   });
 
+  let backIndex = 0;
+  const centerX = (id: string) => g.node(id)?.x ?? 0;
   const edges: Edge[] = graphEdges.map((e) => {
-    const color = EDGE_COLOR[e.type] ?? '#8a8a8a';
+    const color = EDGE_COLOR[e.type] ?? EDGE_COLOR.normal;
+    const back = e.type === 'back' && direction === 'TB';
     return {
       id: e.id,
       source: e.source,
       target: e.target,
-      label: e.label || undefined,
+      /* back edges are explained by their dashed style and the legend; a label there only adds clutter */
+      label: back ? undefined : (e.label && (EDGE_LABEL[e.label] ?? e.label)) || undefined,
       animated: e.type === 'back',
-      type: 'smoothstep',
+      type: 'labeled',
+      /* a body left of its loop header loops back on the left, otherwise on the right */
+      ...(back ? (centerX(e.source) < centerX(e.target) - 1
+        ? { sourceHandle: 'back-out-l', targetHandle: 'back-in-l' }
+        : { sourceHandle: 'back-out-r', targetHandle: 'back-in-r' }) : {}),
+      data: { color, offset: back ? 22 + 14 * backIndex++ : 20 },
       style: {
         stroke: color,
         strokeWidth: 1.6,
         strokeDasharray: ['back', 'exception', 'implements'].includes(e.type) ? '6 4' : undefined,
       },
-      labelStyle: { fill: color, fontSize: 11 },
-      labelBgStyle: { fill: '#1e1e1e', fillOpacity: 0.85 },
       markerEnd: { type: MarkerType.ArrowClosed, color },
     };
   });

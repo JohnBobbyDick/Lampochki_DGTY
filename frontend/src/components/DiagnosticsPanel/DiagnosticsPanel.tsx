@@ -1,8 +1,15 @@
 import React from 'react';
+import { FiAlertCircle, FiAlertTriangle, FiInfo, FiCheckCircle, FiZap } from 'react-icons/fi';
 import { useStore } from '../../store/useStore';
 import { useApi } from '../../hooks/useApi';
+import { classifyBigO } from '../../utils/bigo';
+import { LuSparkles } from 'react-icons/lu';
 
-const ICON = { error: '🔴', warning: '⚠️', hint: '💡' } as const;
+const SEVERITY = {
+  error: { icon: FiAlertCircle, label: 'Ошибка' },
+  warning: { icon: FiAlertTriangle, label: 'Стоит исправить' },
+  hint: { icon: FiInfo, label: 'Совет' },
+} as const;
 
 const DiagnosticsPanel: React.FC = () => {
   const api = useApi();
@@ -31,41 +38,63 @@ const DiagnosticsPanel: React.FC = () => {
       {syntaxErrors.length > 0 && (
         <section>
           <h4>Синтаксис</h4>
-          {syntaxErrors.map((e, i) => <div key={i} className="defect error"><span>🔴</span><div>{e}</div></div>)}
+          {syntaxErrors.map((e, i) => (
+            <div key={i} className="defect error">
+              <FiAlertCircle className="defect-icon" aria-hidden="true" />
+              <div className="defect-main defect-msg">{e}</div>
+            </div>
+          ))}
         </section>
       )}
 
       <section>
-        <h4>Дефекты · {defects.length}</h4>
-        {defects.length === 0 && <div className="muted">Дефектов не найдено</div>}
-        {defects.map((d, i) => (
-          <div key={i} className={`defect ${d.severity}`} onClick={() => open(d)}>
-            <span>{ICON[d.severity] ?? '💡'}</span>
-            <div>
-              <div className="defect-head">
-                {d.bigO && <b className="bigo-badge">{d.bigO}</b>}
-                <span className="muted">стр. {d.lineStart}{d.lineEnd > d.lineStart ? `–${d.lineEnd}` : ''}</span>
-              </div>
-              <div>{d.message}</div>
-              {d.recommendation && <div className="reco">✦ {d.recommendation}</div>}
-              <button className="btn small ai-btn" onClick={(e) => { e.stopPropagation(); api.aiExplain(d); }}>✨ AI</button>
-            </div>
+        <h4>Дефекты <span className="count">{defects.length}</span></h4>
+        {defects.length === 0 && (
+          <div className="state-card">
+            <FiCheckCircle className="state-icon ok" aria-hidden="true" />
+            <div className="state-title">Дефектов не найдено</div>
+            <div className="muted">Код выглядит аккуратно. Если измените его, проверка запустится заново.</div>
           </div>
-        ))}
+        )}
+        {defects.map((d, i) => {
+          const sev = SEVERITY[d.severity] ?? SEVERITY.hint;
+          const Icon = sev.icon;
+          return (
+            <div key={i} className={`defect ${d.severity}`}>
+              <Icon className="defect-icon" aria-hidden="true" />
+              <div className="defect-main">
+                <button className="defect-open" onClick={() => open(d)} title="Показать в коде и на схеме">
+                  <span className="defect-head">
+                    <b className="sev-label">{sev.label}</b>
+                    {d.bigO && <span className={`bigo-chip small ${classifyBigO(d.bigO).grade}`}>{d.bigO}</span>}
+                    <span className="muted">стр. {d.lineStart}{d.lineEnd > d.lineStart ? `–${d.lineEnd}` : ''}</span>
+                  </span>
+                  <span className="defect-msg">{d.message}</span>
+                </button>
+                {d.recommendation && <div className="reco"><FiZap aria-hidden="true" /> {d.recommendation}</div>}
+                <button className="btn small ai-btn" onClick={(e) => { e.stopPropagation(); api.aiExplain(d); }}><LuSparkles /> Объяснить с ИИ</button>
+              </div>
+            </div>
+          );
+        })}
       </section>
 
       <section>
-        <h4>Big O по методам</h4>
-        <table className="bigo-table">
-          <tbody>
-            {methodRows.map(([m, v]) => (
-              <tr key={m} onClick={() => { setGraphType('cfg'); setSelectedMethod(m); }}>
-                <td>{m}</td>
-                <td className={v.includes('²') || v.includes('³') ? 'bad' : ''}>{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <h4>Сложность методов · Big O</h4>
+        {methodRows.length === 0 && <div className="muted">Появится после разбора кода.</div>}
+        <div className="bigo-list">
+          {methodRows.map(([m, v]) => {
+            const c = classifyBigO(v);
+            return (
+              <button key={m} className="bigo-row" onClick={() => { setGraphType('cfg'); setSelectedMethod(m); }}
+                      title="Показать метод на графе">
+                <span className="bigo-name" title={m}>{m}</span>
+                <span className="bigo-hint">{c.name}</span>
+                <span className={`bigo-chip ${c.grade}`}>{v}</span>
+              </button>
+            );
+          })}
+        </div>
       </section>
     </div>
   );

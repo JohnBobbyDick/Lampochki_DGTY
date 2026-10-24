@@ -1,14 +1,20 @@
-"""Control Flow Graph (CFG) builder for Java methods.
+"""Control Flow Graph (CFG) builder for Java and Python methods.
 
 Converts the parsed method body (list[dict]) produced by ``core.parser``
 into a list of ``GraphNode`` / ``GraphEdge`` pairs that the front-end can
 render.  Node ids are deterministic (``n0``, ``n1`` …) so that the same source
 always yields the same ids; ``build_cfg_with_map`` additionally returns the
 node-id → statement-dict mapping used by the code generator.
+
+Python methods (``method["language"] == "python"``) get Python labels
+(``if x > 0``, ``for x in xs``, ``except ValueError as e`` …) and Python flow:
+loop/try ``else`` bodies, ``with`` header nodes and ``match`` without
+fall-through.  The Java branches are left exactly as they were.
 """
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from models.schemas import GraphEdge, GraphNode
@@ -67,6 +73,7 @@ class _CFGBuilder:
         self.nodes: list[GraphNode] = []
         self.edges: list[GraphEdge] = []
         self.stmt_of: dict[str, dict] = {}
+        self.py = method_ast.get("language") == "python"
         self._end_id = ""
         # stack of enclosing breakable/continuable constructs
         self._ctx: list[dict[str, Any]] = []
@@ -145,7 +152,9 @@ class _CFGBuilder:
             "BreakStatement": self._process_break,
             "ContinueStatement": self._process_continue,
         }
-        if stype in ("BlockStatement", "WithStatement"):  # Python `with`: CFG labels come in Task 4
+        if stype == "WithStatement":
+            return self._process_with(stmt, tails)
+        if stype == "BlockStatement":
             return self._process_block(stmt.get("body", []), tails)
         handler = handlers.get(stype)
         if handler:
@@ -188,9 +197,11 @@ class _CFGBuilder:
 
     def _process_if(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
         cond_text = stmt.get("condition", "?")
-        cond = self._add_node(
-            "condition", f"if ({cond_text})", stmt=stmt, code_snippet=f"if ({cond_text})",
-        )
+        if self.py:
+            text = f"{'elif' if stmt.get('elif') else 'if'} {cond_text}"
+        else:
+            text = f"if ({cond_text})"
+        cond = self._add_node("condition", text, stmt=stmt, code_snippet=text)
         self._connect(tails, cond.id)
 
         out: list[Tail] = []
@@ -205,9 +216,11 @@ class _CFGBuilder:
 
     def _process_loop(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
         if stmt.get("type") == "ForStatement":
-            header = f"for ({stmt.get('control', '')})"
+            control = stmt.get("control", "")
+            header = f"for {control}" if self.py else f"for ({control})"
         else:
-            header = f"while ({stmt.get('condition', '?')})"
+            cond_text = stmt.get("condition", "?")
+            header = f"while {cond_text}" if self.py else f"while ({cond_text})"
 
         loop = self._add_node("loop", header, stmt=stmt, code_snippet=header)
         self._connect(tails, loop.id)
@@ -221,8 +234,21 @@ class _CFGBuilder:
         for src, _etype, _label in body_tails:
             self._add_edge(src, loop.id, "back", "back")
 
+        # Python `for/while … else`: the normal exit runs the else body, `break` skips it
+        else_body = stmt.get("else", []) if self.py else []
+        if else_body:
+            return self._process_block(else_body, [(loop.id, "false", "else")]) + ctx["breaks"]
+
         # exit: the false path plus any `break`
         return [(loop.id, "false", "false")] + ctx["breaks"]
+
+    # -- with (Python) -----------------------------------------------------
+
+    def _process_with(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
+        text = f"with {stmt.get('items', '')}"
+        node = self._add_node("statement", text[:60], stmt=stmt, code_snippet=text)
+        self._connect(tails, node.id)
+        return self._process_block(stmt.get("body", []), [_plain(node.id)])
 
     def _process_do(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
         entry = self._add_node("statement", "do {", stmt=stmt, code_snippet="do")
@@ -245,6 +271,8 @@ class _CFGBuilder:
     # -- switch ------------------------------------------------------------
 
     def _process_switch(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
+        if stmt.get("no_fallthrough"):
+            return self._process_match(stmt, tails)
         expr = stmt.get("expression", "?")
         sw = self._add_node("switch", f"switch ({expr})", stmt=stmt, code_snippet=f"switch ({expr})")
         self._connect(tails, sw.id)
@@ -276,6 +304,35 @@ class _CFGBuilder:
             out.append((sw.id, "normal", "no match"))
         return out
 
+    def _process_match(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
+        """Python ``match``: every case ends at the exit, there is no fall-through.
+
+        No switch context is pushed: ``break`` inside a case leaves the enclosing loop.
+        """
+        text = f"match {stmt.get('expression', '?')}"
+        sw = self._add_node("switch", text, stmt=stmt, code_snippet=text)
+        self._connect(tails, sw.id)
+
+        out: list[Tail] = []
+        has_default = False
+        for case in stmt.get("cases", []):
+            pattern = " | ".join(str(lbl) for lbl in case.get("labels", ["_"]))
+            guard = case.get("guard")
+            if not guard and _IRREFUTABLE.fullmatch(pattern):
+                has_default = True
+            label_text = f"{pattern} if {guard}" if guard else pattern
+            case_node = self._add_node(
+                "case", f"case {label_text}", line_start=case.get("line") or stmt.get("line"),
+                code_snippet=f"case {label_text}",
+            )
+            self.stmt_of[case_node.id] = case
+            self._add_edge(sw.id, case_node.id, "normal", label_text)
+            out.extend(self._process_block(case.get("body", []), [_plain(case_node.id)]))
+
+        if not has_default:
+            out.append((sw.id, "normal", "no match"))
+        return out
+
     # -- try / catch / finally ---------------------------------------------
 
     def _process_try(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
@@ -286,15 +343,29 @@ class _CFGBuilder:
         self._connect(tails, try_node.id)
 
         out = self._process_block(stmt.get("body", []), [_plain(try_node.id)])
+        handled: list[Tail] = []
 
         for catch in stmt.get("catches", []):
-            catch_types = " | ".join(catch.get("types", ["Exception"]))
-            catch_name = catch.get("name", "e")
-            text = f"catch ({catch_types} {catch_name})"
-            catch_node = self._add_node("catch", text, line_start=stmt.get("line"), code_snippet=text)
+            if self.py:
+                text = " ".join(["except", *catch.get("types", [])])
+                if catch.get("name"):
+                    text += f" as {catch['name']}"
+                line = catch.get("line") or stmt.get("line")
+            else:
+                catch_types = " | ".join(catch.get("types", ["Exception"]))
+                catch_name = catch.get("name", "e")
+                text = f"catch ({catch_types} {catch_name})"
+                line = stmt.get("line")
+            catch_node = self._add_node("catch", text, line_start=line, code_snippet=text)
             self.stmt_of[catch_node.id] = catch
             self._add_edge(try_node.id, catch_node.id, "exception", "exception")
-            out.extend(self._process_block(catch.get("body", []), [_plain(catch_node.id)]))
+            handled.extend(self._process_block(catch.get("body", []), [_plain(catch_node.id)]))
+
+        # Python `try … else`: only the normal exit of the try body runs the else body
+        else_body = stmt.get("else", []) if self.py else []
+        if else_body:
+            out = self._process_block(else_body, out)
+        out.extend(handled)
 
         finally_body = stmt.get("finally", [])
         if finally_body:
@@ -318,7 +389,11 @@ class _CFGBuilder:
         return []
 
     def _process_throw(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
-        label = f"throw {stmt.get('expression', '')}"
+        expr = stmt.get("expression", "")
+        if self.py:
+            label = f"raise {expr}" if expr else "raise"
+        else:
+            label = f"throw {expr}"
         node = self._add_node("throw", label[:60], stmt=stmt, code_snippet=label)
         self._connect(tails, node.id)
         self._add_edge(node.id, self._end_id, "exception", "throws")
@@ -346,6 +421,9 @@ class _CFGBuilder:
 # ---------------------------------------------------------------------------
 # Utility
 # ---------------------------------------------------------------------------
+
+# a `case` pattern that matches anything: the wildcard or a bare capture name
+_IRREFUTABLE = re.compile(r"[A-Za-z_]\w*")
 
 def _stmt_snippet(stmt: dict) -> str:
     """Produce a short code snippet from a statement dict."""

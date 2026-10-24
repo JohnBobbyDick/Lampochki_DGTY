@@ -1,0 +1,9652 @@
+{
+"Analyzer:Analyzer.findByName:58": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"true",
+"true"
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n1",
+"normal",
+""
+],
+[
+"e4",
+"n3",
+"n2",
+"back",
+"back"
+],
+[
+"e5",
+"n2",
+"n5",
+"false",
+"false"
+],
+[
+"e6",
+"n5",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 58,
+"line_start": 58
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"loop",
+"for (Item item : items)",
+{
+"code_snippet": "for (Item item : items)",
+"line_end": 59,
+"line_start": 59
+}
+],
+[
+"n3",
+"condition",
+"if (item.getName().equals(name))",
+{
+"code_snippet": "if (item.getName().equals(name))",
+"line_end": 60,
+"line_start": 60
+}
+],
+[
+"n4",
+"return",
+"return item",
+{
+"code_snippet": "return item",
+"line_end": 61,
+"line_start": 61
+}
+],
+[
+"n5",
+"return",
+"return null",
+{
+"code_snippet": "return null",
+"line_end": 64,
+"line_start": 64
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5"
+]
+},
+"Analyzer:Analyzer.main:102": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n6",
+"normal",
+""
+],
+[
+"e5",
+"n6",
+"n7",
+"normal",
+""
+],
+[
+"e6",
+"n7",
+"n8",
+"normal",
+""
+],
+[
+"e7",
+"n8",
+"n9",
+"normal",
+""
+],
+[
+"e8",
+"n9",
+"n10",
+"normal",
+""
+],
+[
+"e9",
+"n10",
+"n11",
+"normal",
+""
+],
+[
+"e10",
+"n11",
+"n12",
+"normal",
+""
+],
+[
+"e11",
+"n12",
+"n13",
+"normal",
+""
+],
+[
+"e12",
+"n13",
+"n14",
+"normal",
+""
+],
+[
+"e13",
+"n14",
+"n15",
+"normal",
+""
+],
+[
+"e14",
+"n15",
+"n16",
+"normal",
+""
+],
+[
+"e15",
+"n16",
+"n17",
+"normal",
+""
+],
+[
+"e16",
+"n17",
+"n18",
+"true",
+"true"
+],
+[
+"e17",
+"n18",
+"n19",
+"normal",
+""
+],
+[
+"e18",
+"n17",
+"n19",
+"false",
+"false"
+],
+[
+"e19",
+"n19",
+"n20",
+"normal",
+""
+],
+[
+"e20",
+"n20",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 102,
+"line_start": 102
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"List<Item> items = new ArrayList<>()",
+{
+"code_snippet": "List<Item> items = new ArrayList<>()",
+"line_end": 103,
+"line_start": 103
+}
+],
+[
+"n3",
+"statement",
+"items.add(new Item(\"1\", \"Apple\", 10))",
+{
+"code_snippet": "items.add(new Item(\"1\", \"Apple\", 10))",
+"line_end": 104,
+"line_start": 104
+}
+],
+[
+"n4",
+"statement",
+"items.add(new Item(\"2\", \"Banana\", 20))",
+{
+"code_snippet": "items.add(new Item(\"2\", \"Banana\", 20))",
+"line_end": 105,
+"line_start": 105
+}
+],
+[
+"n5",
+"statement",
+"items.add(new Item(\"1\", \"Apple Duplicate\", 5))",
+{
+"code_snippet": "items.add(new Item(\"1\", \"Apple Duplicate\", 5))",
+"line_end": 106,
+"line_start": 106
+}
+],
+[
+"n6",
+"statement",
+"items.add(new Item(\"3\", \"Cherry\", 15))",
+{
+"code_snippet": "items.add(new Item(\"3\", \"Cherry\", 15))",
+"line_end": 107,
+"line_start": 107
+}
+],
+[
+"n7",
+"statement",
+"items.add(new Item(\"2\", \"Banana Duplicate\", 8))",
+{
+"code_snippet": "items.add(new Item(\"2\", \"Banana Duplicate\", 8))",
+"line_end": 108,
+"line_start": 108
+}
+],
+[
+"n8",
+"statement",
+"System.out.println(\"Before merge:\")",
+{
+"code_snippet": "System.out.println(\"Before merge:\")",
+"line_end": 110,
+"line_start": 110
+}
+],
+[
+"n9",
+"statement",
+"printReport(items)",
+{
+"code_snippet": "printReport(items)",
+"line_end": 111,
+"line_start": 111
+}
+],
+[
+"n10",
+"statement",
+"List<Item> merged = mergeItems(items)",
+{
+"code_snippet": "List<Item> merged = mergeItems(items)",
+"line_end": 113,
+"line_start": 113
+}
+],
+[
+"n11",
+"statement",
+"System.out.println(\"\\nAfter merge:\")",
+{
+"code_snippet": "System.out.println(\"\\nAfter merge:\")",
+"line_end": 115,
+"line_start": 115
+}
+],
+[
+"n12",
+"statement",
+"printReport(merged)",
+{
+"code_snippet": "printReport(merged)",
+"line_end": 116,
+"line_start": 116
+}
+],
+[
+"n13",
+"statement",
+"sortByValue(merged)",
+{
+"code_snippet": "sortByValue(merged)",
+"line_end": 118,
+"line_start": 118
+}
+],
+[
+"n14",
+"statement",
+"System.out.println(\"\\nSorted by value:\")",
+{
+"code_snippet": "System.out.println(\"\\nSorted by value:\")",
+"line_end": 119,
+"line_start": 119
+}
+],
+[
+"n15",
+"statement",
+"printReport(merged)",
+{
+"code_snippet": "printReport(merged)",
+"line_end": 120,
+"line_start": 120
+}
+],
+[
+"n16",
+"statement",
+"Item found = findByName(merged, \"Cherry\")",
+{
+"code_snippet": "Item found = findByName(merged, \"Cherry\")",
+"line_end": 122,
+"line_start": 122
+}
+],
+[
+"n17",
+"condition",
+"if (found != null)",
+{
+"code_snippet": "if (found != null)",
+"line_end": 123,
+"line_start": 123
+}
+],
+[
+"n18",
+"statement",
+"System.out.println(\"\\nFound: \" + found)",
+{
+"code_snippet": "System.out.println(\"\\nFound: \" + found)",
+"line_end": 124,
+"line_start": 124
+}
+],
+[
+"n19",
+"statement",
+"int val = parseValue(\"not_a_number\")",
+{
+"code_snippet": "int val = parseValue(\"not_a_number\")",
+"line_end": 127,
+"line_start": 127
+}
+],
+[
+"n20",
+"statement",
+"System.out.println(\"Parsed value: \" + val)",
+{
+"code_snippet": "System.out.println(\"Parsed value: \" + val)",
+"line_end": 128,
+"line_start": 128
+}
+]
+],
+"stmt_of": [
+"n10",
+"n11",
+"n12",
+"n13",
+"n14",
+"n15",
+"n16",
+"n17",
+"n18",
+"n19",
+"n2",
+"n20",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8",
+"n9"
+]
+},
+"Analyzer:Analyzer.mergeItems:44": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e4",
+"n5",
+"n6",
+"true",
+"true"
+],
+[
+"e5",
+"n6",
+"n4",
+"back",
+"back"
+],
+[
+"e6",
+"n5",
+"n4",
+"back",
+"back"
+],
+[
+"e7",
+"n4",
+"n7",
+"false",
+"false"
+],
+[
+"e8",
+"n7",
+"n3",
+"back",
+"back"
+],
+[
+"e9",
+"n3",
+"n8",
+"false",
+"false"
+],
+[
+"e10",
+"n8",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 44,
+"line_start": 44
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"List<Item> result = new ArrayList<>()",
+{
+"code_snippet": "List<Item> result = new ArrayList<>()",
+"line_end": 45,
+"line_start": 45
+}
+],
+[
+"n3",
+"loop",
+"for (Item a : items)",
+{
+"code_snippet": "for (Item a : items)",
+"line_end": 46,
+"line_start": 46
+}
+],
+[
+"n4",
+"loop",
+"for (Item b : items)",
+{
+"code_snippet": "for (Item b : items)",
+"line_end": 47,
+"line_start": 47
+}
+],
+[
+"n5",
+"condition",
+"if (a.getId().equals(b.getId()) && (a != b))",
+{
+"code_snippet": "if (a.getId().equals(b.getId()) && (a != b))",
+"line_end": 48,
+"line_start": 48
+}
+],
+[
+"n6",
+"statement",
+"a.setValue(a.getValue() + b.getValue())",
+{
+"code_snippet": "a.setValue(a.getValue() + b.getValue())",
+"line_end": 49,
+"line_start": 49
+}
+],
+[
+"n7",
+"statement",
+"result.add(a)",
+{
+"code_snippet": "result.add(a)",
+"line_end": 52,
+"line_start": 52
+}
+],
+[
+"n8",
+"return",
+"return result",
+{
+"code_snippet": "return result",
+"line_end": 54,
+"line_start": 54
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8"
+]
+},
+"Analyzer:Analyzer.parseValue:93": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n1",
+"normal",
+""
+],
+[
+"e3",
+"n2",
+"n4",
+"exception",
+"exception"
+],
+[
+"e4",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e5",
+"n5",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 93,
+"line_start": 93
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"try",
+"try",
+{
+"code_snippet": "try",
+"line_end": 94,
+"line_start": 94
+}
+],
+[
+"n3",
+"return",
+"return Integer.parseInt(input)",
+{
+"code_snippet": "return Integer.parseInt(input)",
+"line_end": 95,
+"line_start": 95
+}
+],
+[
+"n4",
+"catch",
+"catch (NumberFormatException e)",
+{
+"code_snippet": "catch (NumberFormatException e)",
+"line_end": 94,
+"line_start": 94
+}
+],
+[
+"n5",
+"return",
+"return 0",
+{
+"code_snippet": "return 0",
+"line_end": 99,
+"line_start": 99
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5"
+]
+},
+"Analyzer:Analyzer.printReport:81": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e4",
+"n5",
+"n6",
+"normal",
+""
+],
+[
+"e5",
+"n6",
+"n4",
+"back",
+"back"
+],
+[
+"e6",
+"n4",
+"n7",
+"false",
+"false"
+],
+[
+"e7",
+"n7",
+"n8",
+"normal",
+""
+],
+[
+"e8",
+"n8",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 81,
+"line_start": 81
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"System.out.println(\"=== Item Report ===\")",
+{
+"code_snippet": "System.out.println(\"=== Item Report ===\")",
+"line_end": 82,
+"line_start": 82
+}
+],
+[
+"n3",
+"statement",
+"int total = 0",
+{
+"code_snippet": "int total = 0",
+"line_end": 83,
+"line_start": 83
+}
+],
+[
+"n4",
+"loop",
+"for (Item item : items)",
+{
+"code_snippet": "for (Item item : items)",
+"line_end": 84,
+"line_start": 84
+}
+],
+[
+"n5",
+"statement",
+"System.out.println(item)",
+{
+"code_snippet": "System.out.println(item)",
+"line_end": 85,
+"line_start": 85
+}
+],
+[
+"n6",
+"statement",
+"total += item.getValue()",
+{
+"code_snippet": "total += item.getValue()",
+"line_end": 86,
+"line_start": 86
+}
+],
+[
+"n7",
+"statement",
+"System.out.println(\"Total value: \" + total)",
+{
+"code_snippet": "System.out.println(\"Total value: \" + total)",
+"line_end": 88,
+"line_start": 88
+}
+],
+[
+"n8",
+"statement",
+"System.out.println(\"Item count: \" + items.size())",
+{
+"code_snippet": "System.out.println(\"Item count: \" + items.size())",
+"line_end": 89,
+"line_start": 89
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8"
+]
+},
+"Analyzer:Analyzer.sortByValue:68": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"true",
+"true"
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e4",
+"n5",
+"n6",
+"normal",
+""
+],
+[
+"e5",
+"n6",
+"n7",
+"normal",
+""
+],
+[
+"e6",
+"n7",
+"n3",
+"back",
+"back"
+],
+[
+"e7",
+"n4",
+"n3",
+"back",
+"back"
+],
+[
+"e8",
+"n3",
+"n2",
+"back",
+"back"
+],
+[
+"e9",
+"n2",
+"n1",
+"false",
+"false"
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 68,
+"line_start": 68
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"loop",
+"for (int i = 0; i < items.size(); i++)",
+{
+"code_snippet": "for (int i = 0; i < items.size(); i++)",
+"line_end": 69,
+"line_start": 69
+}
+],
+[
+"n3",
+"loop",
+"for (int j = 0; j < (items.size() - 1); j++)",
+{
+"code_snippet": "for (int j = 0; j < (items.size() - 1); j++)",
+"line_end": 70,
+"line_start": 70
+}
+],
+[
+"n4",
+"condition",
+"if (items.get(j).getValue() > items.get(j + 1).getValue())",
+{
+"code_snippet": "if (items.get(j).getValue() > items.get(j + 1).getValue())",
+"line_end": 71,
+"line_start": 71
+}
+],
+[
+"n5",
+"statement",
+"Item temp = items.get(j)",
+{
+"code_snippet": "Item temp = items.get(j)",
+"line_end": 72,
+"line_start": 72
+}
+],
+[
+"n6",
+"statement",
+"items.set(j, items.get(j + 1))",
+{
+"code_snippet": "items.set(j, items.get(j + 1))",
+"line_end": 73,
+"line_start": 73
+}
+],
+[
+"n7",
+"statement",
+"items.set(j + 1, temp)",
+{
+"code_snippet": "items.set(j + 1, temp)",
+"line_end": 74,
+"line_start": 74
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7"
+]
+},
+"Analyzer:Item.getId:21": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 21,
+"line_start": 21
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"return",
+"return id",
+{
+"code_snippet": "return id",
+"line_end": 22,
+"line_start": 22
+}
+]
+],
+"stmt_of": [
+"n2"
+]
+},
+"Analyzer:Item.getName:25": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 25,
+"line_start": 25
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"return",
+"return name",
+{
+"code_snippet": "return name",
+"line_end": 26,
+"line_start": 26
+}
+]
+],
+"stmt_of": [
+"n2"
+]
+},
+"Analyzer:Item.getValue:29": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 29,
+"line_start": 29
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"return",
+"return value",
+{
+"code_snippet": "return value",
+"line_end": 30,
+"line_start": 30
+}
+]
+],
+"stmt_of": [
+"n2"
+]
+},
+"Analyzer:Item.setValue:33": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 33,
+"line_start": 33
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"this.value = value",
+{
+"code_snippet": "this.value = value",
+"line_end": 34,
+"line_start": 34
+}
+]
+],
+"stmt_of": [
+"n2"
+]
+},
+"Analyzer:Item.toString:38": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 38,
+"line_start": 38
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"return",
+"return \"Item{id='\" + id + \"', name='\" + name + \"', value=\" +",
+{
+"code_snippet": "return \"Item{id='\" + id + \"', name='\" + name + \"', value=\" + value + \"}\"",
+"line_end": 39,
+"line_start": 39
+}
+]
+],
+"stmt_of": [
+"n2"
+]
+},
+"Calculator:Calculator.evaluate:10": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n1",
+"normal",
+""
+],
+[
+"e4",
+"n3",
+"n5",
+"exception",
+"exception"
+],
+[
+"e5",
+"n5",
+"n6",
+"normal",
+""
+],
+[
+"e6",
+"n6",
+"n7",
+"normal",
+""
+],
+[
+"e7",
+"n7",
+"n8",
+"normal",
+""
+],
+[
+"e8",
+"n8",
+"n9",
+"normal",
+""
+],
+[
+"e9",
+"n9",
+"n10",
+"true",
+"true"
+],
+[
+"e10",
+"n10",
+"n11",
+"normal",
+""
+],
+[
+"e11",
+"n11",
+"n12",
+"true",
+"true"
+],
+[
+"e12",
+"n11",
+"n13",
+"false",
+"false"
+],
+[
+"e13",
+"n13",
+"n14",
+"true",
+"true"
+],
+[
+"e14",
+"n12",
+"n15",
+"normal",
+""
+],
+[
+"e15",
+"n14",
+"n15",
+"normal",
+""
+],
+[
+"e16",
+"n13",
+"n15",
+"false",
+"false"
+],
+[
+"e17",
+"n15",
+"n16",
+"true",
+"true"
+],
+[
+"e18",
+"n16",
+"n17",
+"normal",
+""
+],
+[
+"e19",
+"n17",
+"n18",
+"normal",
+""
+],
+[
+"e20",
+"n15",
+"n9",
+"back",
+"back"
+],
+[
+"e21",
+"n9",
+"n19",
+"false",
+"false"
+],
+[
+"e22",
+"n18",
+"n19",
+"normal",
+""
+],
+[
+"e23",
+"n19",
+"n20",
+"true",
+"true"
+],
+[
+"e24",
+"n20",
+"n21",
+"true",
+"true"
+],
+[
+"e25",
+"n21",
+"n22",
+"normal",
+""
+],
+[
+"e26",
+"n22",
+"n23",
+"true",
+"true"
+],
+[
+"e27",
+"n22",
+"n24",
+"false",
+"false"
+],
+[
+"e28",
+"n24",
+"n25",
+"true",
+"true"
+],
+[
+"e29",
+"n23",
+"n26",
+"normal",
+""
+],
+[
+"e30",
+"n25",
+"n26",
+"normal",
+""
+],
+[
+"e31",
+"n24",
+"n26",
+"false",
+"false"
+],
+[
+"e32",
+"n26",
+"n27",
+"true",
+"true"
+],
+[
+"e33",
+"n27",
+"n28",
+"normal",
+""
+],
+[
+"e34",
+"n28",
+"n29",
+"normal",
+""
+],
+[
+"e35",
+"n26",
+"n20",
+"back",
+"back"
+],
+[
+"e36",
+"n20",
+"n30",
+"false",
+"false"
+],
+[
+"e37",
+"n29",
+"n30",
+"normal",
+""
+],
+[
+"e38",
+"n19",
+"n30",
+"false",
+"false"
+],
+[
+"e39",
+"n30",
+"n31",
+"true",
+"true"
+],
+[
+"e40",
+"n31",
+"n32",
+"normal",
+""
+],
+[
+"e41",
+"n32",
+"n33",
+"normal",
+""
+],
+[
+"e42",
+"n33",
+"n34",
+"normal",
+"'+'"
+],
+[
+"e43",
+"n34",
+"n35",
+"normal",
+""
+],
+[
+"e44",
+"n35",
+"n1",
+"normal",
+""
+],
+[
+"e45",
+"n33",
+"n36",
+"normal",
+"'-'"
+],
+[
+"e46",
+"n36",
+"n37",
+"normal",
+""
+],
+[
+"e47",
+"n37",
+"n1",
+"normal",
+""
+],
+[
+"e48",
+"n33",
+"n38",
+"normal",
+"'*'"
+],
+[
+"e49",
+"n38",
+"n39",
+"normal",
+""
+],
+[
+"e50",
+"n39",
+"n1",
+"normal",
+""
+],
+[
+"e51",
+"n33",
+"n40",
+"normal",
+"'/'"
+],
+[
+"e52",
+"n40",
+"n41",
+"normal",
+""
+],
+[
+"e53",
+"n41",
+"n42",
+"true",
+"true"
+],
+[
+"e54",
+"n42",
+"n1",
+"exception",
+"throws"
+],
+[
+"e55",
+"n41",
+"n43",
+"false",
+"false"
+],
+[
+"e56",
+"n43",
+"n1",
+"normal",
+""
+],
+[
+"e57",
+"n33",
+"n44",
+"normal",
+"default"
+],
+[
+"e58",
+"n44",
+"n45",
+"normal",
+""
+],
+[
+"e59",
+"n45",
+"n1",
+"exception",
+"throws"
+],
+[
+"e60",
+"n30",
+"n46",
+"false",
+"false"
+],
+[
+"e61",
+"n46",
+"n47",
+"true",
+"true"
+],
+[
+"e62",
+"n47",
+"n1",
+"normal",
+""
+],
+[
+"e63",
+"n46",
+"n48",
+"false",
+"false"
+],
+[
+"e64",
+"n48",
+"n1",
+"exception",
+"throws"
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 10,
+"line_start": 10
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"expression = expression.trim()",
+{
+"code_snippet": "expression = expression.trim()",
+"line_end": 11,
+"line_start": 11
+}
+],
+[
+"n3",
+"try",
+"try",
+{
+"code_snippet": "try",
+"line_end": 14,
+"line_start": 14
+}
+],
+[
+"n4",
+"return",
+"return Double.parseDouble(expression)",
+{
+"code_snippet": "return Double.parseDouble(expression)",
+"line_end": 15,
+"line_start": 15
+}
+],
+[
+"n5",
+"catch",
+"catch (NumberFormatException e)",
+{
+"code_snippet": "catch (NumberFormatException e)",
+"line_end": 14,
+"line_start": 14
+}
+],
+[
+"n6",
+"statement",
+"int parenDepth = 0",
+{
+"code_snippet": "int parenDepth = 0",
+"line_end": 21,
+"line_start": 21
+}
+],
+[
+"n7",
+"statement",
+"int opIndex = -1",
+{
+"code_snippet": "int opIndex = -1",
+"line_end": 22,
+"line_start": 22
+}
+],
+[
+"n8",
+"statement",
+"char opChar = ' '",
+{
+"code_snippet": "char opChar = ' '",
+"line_end": 23,
+"line_start": 23
+}
+],
+[
+"n9",
+"loop",
+"for (int i = expression.length() - 1; i >= 0; i--)",
+{
+"code_snippet": "for (int i = expression.length() - 1; i >= 0; i--)",
+"line_end": 25,
+"line_start": 25
+}
+],
+[
+"n10",
+"statement",
+"char c = expression.charAt(i)",
+{
+"code_snippet": "char c = expression.charAt(i)",
+"line_end": 26,
+"line_start": 26
+}
+],
+[
+"n11",
+"condition",
+"if (c == ')')",
+{
+"code_snippet": "if (c == ')')",
+"line_end": 27,
+"line_start": 27
+}
+],
+[
+"n12",
+"statement",
+"parenDepth++",
+{
+"code_snippet": "parenDepth++",
+"line_end": 27,
+"line_start": 27
+}
+],
+[
+"n13",
+"condition",
+"if (c == '(')",
+{
+"code_snippet": "if (c == '(')",
+"line_end": 28,
+"line_start": 28
+}
+],
+[
+"n14",
+"statement",
+"parenDepth--",
+{
+"code_snippet": "parenDepth--",
+"line_end": 28,
+"line_start": 28
+}
+],
+[
+"n15",
+"condition",
+"if ((parenDepth == 0) && ((c == '+') || (c == '-')) && (i > 0))",
+{
+"code_snippet": "if ((parenDepth == 0) && ((c == '+') || (c == '-')) && (i > 0))",
+"line_end": 30,
+"line_start": 30
+}
+],
+[
+"n16",
+"statement",
+"opIndex = i",
+{
+"code_snippet": "opIndex = i",
+"line_end": 31,
+"line_start": 31
+}
+],
+[
+"n17",
+"statement",
+"opChar = c",
+{
+"code_snippet": "opChar = c",
+"line_end": 32,
+"line_start": 32
+}
+],
+[
+"n18",
+"statement",
+"break",
+{
+"code_snippet": "break",
+"line_end": 33,
+"line_start": 33
+}
+],
+[
+"n19",
+"condition",
+"if (opIndex == -1)",
+{
+"code_snippet": "if (opIndex == -1)",
+"line_end": 38,
+"line_start": 38
+}
+],
+[
+"n20",
+"loop",
+"for (int i = expression.length() - 1; i >= 0; i--)",
+{
+"code_snippet": "for (int i = expression.length() - 1; i >= 0; i--)",
+"line_end": 39,
+"line_start": 39
+}
+],
+[
+"n21",
+"statement",
+"char c = expression.charAt(i)",
+{
+"code_snippet": "char c = expression.charAt(i)",
+"line_end": 40,
+"line_start": 40
+}
+],
+[
+"n22",
+"condition",
+"if (c == ')')",
+{
+"code_snippet": "if (c == ')')",
+"line_end": 41,
+"line_start": 41
+}
+],
+[
+"n23",
+"statement",
+"parenDepth++",
+{
+"code_snippet": "parenDepth++",
+"line_end": 41,
+"line_start": 41
+}
+],
+[
+"n24",
+"condition",
+"if (c == '(')",
+{
+"code_snippet": "if (c == '(')",
+"line_end": 42,
+"line_start": 42
+}
+],
+[
+"n25",
+"statement",
+"parenDepth--",
+{
+"code_snippet": "parenDepth--",
+"line_end": 42,
+"line_start": 42
+}
+],
+[
+"n26",
+"condition",
+"if ((parenDepth == 0) && ((c == '*') || (c == '/')) && (i > 0))",
+{
+"code_snippet": "if ((parenDepth == 0) && ((c == '*') || (c == '/')) && (i > 0))",
+"line_end": 44,
+"line_start": 44
+}
+],
+[
+"n27",
+"statement",
+"opIndex = i",
+{
+"code_snippet": "opIndex = i",
+"line_end": 45,
+"line_start": 45
+}
+],
+[
+"n28",
+"statement",
+"opChar = c",
+{
+"code_snippet": "opChar = c",
+"line_end": 46,
+"line_start": 46
+}
+],
+[
+"n29",
+"statement",
+"break",
+{
+"code_snippet": "break",
+"line_end": 47,
+"line_start": 47
+}
+],
+[
+"n30",
+"condition",
+"if (opIndex != -1)",
+{
+"code_snippet": "if (opIndex != -1)",
+"line_end": 52,
+"line_start": 52
+}
+],
+[
+"n31",
+"statement",
+"double left = evaluate(expression.substring(0, opIndex))",
+{
+"code_snippet": "double left = evaluate(expression.substring(0, opIndex))",
+"line_end": 53,
+"line_start": 53
+}
+],
+[
+"n32",
+"statement",
+"double right = evaluate(expression.substring(opIndex + 1))",
+{
+"code_snippet": "double right = evaluate(expression.substring(opIndex + 1))",
+"line_end": 54,
+"line_start": 54
+}
+],
+[
+"n33",
+"switch",
+"switch (opChar)",
+{
+"code_snippet": "switch (opChar)",
+"line_end": 56,
+"line_start": 56
+}
+],
+[
+"n34",
+"case",
+"case '+'",
+{
+"code_snippet": "case '+':",
+"line_end": 56,
+"line_start": 56
+}
+],
+[
+"n35",
+"return",
+"return left + right",
+{
+"code_snippet": "return left + right",
+"line_end": 57,
+"line_start": 57
+}
+],
+[
+"n36",
+"case",
+"case '-'",
+{
+"code_snippet": "case '-':",
+"line_end": 56,
+"line_start": 56
+}
+],
+[
+"n37",
+"return",
+"return left - right",
+{
+"code_snippet": "return left - right",
+"line_end": 58,
+"line_start": 58
+}
+],
+[
+"n38",
+"case",
+"case '*'",
+{
+"code_snippet": "case '*':",
+"line_end": 56,
+"line_start": 56
+}
+],
+[
+"n39",
+"return",
+"return left * right",
+{
+"code_snippet": "return left * right",
+"line_end": 59,
+"line_start": 59
+}
+],
+[
+"n40",
+"case",
+"case '/'",
+{
+"code_snippet": "case '/':",
+"line_end": 56,
+"line_start": 56
+}
+],
+[
+"n41",
+"condition",
+"if (right == 0)",
+{
+"code_snippet": "if (right == 0)",
+"line_end": 61,
+"line_start": 61
+}
+],
+[
+"n42",
+"throw",
+"throw new ArithmeticException(\"Division by zero\")",
+{
+"code_snippet": "throw new ArithmeticException(\"Division by zero\")",
+"line_end": 62,
+"line_start": 62
+}
+],
+[
+"n43",
+"return",
+"return left / right",
+{
+"code_snippet": "return left / right",
+"line_end": 64,
+"line_start": 64
+}
+],
+[
+"n44",
+"case",
+"case default",
+{
+"code_snippet": "case default:",
+"line_end": 56,
+"line_start": 56
+}
+],
+[
+"n45",
+"throw",
+"throw new IllegalArgumentException(\"Unknown operator: \" + op",
+{
+"code_snippet": "throw new IllegalArgumentException(\"Unknown operator: \" + opChar)",
+"line_end": 66,
+"line_start": 66
+}
+],
+[
+"n46",
+"condition",
+"if (expression.startsWith(\"(\") && expression.endsWith(\")\"))",
+{
+"code_snippet": "if (expression.startsWith(\"(\") && expression.endsWith(\")\"))",
+"line_end": 71,
+"line_start": 71
+}
+],
+[
+"n47",
+"return",
+"return evaluate(expression.substring(1, expression.length() ",
+{
+"code_snippet": "return evaluate(expression.substring(1, expression.length() - 1))",
+"line_end": 72,
+"line_start": 72
+}
+],
+[
+"n48",
+"throw",
+"throw new IllegalArgumentException(\"Invalid expression: \" + ",
+{
+"code_snippet": "throw new IllegalArgumentException(\"Invalid expression: \" + expression)",
+"line_end": 75,
+"line_start": 75
+}
+]
+],
+"stmt_of": [
+"n10",
+"n11",
+"n12",
+"n13",
+"n14",
+"n15",
+"n16",
+"n17",
+"n18",
+"n19",
+"n2",
+"n20",
+"n21",
+"n22",
+"n23",
+"n24",
+"n25",
+"n26",
+"n27",
+"n28",
+"n29",
+"n3",
+"n30",
+"n31",
+"n32",
+"n33",
+"n35",
+"n37",
+"n39",
+"n4",
+"n41",
+"n42",
+"n43",
+"n45",
+"n46",
+"n47",
+"n48",
+"n5",
+"n6",
+"n7",
+"n8",
+"n9"
+]
+},
+"Calculator:Calculator.factorial:79": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"true",
+"true"
+],
+[
+"e2",
+"n3",
+"n1",
+"exception",
+"throws"
+],
+[
+"e3",
+"n2",
+"n4",
+"false",
+"false"
+],
+[
+"e4",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e5",
+"n5",
+"n1",
+"normal",
+""
+],
+[
+"e6",
+"n4",
+"n6",
+"false",
+"false"
+],
+[
+"e7",
+"n6",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 79,
+"line_start": 79
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"condition",
+"if (n < 0)",
+{
+"code_snippet": "if (n < 0)",
+"line_end": 80,
+"line_start": 80
+}
+],
+[
+"n3",
+"throw",
+"throw new IllegalArgumentException(\"Negative factorial: \" + ",
+{
+"code_snippet": "throw new IllegalArgumentException(\"Negative factorial: \" + n)",
+"line_end": 81,
+"line_start": 81
+}
+],
+[
+"n4",
+"condition",
+"if (n <= 1)",
+{
+"code_snippet": "if (n <= 1)",
+"line_end": 83,
+"line_start": 83
+}
+],
+[
+"n5",
+"return",
+"return 1",
+{
+"code_snippet": "return 1",
+"line_end": 84,
+"line_start": 84
+}
+],
+[
+"n6",
+"return",
+"return n * factorial(n - 1)",
+{
+"code_snippet": "return n * factorial(n - 1)",
+"line_end": 86,
+"line_start": 86
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6"
+]
+},
+"Calculator:Calculator.fibonacci:90": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"true",
+"true"
+],
+[
+"e2",
+"n3",
+"n1",
+"exception",
+"throws"
+],
+[
+"e3",
+"n2",
+"n4",
+"false",
+"false"
+],
+[
+"e4",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e5",
+"n5",
+"n1",
+"normal",
+""
+],
+[
+"e6",
+"n4",
+"n6",
+"false",
+"false"
+],
+[
+"e7",
+"n6",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 90,
+"line_start": 90
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"condition",
+"if (n < 0)",
+{
+"code_snippet": "if (n < 0)",
+"line_end": 91,
+"line_start": 91
+}
+],
+[
+"n3",
+"throw",
+"throw new IllegalArgumentException(\"Negative fibonacci: \" + ",
+{
+"code_snippet": "throw new IllegalArgumentException(\"Negative fibonacci: \" + n)",
+"line_end": 92,
+"line_start": 92
+}
+],
+[
+"n4",
+"condition",
+"if (n <= 1)",
+{
+"code_snippet": "if (n <= 1)",
+"line_end": 94,
+"line_start": 94
+}
+],
+[
+"n5",
+"return",
+"return n",
+{
+"code_snippet": "return n",
+"line_end": 95,
+"line_start": 95
+}
+],
+[
+"n6",
+"return",
+"return fibonacci(n - 1) + fibonacci(n - 2)",
+{
+"code_snippet": "return fibonacci(n - 1) + fibonacci(n - 2)",
+"line_end": 97,
+"line_start": 97
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6"
+]
+},
+"Calculator:Calculator.gcd:117": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"true",
+"true"
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n2",
+"back",
+"back"
+],
+[
+"e5",
+"n2",
+"n6",
+"false",
+"false"
+],
+[
+"e6",
+"n6",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 117,
+"line_start": 117
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"loop",
+"while (b != 0)",
+{
+"code_snippet": "while (b != 0)",
+"line_end": 118,
+"line_start": 118
+}
+],
+[
+"n3",
+"statement",
+"int temp = b",
+{
+"code_snippet": "int temp = b",
+"line_end": 119,
+"line_start": 119
+}
+],
+[
+"n4",
+"statement",
+"b = a % b",
+{
+"code_snippet": "b = a % b",
+"line_end": 120,
+"line_start": 120
+}
+],
+[
+"n5",
+"statement",
+"a = temp",
+{
+"code_snippet": "a = temp",
+"line_end": 121,
+"line_start": 121
+}
+],
+[
+"n6",
+"return",
+"return a",
+{
+"code_snippet": "return a",
+"line_end": 123,
+"line_start": 123
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6"
+]
+},
+"Calculator:Calculator.main:168": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n4",
+"n6",
+"exception",
+"exception"
+],
+[
+"e5",
+"n6",
+"n7",
+"normal",
+""
+],
+[
+"e6",
+"n5",
+"n3",
+"back",
+"back"
+],
+[
+"e7",
+"n7",
+"n3",
+"back",
+"back"
+],
+[
+"e8",
+"n3",
+"n8",
+"false",
+"false"
+],
+[
+"e9",
+"n8",
+"n9",
+"true",
+"true"
+],
+[
+"e10",
+"n9",
+"n8",
+"back",
+"back"
+],
+[
+"e11",
+"n8",
+"n10",
+"false",
+"false"
+],
+[
+"e12",
+"n10",
+"n11",
+"normal",
+""
+],
+[
+"e13",
+"n11",
+"n12",
+"true",
+"true"
+],
+[
+"e14",
+"n12",
+"n11",
+"back",
+"back"
+],
+[
+"e15",
+"n11",
+"n13",
+"false",
+"false"
+],
+[
+"e16",
+"n13",
+"n14",
+"normal",
+""
+],
+[
+"e17",
+"n14",
+"n15",
+"normal",
+""
+],
+[
+"e18",
+"n15",
+"n16",
+"normal",
+""
+],
+[
+"e19",
+"n16",
+"n17",
+"normal",
+""
+],
+[
+"e20",
+"n17",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 168,
+"line_start": 168
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"String[] expressions = {\"2+3\", \"10-4*2\", \"100/5+3\"}",
+{
+"code_snippet": "String[] expressions = {\"2+3\", \"10-4*2\", \"100/5+3\"}",
+"line_end": 170,
+"line_start": 170
+}
+],
+[
+"n3",
+"loop",
+"for (String expr : expressions)",
+{
+"code_snippet": "for (String expr : expressions)",
+"line_end": 171,
+"line_start": 171
+}
+],
+[
+"n4",
+"try",
+"try",
+{
+"code_snippet": "try",
+"line_end": 172,
+"line_start": 172
+}
+],
+[
+"n5",
+"statement",
+"System.out.println(expr + \" = \" + evaluate(expr))",
+{
+"code_snippet": "System.out.println(expr + \" = \" + evaluate(expr))",
+"line_end": 173,
+"line_start": 173
+}
+],
+[
+"n6",
+"catch",
+"catch (Exception e)",
+{
+"code_snippet": "catch (Exception e)",
+"line_end": 172,
+"line_start": 172
+}
+],
+[
+"n7",
+"statement",
+"System.out.println(expr + \" -> Error: \" + e.getMessage())",
+{
+"code_snippet": "System.out.println(expr + \" -> Error: \" + e.getMessage())",
+"line_end": 175,
+"line_start": 175
+}
+],
+[
+"n8",
+"loop",
+"for (int i = 0; i <= 10; i++)",
+{
+"code_snippet": "for (int i = 0; i <= 10; i++)",
+"line_end": 180,
+"line_start": 180
+}
+],
+[
+"n9",
+"statement",
+"System.out.println(i + \"! = \" + factorial(i))",
+{
+"code_snippet": "System.out.println(i + \"! = \" + factorial(i))",
+"line_end": 181,
+"line_start": 181
+}
+],
+[
+"n10",
+"statement",
+"System.out.println(\"Fibonacci sequence:\")",
+{
+"code_snippet": "System.out.println(\"Fibonacci sequence:\")",
+"line_end": 185,
+"line_start": 185
+}
+],
+[
+"n11",
+"loop",
+"for (int i = 0; i <= 15; i++)",
+{
+"code_snippet": "for (int i = 0; i <= 15; i++)",
+"line_end": 186,
+"line_start": 186
+}
+],
+[
+"n12",
+"statement",
+"System.out.print(fibonacci(i) + \" \")",
+{
+"code_snippet": "System.out.print(fibonacci(i) + \" \")",
+"line_end": 187,
+"line_start": 187
+}
+],
+[
+"n13",
+"statement",
+"System.out.println()",
+{
+"code_snippet": "System.out.println()",
+"line_end": 189,
+"line_start": 189
+}
+],
+[
+"n14",
+"statement",
+"System.out.println(\"2^10 = \" + power(2, 10))",
+{
+"code_snippet": "System.out.println(\"2^10 = \" + power(2, 10))",
+"line_end": 192,
+"line_start": 192
+}
+],
+[
+"n15",
+"statement",
+"System.out.println(\"GCD(48, 18) = \" + gcd(48, 18))",
+{
+"code_snippet": "System.out.println(\"GCD(48, 18) = \" + gcd(48, 18))",
+"line_end": 195,
+"line_start": 195
+}
+],
+[
+"n16",
+"statement",
+"List<Integer> numbers = new ArrayList<>(Arrays.asList(5, 12,",
+{
+"code_snippet": "List<Integer> numbers = new ArrayList<>(Arrays.asList(5, 12, 3, 8, 21, 7, 15, 1, 9, 18))",
+"line_end": 198,
+"line_start": 198
+}
+],
+[
+"n17",
+"statement",
+"printStatistics(numbers)",
+{
+"code_snippet": "printStatistics(numbers)",
+"line_end": 199,
+"line_start": 199
+}
+]
+],
+"stmt_of": [
+"n10",
+"n11",
+"n12",
+"n13",
+"n14",
+"n15",
+"n16",
+"n17",
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8",
+"n9"
+]
+},
+"Calculator:Calculator.power:101": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"true",
+"true"
+],
+[
+"e2",
+"n3",
+"n1",
+"normal",
+""
+],
+[
+"e3",
+"n2",
+"n4",
+"false",
+"false"
+],
+[
+"e4",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e5",
+"n5",
+"n1",
+"normal",
+""
+],
+[
+"e6",
+"n4",
+"n6",
+"false",
+"false"
+],
+[
+"e7",
+"n6",
+"n7",
+"true",
+"true"
+],
+[
+"e8",
+"n7",
+"n8",
+"normal",
+""
+],
+[
+"e9",
+"n8",
+"n1",
+"normal",
+""
+],
+[
+"e10",
+"n6",
+"n9",
+"false",
+"false"
+],
+[
+"e11",
+"n9",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 101,
+"line_start": 101
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"condition",
+"if (exp < 0)",
+{
+"code_snippet": "if (exp < 0)",
+"line_end": 102,
+"line_start": 102
+}
+],
+[
+"n3",
+"return",
+"return 1.0 / power(base, -exp)",
+{
+"code_snippet": "return 1.0 / power(base, -exp)",
+"line_end": 103,
+"line_start": 103
+}
+],
+[
+"n4",
+"condition",
+"if (exp == 0)",
+{
+"code_snippet": "if (exp == 0)",
+"line_end": 105,
+"line_start": 105
+}
+],
+[
+"n5",
+"return",
+"return 1.0",
+{
+"code_snippet": "return 1.0",
+"line_end": 106,
+"line_start": 106
+}
+],
+[
+"n6",
+"condition",
+"if ((exp % 2) == 0)",
+{
+"code_snippet": "if ((exp % 2) == 0)",
+"line_end": 108,
+"line_start": 108
+}
+],
+[
+"n7",
+"statement",
+"double half = power(base, exp / 2)",
+{
+"code_snippet": "double half = power(base, exp / 2)",
+"line_end": 109,
+"line_start": 109
+}
+],
+[
+"n8",
+"return",
+"return half * half",
+{
+"code_snippet": "return half * half",
+"line_end": 110,
+"line_start": 110
+}
+],
+[
+"n9",
+"return",
+"return base * power(base, exp - 1)",
+{
+"code_snippet": "return base * power(base, exp - 1)",
+"line_end": 112,
+"line_start": 112
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8",
+"n9"
+]
+},
+"Calculator:Calculator.printStatistics:127": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"true",
+"true"
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n1",
+"normal",
+""
+],
+[
+"e4",
+"n2",
+"n5",
+"false",
+"false"
+],
+[
+"e5",
+"n5",
+"n6",
+"normal",
+""
+],
+[
+"e6",
+"n6",
+"n7",
+"true",
+"true"
+],
+[
+"e7",
+"n7",
+"n6",
+"back",
+"back"
+],
+[
+"e8",
+"n6",
+"n8",
+"false",
+"false"
+],
+[
+"e9",
+"n8",
+"n9",
+"normal",
+""
+],
+[
+"e10",
+"n9",
+"n10",
+"normal",
+""
+],
+[
+"e11",
+"n10",
+"n11",
+"normal",
+""
+],
+[
+"e12",
+"n11",
+"n12",
+"true",
+"true"
+],
+[
+"e13",
+"n12",
+"n13",
+"true",
+"true"
+],
+[
+"e14",
+"n13",
+"n14",
+"normal",
+""
+],
+[
+"e15",
+"n12",
+"n14",
+"false",
+"false"
+],
+[
+"e16",
+"n14",
+"n15",
+"true",
+"true"
+],
+[
+"e17",
+"n15",
+"n11",
+"back",
+"back"
+],
+[
+"e18",
+"n14",
+"n11",
+"back",
+"back"
+],
+[
+"e19",
+"n11",
+"n16",
+"false",
+"false"
+],
+[
+"e20",
+"n16",
+"n17",
+"normal",
+""
+],
+[
+"e21",
+"n17",
+"n18",
+"true",
+"true"
+],
+[
+"e22",
+"n18",
+"n17",
+"back",
+"back"
+],
+[
+"e23",
+"n17",
+"n19",
+"false",
+"false"
+],
+[
+"e24",
+"n19",
+"n20",
+"normal",
+""
+],
+[
+"e25",
+"n20",
+"n21",
+"normal",
+""
+],
+[
+"e26",
+"n21",
+"n22",
+"normal",
+""
+],
+[
+"e27",
+"n22",
+"n23",
+"normal",
+""
+],
+[
+"e28",
+"n23",
+"n24",
+"normal",
+""
+],
+[
+"e29",
+"n24",
+"n25",
+"normal",
+""
+],
+[
+"e30",
+"n25",
+"n26",
+"normal",
+""
+],
+[
+"e31",
+"n26",
+"n27",
+"normal",
+""
+],
+[
+"e32",
+"n27",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 127,
+"line_start": 127
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"condition",
+"if ((numbers == null) || numbers.isEmpty())",
+{
+"code_snippet": "if ((numbers == null) || numbers.isEmpty())",
+"line_end": 128,
+"line_start": 128
+}
+],
+[
+"n3",
+"statement",
+"System.out.println(\"No numbers provided\")",
+{
+"code_snippet": "System.out.println(\"No numbers provided\")",
+"line_end": 129,
+"line_start": 129
+}
+],
+[
+"n4",
+"return",
+"return",
+{
+"code_snippet": "return",
+"line_end": 130,
+"line_start": 130
+}
+],
+[
+"n5",
+"statement",
+"int sum = 0",
+{
+"code_snippet": "int sum = 0",
+"line_end": 134,
+"line_start": 134
+}
+],
+[
+"n6",
+"loop",
+"for (int num : numbers)",
+{
+"code_snippet": "for (int num : numbers)",
+"line_end": 135,
+"line_start": 135
+}
+],
+[
+"n7",
+"statement",
+"sum += num",
+{
+"code_snippet": "sum += num",
+"line_end": 136,
+"line_start": 136
+}
+],
+[
+"n8",
+"statement",
+"double avg = (double) sum / numbers.size()",
+{
+"code_snippet": "double avg = (double) sum / numbers.size()",
+"line_end": 140,
+"line_start": 140
+}
+],
+[
+"n9",
+"statement",
+"int min = numbers.get(0)",
+{
+"code_snippet": "int min = numbers.get(0)",
+"line_end": 143,
+"line_start": 143
+}
+],
+[
+"n10",
+"statement",
+"int max = numbers.get(0)",
+{
+"code_snippet": "int max = numbers.get(0)",
+"line_end": 144,
+"line_start": 144
+}
+],
+[
+"n11",
+"loop",
+"for (int num : numbers)",
+{
+"code_snippet": "for (int num : numbers)",
+"line_end": 145,
+"line_start": 145
+}
+],
+[
+"n12",
+"condition",
+"if (num < min)",
+{
+"code_snippet": "if (num < min)",
+"line_end": 146,
+"line_start": 146
+}
+],
+[
+"n13",
+"statement",
+"min = num",
+{
+"code_snippet": "min = num",
+"line_end": 146,
+"line_start": 146
+}
+],
+[
+"n14",
+"condition",
+"if (num > max)",
+{
+"code_snippet": "if (num > max)",
+"line_end": 147,
+"line_start": 147
+}
+],
+[
+"n15",
+"statement",
+"max = num",
+{
+"code_snippet": "max = num",
+"line_end": 147,
+"line_start": 147
+}
+],
+[
+"n16",
+"statement",
+"double variance = 0",
+{
+"code_snippet": "double variance = 0",
+"line_end": 151,
+"line_start": 151
+}
+],
+[
+"n17",
+"loop",
+"for (int num : numbers)",
+{
+"code_snippet": "for (int num : numbers)",
+"line_end": 152,
+"line_start": 152
+}
+],
+[
+"n18",
+"statement",
+"variance += (num - avg) * (num - avg)",
+{
+"code_snippet": "variance += (num - avg) * (num - avg)",
+"line_end": 153,
+"line_start": 153
+}
+],
+[
+"n19",
+"statement",
+"variance /= numbers.size()",
+{
+"code_snippet": "variance /= numbers.size()",
+"line_end": 155,
+"line_start": 155
+}
+],
+[
+"n20",
+"statement",
+"System.out.println(\"=== Statistics ===\")",
+{
+"code_snippet": "System.out.println(\"=== Statistics ===\")",
+"line_end": 158,
+"line_start": 158
+}
+],
+[
+"n21",
+"statement",
+"System.out.println(\"Count: \" + numbers.size())",
+{
+"code_snippet": "System.out.println(\"Count: \" + numbers.size())",
+"line_end": 159,
+"line_start": 159
+}
+],
+[
+"n22",
+"statement",
+"System.out.println(\"Sum: \" + sum)",
+{
+"code_snippet": "System.out.println(\"Sum: \" + sum)",
+"line_end": 160,
+"line_start": 160
+}
+],
+[
+"n23",
+"statement",
+"System.out.printf(\"Average: %.2f%n\", avg)",
+{
+"code_snippet": "System.out.printf(\"Average: %.2f%n\", avg)",
+"line_end": 161,
+"line_start": 161
+}
+],
+[
+"n24",
+"statement",
+"System.out.println(\"Min: \" + min)",
+{
+"code_snippet": "System.out.println(\"Min: \" + min)",
+"line_end": 162,
+"line_start": 162
+}
+],
+[
+"n25",
+"statement",
+"System.out.println(\"Max: \" + max)",
+{
+"code_snippet": "System.out.println(\"Max: \" + max)",
+"line_end": 163,
+"line_start": 163
+}
+],
+[
+"n26",
+"statement",
+"System.out.printf(\"Variance: %.2f%n\", variance)",
+{
+"code_snippet": "System.out.printf(\"Variance: %.2f%n\", variance)",
+"line_end": 164,
+"line_start": 164
+}
+],
+[
+"n27",
+"statement",
+"System.out.printf(\"Std Dev: %.2f%n\", Math.sqrt(variance))",
+{
+"code_snippet": "System.out.printf(\"Std Dev: %.2f%n\", Math.sqrt(variance))",
+"line_end": 165,
+"line_start": 165
+}
+]
+],
+"stmt_of": [
+"n10",
+"n11",
+"n12",
+"n13",
+"n14",
+"n15",
+"n16",
+"n17",
+"n18",
+"n19",
+"n2",
+"n20",
+"n21",
+"n22",
+"n23",
+"n24",
+"n25",
+"n26",
+"n27",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8",
+"n9"
+]
+},
+"Logger:LogEntry.toString:29": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 29,
+"line_start": 29
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"return",
+"return \"[\" + level + \"] \" + timestamp + \" [\" + source + \"] \"",
+{
+"code_snippet": "return \"[\" + level + \"] \" + timestamp + \" [\" + source + \"] \" + message",
+"line_end": 30,
+"line_start": 30
+}
+]
+],
+"stmt_of": [
+"n2"
+]
+},
+"Logger:Logger.countByLevel:91": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n3",
+"back",
+"back"
+],
+[
+"e4",
+"n3",
+"n5",
+"false",
+"false"
+],
+[
+"e5",
+"n5",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 91,
+"line_start": 91
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"Map<String, Integer> counts = new TreeMap<>()",
+{
+"code_snippet": "Map<String, Integer> counts = new TreeMap<>()",
+"line_end": 92,
+"line_start": 92
+}
+],
+[
+"n3",
+"loop",
+"for (LogEntry entry : entries)",
+{
+"code_snippet": "for (LogEntry entry : entries)",
+"line_end": 93,
+"line_start": 93
+}
+],
+[
+"n4",
+"statement",
+"counts.put(entry.level, counts.getOrDefault(entry.level, 0) ",
+{
+"code_snippet": "counts.put(entry.level, counts.getOrDefault(entry.level, 0) + 1)",
+"line_end": 94,
+"line_start": 94
+}
+],
+[
+"n5",
+"return",
+"return counts",
+{
+"code_snippet": "return counts",
+"line_end": 96,
+"line_start": 96
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5"
+]
+},
+"Logger:Logger.filterByLevel:69": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e4",
+"n5",
+"n3",
+"back",
+"back"
+],
+[
+"e5",
+"n4",
+"n3",
+"back",
+"back"
+],
+[
+"e6",
+"n3",
+"n6",
+"false",
+"false"
+],
+[
+"e7",
+"n6",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 69,
+"line_start": 69
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"List<LogEntry> filtered = new ArrayList<>()",
+{
+"code_snippet": "List<LogEntry> filtered = new ArrayList<>()",
+"line_end": 70,
+"line_start": 70
+}
+],
+[
+"n3",
+"loop",
+"for (LogEntry entry : entries)",
+{
+"code_snippet": "for (LogEntry entry : entries)",
+"line_end": 71,
+"line_start": 71
+}
+],
+[
+"n4",
+"condition",
+"if (entry.level.equalsIgnoreCase(level))",
+{
+"code_snippet": "if (entry.level.equalsIgnoreCase(level))",
+"line_end": 72,
+"line_start": 72
+}
+],
+[
+"n5",
+"statement",
+"filtered.add(entry)",
+{
+"code_snippet": "filtered.add(entry)",
+"line_end": 73,
+"line_start": 73
+}
+],
+[
+"n6",
+"return",
+"return filtered",
+{
+"code_snippet": "return filtered",
+"line_end": 76,
+"line_start": 76
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6"
+]
+},
+"Logger:Logger.filterBySource:80": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e4",
+"n5",
+"n3",
+"back",
+"back"
+],
+[
+"e5",
+"n4",
+"n3",
+"back",
+"back"
+],
+[
+"e6",
+"n3",
+"n6",
+"false",
+"false"
+],
+[
+"e7",
+"n6",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 80,
+"line_start": 80
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"List<LogEntry> filtered = new ArrayList<>()",
+{
+"code_snippet": "List<LogEntry> filtered = new ArrayList<>()",
+"line_end": 81,
+"line_start": 81
+}
+],
+[
+"n3",
+"loop",
+"for (LogEntry entry : entries)",
+{
+"code_snippet": "for (LogEntry entry : entries)",
+"line_end": 82,
+"line_start": 82
+}
+],
+[
+"n4",
+"condition",
+"if (entry.source.equalsIgnoreCase(source))",
+{
+"code_snippet": "if (entry.source.equalsIgnoreCase(source))",
+"line_end": 83,
+"line_start": 83
+}
+],
+[
+"n5",
+"statement",
+"filtered.add(entry)",
+{
+"code_snippet": "filtered.add(entry)",
+"line_end": 84,
+"line_start": 84
+}
+],
+[
+"n6",
+"return",
+"return filtered",
+{
+"code_snippet": "return filtered",
+"line_end": 87,
+"line_start": 87
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6"
+]
+},
+"Logger:Logger.findDuplicates:111": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e4",
+"n5",
+"n6",
+"true",
+"true"
+],
+[
+"e5",
+"n6",
+"n7",
+"true",
+"true"
+],
+[
+"e6",
+"n7",
+"n8",
+"normal",
+""
+],
+[
+"e7",
+"n6",
+"n8",
+"false",
+"false"
+],
+[
+"e8",
+"n8",
+"n9",
+"true",
+"true"
+],
+[
+"e9",
+"n9",
+"n4",
+"back",
+"back"
+],
+[
+"e10",
+"n8",
+"n4",
+"back",
+"back"
+],
+[
+"e11",
+"n5",
+"n4",
+"back",
+"back"
+],
+[
+"e12",
+"n4",
+"n3",
+"back",
+"back"
+],
+[
+"e13",
+"n3",
+"n10",
+"false",
+"false"
+],
+[
+"e14",
+"n10",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 111,
+"line_start": 111
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"List<LogEntry> duplicates = new ArrayList<>()",
+{
+"code_snippet": "List<LogEntry> duplicates = new ArrayList<>()",
+"line_end": 112,
+"line_start": 112
+}
+],
+[
+"n3",
+"loop",
+"for (int i = 0; i < entries.size(); i++)",
+{
+"code_snippet": "for (int i = 0; i < entries.size(); i++)",
+"line_end": 113,
+"line_start": 113
+}
+],
+[
+"n4",
+"loop",
+"for (int j = i + 1; j < entries.size(); j++)",
+{
+"code_snippet": "for (int j = i + 1; j < entries.size(); j++)",
+"line_end": 114,
+"line_start": 114
+}
+],
+[
+"n5",
+"condition",
+"if (entries.get(i).message.equals(entries.get(j).message))",
+{
+"code_snippet": "if (entries.get(i).message.equals(entries.get(j).message))",
+"line_end": 115,
+"line_start": 115
+}
+],
+[
+"n6",
+"condition",
+"if (!duplicates.contains(entries.get(i)))",
+{
+"code_snippet": "if (!duplicates.contains(entries.get(i)))",
+"line_end": 116,
+"line_start": 116
+}
+],
+[
+"n7",
+"statement",
+"duplicates.add(entries.get(i))",
+{
+"code_snippet": "duplicates.add(entries.get(i))",
+"line_end": 117,
+"line_start": 117
+}
+],
+[
+"n8",
+"condition",
+"if (!duplicates.contains(entries.get(j)))",
+{
+"code_snippet": "if (!duplicates.contains(entries.get(j)))",
+"line_end": 119,
+"line_start": 119
+}
+],
+[
+"n9",
+"statement",
+"duplicates.add(entries.get(j))",
+{
+"code_snippet": "duplicates.add(entries.get(j))",
+"line_end": 120,
+"line_start": 120
+}
+],
+[
+"n10",
+"return",
+"return duplicates",
+{
+"code_snippet": "return duplicates",
+"line_end": 125,
+"line_start": 125
+}
+]
+],
+"stmt_of": [
+"n10",
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8",
+"n9"
+]
+},
+"Logger:Logger.main:167": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n6",
+"normal",
+""
+],
+[
+"e5",
+"n6",
+"n7",
+"normal",
+""
+],
+[
+"e6",
+"n7",
+"n8",
+"normal",
+""
+],
+[
+"e7",
+"n8",
+"n9",
+"normal",
+""
+],
+[
+"e8",
+"n9",
+"n10",
+"normal",
+""
+],
+[
+"e9",
+"n10",
+"n11",
+"normal",
+""
+],
+[
+"e10",
+"n11",
+"n12",
+"true",
+"true"
+],
+[
+"e11",
+"n12",
+"n11",
+"back",
+"back"
+],
+[
+"e12",
+"n11",
+"n13",
+"false",
+"false"
+],
+[
+"e13",
+"n13",
+"n14",
+"normal",
+""
+],
+[
+"e14",
+"n14",
+"n15",
+"normal",
+""
+],
+[
+"e15",
+"n15",
+"n16",
+"true",
+"true"
+],
+[
+"e16",
+"n16",
+"n15",
+"back",
+"back"
+],
+[
+"e17",
+"n15",
+"n1",
+"false",
+"false"
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 167,
+"line_start": 167
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"String[] rawLogs = {\"INFO|2024-01-15 10:00:01|AuthService|Us",
+{
+"code_snippet": "String[] rawLogs = {\"INFO|2024-01-15 10:00:01|AuthService|User login successful\", \"WARN|2024-01-15 10:00:05|DBService|Connection pool running low\", \"ERROR|2024-01-15 10:00:10|PaymentService|Payment failed: timeout\", \"INFO|2024-01-15 10:00:12|AuthService|User login successful\", \"INFO|2024-01-15 10:00:15|APIService|Request processed in 250ms\", \"WARN|2024-01-15 10:00:20|DBService|Slow query detected: 5000ms\", \"ERROR|2024-01-15 10:00:25|AuthService|Invalid token received\", \"INFO|2024-01-15 10:00:30|CacheService|Cache hit ratio: 85%\", \"ERROR|2024-01-15 10:00:35|PaymentService|Payment failed: timeout\", \"INFO|2024-01-15 10:00:40|APIService|Health check passed\"}",
+"line_end": 168,
+"line_start": 168
+}
+],
+[
+"n3",
+"statement",
+"List<LogEntry> entries = parseAll(rawLogs)",
+{
+"code_snippet": "List<LogEntry> entries = parseAll(rawLogs)",
+"line_end": 182,
+"line_start": 182
+}
+],
+[
+"n4",
+"statement",
+"printSummary(entries)",
+{
+"code_snippet": "printSummary(entries)",
+"line_end": 185,
+"line_start": 185
+}
+],
+[
+"n5",
+"statement",
+"System.out.println()",
+{
+"code_snippet": "System.out.println()",
+"line_end": 188,
+"line_start": 188
+}
+],
+[
+"n6",
+"statement",
+"printTable(entries)",
+{
+"code_snippet": "printTable(entries)",
+"line_end": 189,
+"line_start": 189
+}
+],
+[
+"n7",
+"statement",
+"printFilteredReport(entries, \"ERROR\")",
+{
+"code_snippet": "printFilteredReport(entries, \"ERROR\")",
+"line_end": 192,
+"line_start": 192
+}
+],
+[
+"n8",
+"statement",
+"printFilteredReport(entries, \"WARN\")",
+{
+"code_snippet": "printFilteredReport(entries, \"WARN\")",
+"line_end": 193,
+"line_start": 193
+}
+],
+[
+"n9",
+"statement",
+"System.out.println(\"\\n=== Search: 'timeout' ===\")",
+{
+"code_snippet": "System.out.println(\"\\n=== Search: 'timeout' ===\")",
+"line_end": 196,
+"line_start": 196
+}
+],
+[
+"n10",
+"statement",
+"List<LogEntry> searchResults = searchByKeyword(entries, \"tim",
+{
+"code_snippet": "List<LogEntry> searchResults = searchByKeyword(entries, \"timeout\")",
+"line_end": 197,
+"line_start": 197
+}
+],
+[
+"n11",
+"loop",
+"for (LogEntry entry : searchResults)",
+{
+"code_snippet": "for (LogEntry entry : searchResults)",
+"line_end": 198,
+"line_start": 198
+}
+],
+[
+"n12",
+"statement",
+"System.out.println(entry)",
+{
+"code_snippet": "System.out.println(entry)",
+"line_end": 199,
+"line_start": 199
+}
+],
+[
+"n13",
+"statement",
+"System.out.println(\"\\n=== Duplicate Messages ===\")",
+{
+"code_snippet": "System.out.println(\"\\n=== Duplicate Messages ===\")",
+"line_end": 203,
+"line_start": 203
+}
+],
+[
+"n14",
+"statement",
+"List<LogEntry> duplicates = findDuplicates(entries)",
+{
+"code_snippet": "List<LogEntry> duplicates = findDuplicates(entries)",
+"line_end": 204,
+"line_start": 204
+}
+],
+[
+"n15",
+"loop",
+"for (LogEntry entry : duplicates)",
+{
+"code_snippet": "for (LogEntry entry : duplicates)",
+"line_end": 205,
+"line_start": 205
+}
+],
+[
+"n16",
+"statement",
+"System.out.println(entry)",
+{
+"code_snippet": "System.out.println(entry)",
+"line_end": 206,
+"line_start": 206
+}
+]
+],
+"stmt_of": [
+"n10",
+"n11",
+"n12",
+"n13",
+"n14",
+"n15",
+"n16",
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8",
+"n9"
+]
+},
+"Logger:Logger.parseAll:54": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n4",
+"n6",
+"exception",
+"exception"
+],
+[
+"e5",
+"n6",
+"n7",
+"normal",
+""
+],
+[
+"e6",
+"n5",
+"n3",
+"back",
+"back"
+],
+[
+"e7",
+"n7",
+"n3",
+"back",
+"back"
+],
+[
+"e8",
+"n3",
+"n8",
+"false",
+"false"
+],
+[
+"e9",
+"n8",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 54,
+"line_start": 54
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"List<LogEntry> entries = new ArrayList<>()",
+{
+"code_snippet": "List<LogEntry> entries = new ArrayList<>()",
+"line_end": 55,
+"line_start": 55
+}
+],
+[
+"n3",
+"loop",
+"for (String line : lines)",
+{
+"code_snippet": "for (String line : lines)",
+"line_end": 56,
+"line_start": 56
+}
+],
+[
+"n4",
+"try",
+"try",
+{
+"code_snippet": "try",
+"line_end": 57,
+"line_start": 57
+}
+],
+[
+"n5",
+"statement",
+"entries.add(parseLine(line))",
+{
+"code_snippet": "entries.add(parseLine(line))",
+"line_end": 58,
+"line_start": 58
+}
+],
+[
+"n6",
+"catch",
+"catch (IllegalArgumentException e)",
+{
+"code_snippet": "catch (IllegalArgumentException e)",
+"line_end": 57,
+"line_start": 57
+}
+],
+[
+"n7",
+"statement",
+"System.err.println(\"Skipping invalid line: \" + e.getMessage(",
+{
+"code_snippet": "System.err.println(\"Skipping invalid line: \" + e.getMessage())",
+"line_end": 60,
+"line_start": 60
+}
+],
+[
+"n8",
+"return",
+"return entries",
+{
+"code_snippet": "return entries",
+"line_end": 63,
+"line_start": 63
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8"
+]
+},
+"Logger:Logger.parseLine:37": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"true",
+"true"
+],
+[
+"e2",
+"n3",
+"n1",
+"exception",
+"throws"
+],
+[
+"e3",
+"n2",
+"n4",
+"false",
+"false"
+],
+[
+"e4",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e5",
+"n5",
+"n6",
+"true",
+"true"
+],
+[
+"e6",
+"n6",
+"n1",
+"exception",
+"throws"
+],
+[
+"e7",
+"n5",
+"n7",
+"false",
+"false"
+],
+[
+"e8",
+"n7",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 37,
+"line_start": 37
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"condition",
+"if ((line == null) || line.isEmpty())",
+{
+"code_snippet": "if ((line == null) || line.isEmpty())",
+"line_end": 38,
+"line_start": 38
+}
+],
+[
+"n3",
+"throw",
+"throw new IllegalArgumentException(\"Empty log line\")",
+{
+"code_snippet": "throw new IllegalArgumentException(\"Empty log line\")",
+"line_end": 39,
+"line_start": 39
+}
+],
+[
+"n4",
+"statement",
+"String[] parts = line.split(\"\\\\|\")",
+{
+"code_snippet": "String[] parts = line.split(\"\\\\|\")",
+"line_end": 41,
+"line_start": 41
+}
+],
+[
+"n5",
+"condition",
+"if (parts.length < 4)",
+{
+"code_snippet": "if (parts.length < 4)",
+"line_end": 42,
+"line_start": 42
+}
+],
+[
+"n6",
+"throw",
+"throw new IllegalArgumentException(\"Invalid log format: \" + ",
+{
+"code_snippet": "throw new IllegalArgumentException(\"Invalid log format: \" + line)",
+"line_end": 43,
+"line_start": 43
+}
+],
+[
+"n7",
+"return",
+"return new LogEntry(parts[0].trim(), parts[1].trim(), parts[",
+{
+"code_snippet": "return new LogEntry(parts[0].trim(), parts[1].trim(), parts[2].trim(), parts[3].trim())",
+"line_end": 45,
+"line_start": 45
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7"
+]
+},
+"Logger:Logger.printFilteredReport:155": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e4",
+"n4",
+"n6",
+"false",
+"false"
+],
+[
+"e5",
+"n6",
+"n7",
+"true",
+"true"
+],
+[
+"e6",
+"n7",
+"n6",
+"back",
+"back"
+],
+[
+"e7",
+"n5",
+"n1",
+"normal",
+""
+],
+[
+"e8",
+"n6",
+"n1",
+"false",
+"false"
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 155,
+"line_start": 155
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"List<LogEntry> filtered = filterByLevel(entries, level)",
+{
+"code_snippet": "List<LogEntry> filtered = filterByLevel(entries, level)",
+"line_end": 156,
+"line_start": 156
+}
+],
+[
+"n3",
+"statement",
+"System.out.println(\"\\n=== \" + level + \" Entries ===\")",
+{
+"code_snippet": "System.out.println(\"\\n=== \" + level + \" Entries ===\")",
+"line_end": 157,
+"line_start": 157
+}
+],
+[
+"n4",
+"condition",
+"if (filtered.isEmpty())",
+{
+"code_snippet": "if (filtered.isEmpty())",
+"line_end": 158,
+"line_start": 158
+}
+],
+[
+"n5",
+"statement",
+"System.out.println(\"No entries found.\")",
+{
+"code_snippet": "System.out.println(\"No entries found.\")",
+"line_end": 159,
+"line_start": 159
+}
+],
+[
+"n6",
+"loop",
+"for (LogEntry entry : filtered)",
+{
+"code_snippet": "for (LogEntry entry : filtered)",
+"line_end": 161,
+"line_start": 161
+}
+],
+[
+"n7",
+"statement",
+"System.out.println(entry)",
+{
+"code_snippet": "System.out.println(entry)",
+"line_end": 162,
+"line_start": 162
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7"
+]
+},
+"Logger:Logger.printSummary:131": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n6",
+"true",
+"true"
+],
+[
+"e5",
+"n6",
+"n5",
+"back",
+"back"
+],
+[
+"e6",
+"n5",
+"n1",
+"false",
+"false"
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 131,
+"line_start": 131
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"System.out.println(\"=== Log Summary ===\")",
+{
+"code_snippet": "System.out.println(\"=== Log Summary ===\")",
+"line_end": 132,
+"line_start": 132
+}
+],
+[
+"n3",
+"statement",
+"System.out.println(\"Total entries: \" + entries.size())",
+{
+"code_snippet": "System.out.println(\"Total entries: \" + entries.size())",
+"line_end": 133,
+"line_start": 133
+}
+],
+[
+"n4",
+"statement",
+"Map<String, Integer> counts = countByLevel(entries)",
+{
+"code_snippet": "Map<String, Integer> counts = countByLevel(entries)",
+"line_end": 135,
+"line_start": 135
+}
+],
+[
+"n5",
+"loop",
+"for (Map.Entry<String, Integer> entry : counts.entrySet())",
+{
+"code_snippet": "for (Map.Entry<String, Integer> entry : counts.entrySet())",
+"line_end": 136,
+"line_start": 136
+}
+],
+[
+"n6",
+"statement",
+"System.out.println(\"  \" + entry.getKey() + \": \" + entry.getV",
+{
+"code_snippet": "System.out.println(\"  \" + entry.getKey() + \": \" + entry.getValue())",
+"line_end": 137,
+"line_start": 137
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6"
+]
+},
+"Logger:Logger.printTable:142": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n6",
+"true",
+"true"
+],
+[
+"e5",
+"n6",
+"n5",
+"back",
+"back"
+],
+[
+"e6",
+"n5",
+"n7",
+"false",
+"false"
+],
+[
+"e7",
+"n7",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 142,
+"line_start": 142
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"System.out.println(\"+---------+---------------------+-------",
+{
+"code_snippet": "System.out.println(\"+---------+---------------------+------------+---------------------------+\")",
+"line_end": 143,
+"line_start": 143
+}
+],
+[
+"n3",
+"statement",
+"System.out.println(\"| Level   | Timestamp           | Source",
+{
+"code_snippet": "System.out.println(\"| Level   | Timestamp           | Source     | Message                   |\")",
+"line_end": 144,
+"line_start": 144
+}
+],
+[
+"n4",
+"statement",
+"System.out.println(\"+---------+---------------------+-------",
+{
+"code_snippet": "System.out.println(\"+---------+---------------------+------------+---------------------------+\")",
+"line_end": 145,
+"line_start": 145
+}
+],
+[
+"n5",
+"loop",
+"for (LogEntry entry : entries)",
+{
+"code_snippet": "for (LogEntry entry : entries)",
+"line_end": 146,
+"line_start": 146
+}
+],
+[
+"n6",
+"statement",
+"System.out.printf(\"| %-7s | %-19s | %-10s | %-25s |%n\", entr",
+{
+"code_snippet": "System.out.printf(\"| %-7s | %-19s | %-10s | %-25s |%n\", entry.level, entry.timestamp, entry.source, (entry.message.length() > 25) ? (entry.message.substring(0, 22) + \"...\") : entry.message)",
+"line_end": 147,
+"line_start": 147
+}
+],
+[
+"n7",
+"statement",
+"System.out.println(\"+---------+---------------------+-------",
+{
+"code_snippet": "System.out.println(\"+---------+---------------------+------------+---------------------------+\")",
+"line_end": 151,
+"line_start": 151
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7"
+]
+},
+"Logger:Logger.searchByKeyword:100": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e4",
+"n5",
+"n3",
+"back",
+"back"
+],
+[
+"e5",
+"n4",
+"n3",
+"back",
+"back"
+],
+[
+"e6",
+"n3",
+"n6",
+"false",
+"false"
+],
+[
+"e7",
+"n6",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 100,
+"line_start": 100
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"List<LogEntry> results = new ArrayList<>()",
+{
+"code_snippet": "List<LogEntry> results = new ArrayList<>()",
+"line_end": 101,
+"line_start": 101
+}
+],
+[
+"n3",
+"loop",
+"for (LogEntry entry : entries)",
+{
+"code_snippet": "for (LogEntry entry : entries)",
+"line_end": 102,
+"line_start": 102
+}
+],
+[
+"n4",
+"condition",
+"if (entry.message.toLowerCase().contains(keyword.toLowerCase()))",
+{
+"code_snippet": "if (entry.message.toLowerCase().contains(keyword.toLowerCase()))",
+"line_end": 103,
+"line_start": 103
+}
+],
+[
+"n5",
+"statement",
+"results.add(entry)",
+{
+"code_snippet": "results.add(entry)",
+"line_end": 104,
+"line_start": 104
+}
+],
+[
+"n6",
+"return",
+"return results",
+{
+"code_snippet": "return results",
+"line_end": 107,
+"line_start": 107
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6"
+]
+},
+"Store:Store.addProduct:20": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"true",
+"true"
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n2",
+"n4",
+"false",
+"false"
+],
+[
+"e4",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e5",
+"n5",
+"n6",
+"normal",
+""
+],
+[
+"e6",
+"n6",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 20,
+"line_start": 20
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"condition",
+"if (!inventory.containsKey(category))",
+{
+"code_snippet": "if (!inventory.containsKey(category))",
+"line_end": 21,
+"line_start": 21
+}
+],
+[
+"n3",
+"statement",
+"inventory.put(category, new ArrayList<>())",
+{
+"code_snippet": "inventory.put(category, new ArrayList<>())",
+"line_end": 22,
+"line_start": 22
+}
+],
+[
+"n4",
+"statement",
+"inventory.get(category).add(product)",
+{
+"code_snippet": "inventory.get(category).add(product)",
+"line_end": 24,
+"line_start": 24
+}
+],
+[
+"n5",
+"statement",
+"prices.put(product, price)",
+{
+"code_snippet": "prices.put(product, price)",
+"line_end": 25,
+"line_start": 25
+}
+],
+[
+"n6",
+"statement",
+"logTransaction(\"Added: \" + product + \" ($\" + price + \") to \"",
+{
+"code_snippet": "logTransaction(\"Added: \" + product + \" ($\" + price + \") to \" + category)",
+"line_end": 26,
+"line_start": 26
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6"
+]
+},
+"Store:Store.applyDiscount:117": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n1",
+"exception",
+"throws"
+],
+[
+"e4",
+"n3",
+"n5",
+"false",
+"false"
+],
+[
+"e5",
+"n5",
+"n6",
+"normal",
+""
+],
+[
+"e6",
+"n6",
+"n7",
+"true",
+"true"
+],
+[
+"e7",
+"n7",
+"n1",
+"exception",
+"throws"
+],
+[
+"e8",
+"n6",
+"n8",
+"false",
+"false"
+],
+[
+"e9",
+"n8",
+"n9",
+"normal",
+""
+],
+[
+"e10",
+"n9",
+"n10",
+"normal",
+""
+],
+[
+"e11",
+"n2",
+"n11",
+"exception",
+"exception"
+],
+[
+"e12",
+"n11",
+"n12",
+"normal",
+""
+],
+[
+"e13",
+"n2",
+"n13",
+"exception",
+"exception"
+],
+[
+"e14",
+"n13",
+"n14",
+"normal",
+""
+],
+[
+"e15",
+"n10",
+"n1",
+"normal",
+""
+],
+[
+"e16",
+"n12",
+"n1",
+"normal",
+""
+],
+[
+"e17",
+"n14",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 117,
+"line_start": 117
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"try",
+"try",
+{
+"code_snippet": "try",
+"line_end": 118,
+"line_start": 118
+}
+],
+[
+"n3",
+"condition",
+"if ((discountPercent < 0) || (discountPercent > 100))",
+{
+"code_snippet": "if ((discountPercent < 0) || (discountPercent > 100))",
+"line_end": 119,
+"line_start": 119
+}
+],
+[
+"n4",
+"throw",
+"throw new IllegalArgumentException(\"Invalid discount: \" + di",
+{
+"code_snippet": "throw new IllegalArgumentException(\"Invalid discount: \" + discountPercent)",
+"line_end": 120,
+"line_start": 120
+}
+],
+[
+"n5",
+"statement",
+"Double currentPrice = prices.get(product)",
+{
+"code_snippet": "Double currentPrice = prices.get(product)",
+"line_end": 122,
+"line_start": 122
+}
+],
+[
+"n6",
+"condition",
+"if (currentPrice == null)",
+{
+"code_snippet": "if (currentPrice == null)",
+"line_end": 123,
+"line_start": 123
+}
+],
+[
+"n7",
+"throw",
+"throw new NoSuchElementException(\"Product not found: \" + pro",
+{
+"code_snippet": "throw new NoSuchElementException(\"Product not found: \" + product)",
+"line_end": 124,
+"line_start": 124
+}
+],
+[
+"n8",
+"statement",
+"double newPrice = currentPrice * (1 - (discountPercent / 100",
+{
+"code_snippet": "double newPrice = currentPrice * (1 - (discountPercent / 100))",
+"line_end": 126,
+"line_start": 126
+}
+],
+[
+"n9",
+"statement",
+"prices.put(product, newPrice)",
+{
+"code_snippet": "prices.put(product, newPrice)",
+"line_end": 127,
+"line_start": 127
+}
+],
+[
+"n10",
+"statement",
+"logTransaction(\"Discount \" + discountPercent + \"% on \" + pro",
+{
+"code_snippet": "logTransaction(\"Discount \" + discountPercent + \"% on \" + product + \": $\" + String.format(\"%.2f\", currentPrice) + \" -> $\" + String.format(\"%.2f\", newPrice))",
+"line_end": 128,
+"line_start": 128
+}
+],
+[
+"n11",
+"catch",
+"catch (IllegalArgumentException e)",
+{
+"code_snippet": "catch (IllegalArgumentException e)",
+"line_end": 118,
+"line_start": 118
+}
+],
+[
+"n12",
+"statement",
+"System.err.println(\"Error: \" + e.getMessage())",
+{
+"code_snippet": "System.err.println(\"Error: \" + e.getMessage())",
+"line_end": 131,
+"line_start": 131
+}
+],
+[
+"n13",
+"catch",
+"catch (NoSuchElementException e)",
+{
+"code_snippet": "catch (NoSuchElementException e)",
+"line_end": 118,
+"line_start": 118
+}
+],
+[
+"n14",
+"statement",
+"System.err.println(\"Error: \" + e.getMessage())",
+{
+"code_snippet": "System.err.println(\"Error: \" + e.getMessage())",
+"line_end": 133,
+"line_start": 133
+}
+]
+],
+"stmt_of": [
+"n10",
+"n11",
+"n12",
+"n13",
+"n14",
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8",
+"n9"
+]
+},
+"Store:Store.findProductCategory:55": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"true",
+"true"
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e4",
+"n5",
+"n1",
+"normal",
+""
+],
+[
+"e5",
+"n4",
+"n3",
+"back",
+"back"
+],
+[
+"e6",
+"n3",
+"n2",
+"back",
+"back"
+],
+[
+"e7",
+"n2",
+"n6",
+"false",
+"false"
+],
+[
+"e8",
+"n6",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 55,
+"line_start": 55
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"loop",
+"for (Map.Entry<String, List<String>> entry : inventory.entrySet())",
+{
+"code_snippet": "for (Map.Entry<String, List<String>> entry : inventory.entrySet())",
+"line_end": 56,
+"line_start": 56
+}
+],
+[
+"n3",
+"loop",
+"for (String p : entry.getValue())",
+{
+"code_snippet": "for (String p : entry.getValue())",
+"line_end": 57,
+"line_start": 57
+}
+],
+[
+"n4",
+"condition",
+"if (p.equals(product))",
+{
+"code_snippet": "if (p.equals(product))",
+"line_end": 58,
+"line_start": 58
+}
+],
+[
+"n5",
+"return",
+"return entry.getKey()",
+{
+"code_snippet": "return entry.getKey()",
+"line_end": 59,
+"line_start": 59
+}
+],
+[
+"n6",
+"return",
+"return null",
+{
+"code_snippet": "return null",
+"line_end": 63,
+"line_start": 63
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6"
+]
+},
+"Store:Store.getMostExpensive:88": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e4",
+"n5",
+"n6",
+"true",
+"true"
+],
+[
+"e5",
+"n6",
+"n7",
+"normal",
+""
+],
+[
+"e6",
+"n7",
+"n4",
+"back",
+"back"
+],
+[
+"e7",
+"n5",
+"n4",
+"back",
+"back"
+],
+[
+"e8",
+"n4",
+"n8",
+"false",
+"false"
+],
+[
+"e9",
+"n8",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 88,
+"line_start": 88
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"String mostExpensive = null",
+{
+"code_snippet": "String mostExpensive = null",
+"line_end": 89,
+"line_start": 89
+}
+],
+[
+"n3",
+"statement",
+"double maxPrice = -1",
+{
+"code_snippet": "double maxPrice = -1",
+"line_end": 90,
+"line_start": 90
+}
+],
+[
+"n4",
+"loop",
+"for (Map.Entry<String, Double> entry : prices.entrySet())",
+{
+"code_snippet": "for (Map.Entry<String, Double> entry : prices.entrySet())",
+"line_end": 91,
+"line_start": 91
+}
+],
+[
+"n5",
+"condition",
+"if (entry.getValue() > maxPrice)",
+{
+"code_snippet": "if (entry.getValue() > maxPrice)",
+"line_end": 92,
+"line_start": 92
+}
+],
+[
+"n6",
+"statement",
+"maxPrice = entry.getValue()",
+{
+"code_snippet": "maxPrice = entry.getValue()",
+"line_end": 93,
+"line_start": 93
+}
+],
+[
+"n7",
+"statement",
+"mostExpensive = entry.getKey()",
+{
+"code_snippet": "mostExpensive = entry.getKey()",
+"line_end": 94,
+"line_start": 94
+}
+],
+[
+"n8",
+"return",
+"return mostExpensive",
+{
+"code_snippet": "return mostExpensive",
+"line_end": 97,
+"line_start": 97
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8"
+]
+},
+"Store:Store.getProductsByCategory:46": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n1",
+"normal",
+""
+],
+[
+"e4",
+"n3",
+"n5",
+"false",
+"false"
+],
+[
+"e5",
+"n5",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 46,
+"line_start": 46
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"List<String> products = inventory.get(category)",
+{
+"code_snippet": "List<String> products = inventory.get(category)",
+"line_end": 47,
+"line_start": 47
+}
+],
+[
+"n3",
+"condition",
+"if (products == null)",
+{
+"code_snippet": "if (products == null)",
+"line_end": 48,
+"line_start": 48
+}
+],
+[
+"n4",
+"return",
+"return Collections.emptyList()",
+{
+"code_snippet": "return Collections.emptyList()",
+"line_end": 49,
+"line_start": 49
+}
+],
+[
+"n5",
+"return",
+"return Collections.unmodifiableList(products)",
+{
+"code_snippet": "return Collections.unmodifiableList(products)",
+"line_end": 51,
+"line_start": 51
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5"
+]
+},
+"Store:Store.logTransaction:101": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 101,
+"line_start": 101
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"String timestamp = new java.text.SimpleDateFormat(\"yyyy-MM-d",
+{
+"code_snippet": "String timestamp = new java.text.SimpleDateFormat(\"yyyy-MM-dd HH:mm:ss\").format(new Date())",
+"line_end": 102,
+"line_start": 102
+}
+],
+[
+"n3",
+"statement",
+"String logEntry = \"[\" + timestamp + \"] \" + message",
+{
+"code_snippet": "String logEntry = \"[\" + timestamp + \"] \" + message",
+"line_end": 103,
+"line_start": 103
+}
+],
+[
+"n4",
+"statement",
+"transactionLog.add(logEntry)",
+{
+"code_snippet": "transactionLog.add(logEntry)",
+"line_end": 104,
+"line_start": 104
+}
+],
+[
+"n5",
+"statement",
+"System.out.println(\"LOG: \" + logEntry)",
+{
+"code_snippet": "System.out.println(\"LOG: \" + logEntry)",
+"line_end": 105,
+"line_start": 105
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5"
+]
+},
+"Store:Store.main:137": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n6",
+"normal",
+""
+],
+[
+"e5",
+"n6",
+"n7",
+"normal",
+""
+],
+[
+"e6",
+"n7",
+"n8",
+"normal",
+""
+],
+[
+"e7",
+"n8",
+"n9",
+"normal",
+""
+],
+[
+"e8",
+"n9",
+"n10",
+"normal",
+""
+],
+[
+"e9",
+"n10",
+"n11",
+"normal",
+""
+],
+[
+"e10",
+"n11",
+"n12",
+"normal",
+""
+],
+[
+"e11",
+"n12",
+"n13",
+"normal",
+""
+],
+[
+"e12",
+"n13",
+"n14",
+"normal",
+""
+],
+[
+"e13",
+"n14",
+"n15",
+"normal",
+""
+],
+[
+"e14",
+"n14",
+"n16",
+"exception",
+"exception"
+],
+[
+"e15",
+"n16",
+"n17",
+"normal",
+""
+],
+[
+"e16",
+"n15",
+"n18",
+"normal",
+""
+],
+[
+"e17",
+"n17",
+"n18",
+"normal",
+""
+],
+[
+"e18",
+"n18",
+"n19",
+"normal",
+""
+],
+[
+"e19",
+"n19",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 137,
+"line_start": 137
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"Store store = new Store()",
+{
+"code_snippet": "Store store = new Store()",
+"line_end": 138,
+"line_start": 138
+}
+],
+[
+"n3",
+"statement",
+"store.addProduct(\"Fruits\", \"Apple\", 1.50)",
+{
+"code_snippet": "store.addProduct(\"Fruits\", \"Apple\", 1.50)",
+"line_end": 140,
+"line_start": 140
+}
+],
+[
+"n4",
+"statement",
+"store.addProduct(\"Fruits\", \"Banana\", 0.75)",
+{
+"code_snippet": "store.addProduct(\"Fruits\", \"Banana\", 0.75)",
+"line_end": 141,
+"line_start": 141
+}
+],
+[
+"n5",
+"statement",
+"store.addProduct(\"Dairy\", \"Milk\", 2.99)",
+{
+"code_snippet": "store.addProduct(\"Dairy\", \"Milk\", 2.99)",
+"line_end": 142,
+"line_start": 142
+}
+],
+[
+"n6",
+"statement",
+"store.addProduct(\"Dairy\", \"Cheese\", 5.49)",
+{
+"code_snippet": "store.addProduct(\"Dairy\", \"Cheese\", 5.49)",
+"line_end": 143,
+"line_start": 143
+}
+],
+[
+"n7",
+"statement",
+"store.addProduct(\"Bakery\", \"Bread\", 3.25)",
+{
+"code_snippet": "store.addProduct(\"Bakery\", \"Bread\", 3.25)",
+"line_end": 144,
+"line_start": 144
+}
+],
+[
+"n8",
+"statement",
+"store.printInventoryReport()",
+{
+"code_snippet": "store.printInventoryReport()",
+"line_end": 146,
+"line_start": 146
+}
+],
+[
+"n9",
+"statement",
+"store.applyDiscount(\"Apple\", 20)",
+{
+"code_snippet": "store.applyDiscount(\"Apple\", 20)",
+"line_end": 148,
+"line_start": 148
+}
+],
+[
+"n10",
+"statement",
+"store.applyDiscount(\"Cheese\", 10)",
+{
+"code_snippet": "store.applyDiscount(\"Cheese\", 10)",
+"line_end": 149,
+"line_start": 149
+}
+],
+[
+"n11",
+"statement",
+"System.out.println(\"\\nMost expensive: \" + store.getMostExpen",
+{
+"code_snippet": "System.out.println(\"\\nMost expensive: \" + store.getMostExpensive())",
+"line_end": 151,
+"line_start": 151
+}
+],
+[
+"n12",
+"statement",
+"String category = store.findProductCategory(\"Milk\")",
+{
+"code_snippet": "String category = store.findProductCategory(\"Milk\")",
+"line_end": 153,
+"line_start": 153
+}
+],
+[
+"n13",
+"statement",
+"System.out.println(\"Milk is in: \" + category)",
+{
+"code_snippet": "System.out.println(\"Milk is in: \" + category)",
+"line_end": 154,
+"line_start": 154
+}
+],
+[
+"n14",
+"try",
+"try",
+{
+"code_snippet": "try",
+"line_end": 156,
+"line_start": 156
+}
+],
+[
+"n15",
+"statement",
+"store.removeProduct(\"NonExistent\")",
+{
+"code_snippet": "store.removeProduct(\"NonExistent\")",
+"line_end": 157,
+"line_start": 157
+}
+],
+[
+"n16",
+"catch",
+"catch (IllegalArgumentException e)",
+{
+"code_snippet": "catch (IllegalArgumentException e)",
+"line_end": 156,
+"line_start": 156
+}
+],
+[
+"n17",
+"statement",
+"System.out.println(\"Caught: \" + e.getMessage())",
+{
+"code_snippet": "System.out.println(\"Caught: \" + e.getMessage())",
+"line_end": 159,
+"line_start": 159
+}
+],
+[
+"n18",
+"statement",
+"store.printInventoryReport()",
+{
+"code_snippet": "store.printInventoryReport()",
+"line_end": 162,
+"line_start": 162
+}
+],
+[
+"n19",
+"statement",
+"store.printTransactionLog()",
+{
+"code_snippet": "store.printTransactionLog()",
+"line_end": 163,
+"line_start": 163
+}
+]
+],
+"stmt_of": [
+"n10",
+"n11",
+"n12",
+"n13",
+"n14",
+"n15",
+"n16",
+"n17",
+"n18",
+"n19",
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8",
+"n9"
+]
+},
+"Store:Store.printInventoryReport:67": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n6",
+"true",
+"true"
+],
+[
+"e5",
+"n6",
+"n7",
+"normal",
+""
+],
+[
+"e6",
+"n7",
+"n8",
+"true",
+"true"
+],
+[
+"e7",
+"n8",
+"n9",
+"normal",
+""
+],
+[
+"e8",
+"n9",
+"n10",
+"normal",
+""
+],
+[
+"e9",
+"n10",
+"n11",
+"normal",
+""
+],
+[
+"e10",
+"n11",
+"n7",
+"back",
+"back"
+],
+[
+"e11",
+"n7",
+"n5",
+"back",
+"back"
+],
+[
+"e12",
+"n5",
+"n12",
+"false",
+"false"
+],
+[
+"e13",
+"n12",
+"n13",
+"normal",
+""
+],
+[
+"e14",
+"n13",
+"n14",
+"normal",
+""
+],
+[
+"e15",
+"n14",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 67,
+"line_start": 67
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"System.out.println(\"=== Inventory Report ===\")",
+{
+"code_snippet": "System.out.println(\"=== Inventory Report ===\")",
+"line_end": 68,
+"line_start": 68
+}
+],
+[
+"n3",
+"statement",
+"double totalValue = 0",
+{
+"code_snippet": "double totalValue = 0",
+"line_end": 69,
+"line_start": 69
+}
+],
+[
+"n4",
+"statement",
+"int totalItems = 0",
+{
+"code_snippet": "int totalItems = 0",
+"line_end": 70,
+"line_start": 70
+}
+],
+[
+"n5",
+"loop",
+"for (Map.Entry<String, List<String>> entry : inventory.entrySet())",
+{
+"code_snippet": "for (Map.Entry<String, List<String>> entry : inventory.entrySet())",
+"line_end": 72,
+"line_start": 72
+}
+],
+[
+"n6",
+"statement",
+"System.out.println(\"Category: \" + entry.getKey())",
+{
+"code_snippet": "System.out.println(\"Category: \" + entry.getKey())",
+"line_end": 73,
+"line_start": 73
+}
+],
+[
+"n7",
+"loop",
+"for (String product : entry.getValue())",
+{
+"code_snippet": "for (String product : entry.getValue())",
+"line_end": 74,
+"line_start": 74
+}
+],
+[
+"n8",
+"statement",
+"double price = prices.getOrDefault(product, 0.0)",
+{
+"code_snippet": "double price = prices.getOrDefault(product, 0.0)",
+"line_end": 75,
+"line_start": 75
+}
+],
+[
+"n9",
+"statement",
+"System.out.println(\"  - \" + product + \": $\" + String.format(",
+{
+"code_snippet": "System.out.println(\"  - \" + product + \": $\" + String.format(\"%.2f\", price))",
+"line_end": 76,
+"line_start": 76
+}
+],
+[
+"n10",
+"statement",
+"totalValue += price",
+{
+"code_snippet": "totalValue += price",
+"line_end": 77,
+"line_start": 77
+}
+],
+[
+"n11",
+"statement",
+"totalItems++",
+{
+"code_snippet": "totalItems++",
+"line_end": 78,
+"line_start": 78
+}
+],
+[
+"n12",
+"statement",
+"System.out.println(\"---\")",
+{
+"code_snippet": "System.out.println(\"---\")",
+"line_end": 82,
+"line_start": 82
+}
+],
+[
+"n13",
+"statement",
+"System.out.println(\"Total items: \" + totalItems)",
+{
+"code_snippet": "System.out.println(\"Total items: \" + totalItems)",
+"line_end": 83,
+"line_start": 83
+}
+],
+[
+"n14",
+"statement",
+"System.out.println(\"Total value: $\" + String.format(\"%.2f\", ",
+{
+"code_snippet": "System.out.println(\"Total value: $\" + String.format(\"%.2f\", totalValue))",
+"line_end": 84,
+"line_start": 84
+}
+]
+],
+"stmt_of": [
+"n10",
+"n11",
+"n12",
+"n13",
+"n14",
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8",
+"n9"
+]
+},
+"Store:Store.printTransactionLog:109": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n3",
+"back",
+"back"
+],
+[
+"e4",
+"n3",
+"n1",
+"false",
+"false"
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 109,
+"line_start": 109
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"System.out.println(\"=== Transaction Log ===\")",
+{
+"code_snippet": "System.out.println(\"=== Transaction Log ===\")",
+"line_end": 110,
+"line_start": 110
+}
+],
+[
+"n3",
+"loop",
+"for (String log : transactionLog)",
+{
+"code_snippet": "for (String log : transactionLog)",
+"line_end": 111,
+"line_start": 111
+}
+],
+[
+"n4",
+"statement",
+"System.out.println(log)",
+{
+"code_snippet": "System.out.println(log)",
+"line_end": 112,
+"line_start": 112
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4"
+]
+},
+"Store:Store.removeProduct:30": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e4",
+"n5",
+"n6",
+"normal",
+""
+],
+[
+"e5",
+"n4",
+"n3",
+"back",
+"back"
+],
+[
+"e6",
+"n3",
+"n7",
+"false",
+"false"
+],
+[
+"e7",
+"n6",
+"n7",
+"normal",
+""
+],
+[
+"e8",
+"n7",
+"n8",
+"true",
+"true"
+],
+[
+"e9",
+"n8",
+"n1",
+"exception",
+"throws"
+],
+[
+"e10",
+"n7",
+"n9",
+"false",
+"false"
+],
+[
+"e11",
+"n9",
+"n10",
+"normal",
+""
+],
+[
+"e12",
+"n10",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 30,
+"line_start": 30
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"boolean found = false",
+{
+"code_snippet": "boolean found = false",
+"line_end": 31,
+"line_start": 31
+}
+],
+[
+"n3",
+"loop",
+"for (Map.Entry<String, List<String>> entry : inventory.entrySet())",
+{
+"code_snippet": "for (Map.Entry<String, List<String>> entry : inventory.entrySet())",
+"line_end": 32,
+"line_start": 32
+}
+],
+[
+"n4",
+"condition",
+"if (entry.getValue().remove(product))",
+{
+"code_snippet": "if (entry.getValue().remove(product))",
+"line_end": 33,
+"line_start": 33
+}
+],
+[
+"n5",
+"statement",
+"found = true",
+{
+"code_snippet": "found = true",
+"line_end": 34,
+"line_start": 34
+}
+],
+[
+"n6",
+"statement",
+"break",
+{
+"code_snippet": "break",
+"line_end": 35,
+"line_start": 35
+}
+],
+[
+"n7",
+"condition",
+"if (!found)",
+{
+"code_snippet": "if (!found)",
+"line_end": 38,
+"line_start": 38
+}
+],
+[
+"n8",
+"throw",
+"throw new IllegalArgumentException(\"Product not found: \" + p",
+{
+"code_snippet": "throw new IllegalArgumentException(\"Product not found: \" + product)",
+"line_end": 39,
+"line_start": 39
+}
+],
+[
+"n9",
+"statement",
+"prices.remove(product)",
+{
+"code_snippet": "prices.remove(product)",
+"line_end": 41,
+"line_start": 41
+}
+],
+[
+"n10",
+"statement",
+"logTransaction(\"Removed: \" + product)",
+{
+"code_snippet": "logTransaction(\"Removed: \" + product)",
+"line_end": 42,
+"line_start": 42
+}
+]
+],
+"stmt_of": [
+"n10",
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8",
+"n9"
+]
+},
+"Streams:Item.getCategory:26": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 26,
+"line_start": 26
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"return",
+"return category",
+{
+"code_snippet": "return category",
+"line_end": 26,
+"line_start": 26
+}
+]
+],
+"stmt_of": [
+"n2"
+]
+},
+"Streams:Item.getName:25": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 25,
+"line_start": 25
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"return",
+"return name",
+{
+"code_snippet": "return name",
+"line_end": 25,
+"line_start": 25
+}
+]
+],
+"stmt_of": [
+"n2"
+]
+},
+"Streams:Item.getPrice:27": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 27,
+"line_start": 27
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"return",
+"return price",
+{
+"code_snippet": "return price",
+"line_end": 27,
+"line_start": 27
+}
+]
+],
+"stmt_of": [
+"n2"
+]
+},
+"Streams:Order.getItems:39": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 39,
+"line_start": 39
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"return",
+"return items",
+{
+"code_snippet": "return items",
+"line_end": 39,
+"line_start": 39
+}
+]
+],
+"stmt_of": [
+"n2"
+]
+},
+"Streams:Order.total:40": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 40,
+"line_start": 40
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"stream-source",
+"return items.stream()",
+{
+"code_snippet": "return items.stream()",
+"line_end": 40,
+"line_start": 40
+}
+],
+[
+"n3",
+"stream-op",
+"mapToInt(Item::getPrice)",
+{
+"code_snippet": "mapToInt(Item::getPrice)",
+"line_end": 40,
+"line_start": 40
+}
+],
+[
+"n4",
+"stream-terminal",
+"sum()",
+{
+"code_snippet": "sum()",
+"line_end": 40,
+"line_start": 40
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4"
+]
+},
+"Streams:Streams.allItems:74": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 74,
+"line_start": 74
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"stream-source",
+"return orders.stream()",
+{
+"code_snippet": "return orders.stream()",
+"line_end": 75,
+"line_start": 75
+}
+],
+[
+"n3",
+"stream-op",
+"flatMap((o) -> o.getItems().stream())",
+{
+"code_snippet": "flatMap((o) -> o.getItems().stream())",
+"line_end": 76,
+"line_start": 76
+}
+],
+[
+"n4",
+"stream-terminal",
+"collect(Collectors.toList())",
+{
+"code_snippet": "collect(Collectors.toList())",
+"line_end": 77,
+"line_start": 77
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4"
+]
+},
+"Streams:Streams.buildOrders:43": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n6",
+"normal",
+""
+],
+[
+"e5",
+"n6",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 43,
+"line_start": 43
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"List<Order> orders = new ArrayList<>()",
+{
+"code_snippet": "List<Order> orders = new ArrayList<>()",
+"line_end": 44,
+"line_start": 44
+}
+],
+[
+"n3",
+"statement",
+"orders.add(new Order(1, Arrays.asList(new Item(\"pen\", \"offic",
+{
+"code_snippet": "orders.add(new Order(1, Arrays.asList(new Item(\"pen\", \"office\", 3), new Item(\"book\", \"paper\", 12))))",
+"line_end": 45,
+"line_start": 45
+}
+],
+[
+"n4",
+"statement",
+"orders.add(new Order(2, Arrays.asList(new Item(\"laptop\", \"te",
+{
+"code_snippet": "orders.add(new Order(2, Arrays.asList(new Item(\"laptop\", \"tech\", 900), new Item(\"mouse\", \"tech\", 25))))",
+"line_end": 46,
+"line_start": 46
+}
+],
+[
+"n5",
+"statement",
+"orders.add(new Order(3, Arrays.asList(new Item(\"notebook\", \"",
+{
+"code_snippet": "orders.add(new Order(3, Arrays.asList(new Item(\"notebook\", \"paper\", 5), new Item(\"pen\", \"office\", 3))))",
+"line_end": 47,
+"line_start": 47
+}
+],
+[
+"n6",
+"return",
+"return orders",
+{
+"code_snippet": "return orders",
+"line_end": 48,
+"line_start": 48
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6"
+]
+},
+"Streams:Streams.cheapest:110": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 110,
+"line_start": 110
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"stream-source",
+"return items.stream()",
+{
+"code_snippet": "return items.stream()",
+"line_end": 111,
+"line_start": 111
+}
+],
+[
+"n3",
+"stream-op",
+"sorted(Comparator.comparingInt(Item::getPrice))",
+{
+"code_snippet": "sorted(Comparator.comparingInt(Item::getPrice))",
+"line_end": 111,
+"line_start": 111
+}
+],
+[
+"n4",
+"stream-terminal",
+"findFirst()",
+{
+"code_snippet": "findFirst()",
+"line_end": 111,
+"line_start": 111
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4"
+]
+},
+"Streams:Streams.cheapestFirst:60": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 60,
+"line_start": 60
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"stream-source",
+"List<Item> sorted = items.stream()",
+{
+"code_snippet": "List<Item> sorted = items.stream()",
+"line_end": 61,
+"line_start": 61
+}
+],
+[
+"n3",
+"stream-op",
+"sorted(Comparator.comparingInt(Item::getPrice))",
+{
+"code_snippet": "sorted(Comparator.comparingInt(Item::getPrice))",
+"line_end": 62,
+"line_start": 62
+}
+],
+[
+"n4",
+"stream-terminal",
+"collect(Collectors.toList())",
+{
+"code_snippet": "collect(Collectors.toList())",
+"line_end": 63,
+"line_start": 63
+}
+],
+[
+"n5",
+"return",
+"return sorted",
+{
+"code_snippet": "return sorted",
+"line_end": 64,
+"line_start": 64
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5"
+]
+},
+"Streams:Streams.countCheaper:88": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n6",
+"normal",
+""
+],
+[
+"e5",
+"n6",
+"n7",
+"normal",
+""
+],
+[
+"e6",
+"n7",
+"n3",
+"back",
+"back"
+],
+[
+"e7",
+"n3",
+"n8",
+"false",
+"false"
+],
+[
+"e8",
+"n8",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 88,
+"line_start": 88
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"int pairs = 0",
+{
+"code_snippet": "int pairs = 0",
+"line_end": 89,
+"line_start": 89
+}
+],
+[
+"n3",
+"loop",
+"for (Item a : items)",
+{
+"code_snippet": "for (Item a : items)",
+"line_end": 90,
+"line_start": 90
+}
+],
+[
+"n4",
+"stream-source",
+"long cheaper = items.stream()",
+{
+"code_snippet": "long cheaper = items.stream()",
+"line_end": 91,
+"line_start": 91
+}
+],
+[
+"n5",
+"stream-op",
+"filter((b) -> b.getPrice() < a.getPrice())",
+{
+"code_snippet": "filter((b) -> b.getPrice() < a.getPrice())",
+"line_end": 91,
+"line_start": 91
+}
+],
+[
+"n6",
+"stream-terminal",
+"count()",
+{
+"code_snippet": "count()",
+"line_end": 91,
+"line_start": 91
+}
+],
+[
+"n7",
+"statement",
+"pairs += (int) cheaper",
+{
+"code_snippet": "pairs += (int) cheaper",
+"line_end": 92,
+"line_start": 92
+}
+],
+[
+"n8",
+"return",
+"return pairs",
+{
+"code_snippet": "return pairs",
+"line_end": 94,
+"line_start": 94
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8"
+]
+},
+"Streams:Streams.countPaper:98": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 98,
+"line_start": 98
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"stream-source",
+"int n = items.stream()",
+{
+"code_snippet": "int n = items.stream()",
+"line_end": 99,
+"line_start": 99
+}
+],
+[
+"n3",
+"stream-op",
+"filter((i) -> i.getCategory().equals(\"paper\"))",
+{
+"code_snippet": "filter((i) -> i.getCategory().equals(\"paper\"))",
+"line_end": 99,
+"line_start": 99
+}
+],
+[
+"n4",
+"stream-terminal",
+"collect(Collectors.toList()).size()",
+{
+"code_snippet": "collect(Collectors.toList()).size()",
+"line_end": 99,
+"line_start": 99
+}
+],
+[
+"n5",
+"return",
+"return n",
+{
+"code_snippet": "return n",
+"line_end": 100,
+"line_start": 100
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5"
+]
+},
+"Streams:Streams.expensiveNames:53": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 53,
+"line_start": 53
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"stream-source",
+"return items.stream()",
+{
+"code_snippet": "return items.stream()",
+"line_end": 54,
+"line_start": 54
+}
+],
+[
+"n3",
+"stream-op",
+"filter((i) -> i.getPrice() > limit)",
+{
+"code_snippet": "filter((i) -> i.getPrice() > limit)",
+"line_end": 55,
+"line_start": 55
+}
+],
+[
+"n4",
+"stream-op",
+"map(Item::getName)",
+{
+"code_snippet": "map(Item::getName)",
+"line_end": 56,
+"line_start": 56
+}
+],
+[
+"n5",
+"stream-terminal",
+"collect(Collectors.toList())",
+{
+"code_snippet": "collect(Collectors.toList())",
+"line_end": 57,
+"line_start": 57
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5"
+]
+},
+"Streams:Streams.hasTech:104": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 104,
+"line_start": 104
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"stream-source",
+"boolean found = items.stream()",
+{
+"code_snippet": "boolean found = items.stream()",
+"line_end": 105,
+"line_start": 105
+}
+],
+[
+"n3",
+"stream-op",
+"filter((i) -> i.getCategory().equals(\"tech\"))",
+{
+"code_snippet": "filter((i) -> i.getCategory().equals(\"tech\"))",
+"line_end": 105,
+"line_start": 105
+}
+],
+[
+"n4",
+"stream-terminal",
+"findFirst().isPresent()",
+{
+"code_snippet": "findFirst().isPresent()",
+"line_end": 105,
+"line_start": 105
+}
+],
+[
+"n5",
+"return",
+"return found",
+{
+"code_snippet": "return found",
+"line_end": 106,
+"line_start": 106
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5"
+]
+},
+"Streams:Streams.main:132": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n6",
+"normal",
+""
+],
+[
+"e5",
+"n6",
+"n7",
+"normal",
+""
+],
+[
+"e6",
+"n7",
+"n8",
+"normal",
+""
+],
+[
+"e7",
+"n8",
+"n9",
+"normal",
+""
+],
+[
+"e8",
+"n9",
+"n10",
+"normal",
+""
+],
+[
+"e9",
+"n10",
+"n11",
+"normal",
+""
+],
+[
+"e10",
+"n11",
+"n12",
+"normal",
+""
+],
+[
+"e11",
+"n12",
+"n13",
+"normal",
+""
+],
+[
+"e12",
+"n13",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 132,
+"line_start": 132
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"List<Order> orders = buildOrders()",
+{
+"code_snippet": "List<Order> orders = buildOrders()",
+"line_end": 133,
+"line_start": 133
+}
+],
+[
+"n3",
+"statement",
+"List<Item> items = allItems(orders)",
+{
+"code_snippet": "List<Item> items = allItems(orders)",
+"line_end": 134,
+"line_start": 134
+}
+],
+[
+"n4",
+"statement",
+"System.out.println(\"expensive: \" + expensiveNames(items, 10)",
+{
+"code_snippet": "System.out.println(\"expensive: \" + expensiveNames(items, 10))",
+"line_end": 135,
+"line_start": 135
+}
+],
+[
+"n5",
+"statement",
+"System.out.println(\"by price: \" + cheapestFirst(items).strea",
+{
+"code_snippet": "System.out.println(\"by price: \" + cheapestFirst(items).stream().map(Item::getName).collect(Collectors.toList()))",
+"line_end": 136,
+"line_start": 136
+}
+],
+[
+"n6",
+"statement",
+"System.out.println(\"by category: \" + namesByCategory(items))",
+{
+"code_snippet": "System.out.println(\"by category: \" + namesByCategory(items))",
+"line_end": 137,
+"line_start": 137
+}
+],
+[
+"n7",
+"statement",
+"System.out.println(\"revenue: \" + totalRevenue(orders))",
+{
+"code_snippet": "System.out.println(\"revenue: \" + totalRevenue(orders))",
+"line_end": 138,
+"line_start": 138
+}
+],
+[
+"n8",
+"statement",
+"System.out.println(\"cheaper pairs: \" + countCheaper(items))",
+{
+"code_snippet": "System.out.println(\"cheaper pairs: \" + countCheaper(items))",
+"line_end": 139,
+"line_start": 139
+}
+],
+[
+"n9",
+"statement",
+"System.out.println(\"paper: \" + countPaper(items))",
+{
+"code_snippet": "System.out.println(\"paper: \" + countPaper(items))",
+"line_end": 140,
+"line_start": 140
+}
+],
+[
+"n10",
+"statement",
+"System.out.println(\"has tech: \" + hasTech(items))",
+{
+"code_snippet": "System.out.println(\"has tech: \" + hasTech(items))",
+"line_end": 141,
+"line_start": 141
+}
+],
+[
+"n11",
+"statement",
+"System.out.println(\"cheapest: \" + cheapest(items).get().getN",
+{
+"code_snippet": "System.out.println(\"cheapest: \" + cheapest(items).get().getName())",
+"line_end": 142,
+"line_start": 142
+}
+],
+[
+"n12",
+"statement",
+"System.out.println(\"upper: \" + upperNames(items))",
+{
+"code_snippet": "System.out.println(\"upper: \" + upperNames(items))",
+"line_end": 143,
+"line_start": 143
+}
+],
+[
+"n13",
+"statement",
+"System.out.println(\"paper names: \" + paperNames(items))",
+{
+"code_snippet": "System.out.println(\"paper names: \" + paperNames(items))",
+"line_end": 144,
+"line_start": 144
+}
+]
+],
+"stmt_of": [
+"n10",
+"n11",
+"n12",
+"n13",
+"n2",
+"n3",
+"n4",
+"n5",
+"n6",
+"n7",
+"n8",
+"n9"
+]
+},
+"Streams:Streams.namesByCategory:67": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 67,
+"line_start": 67
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"stream-source",
+"Map<String, List<String>> result = items.stream()",
+{
+"code_snippet": "Map<String, List<String>> result = items.stream()",
+"line_end": 68,
+"line_start": 68
+}
+],
+[
+"n3",
+"stream-terminal",
+"collect(Collectors.groupingBy(Item::getCategory, TreeMap::new, Collectors.mapping(Item::getName, Collectors.toList())))",
+{
+"code_snippet": "collect(Collectors.groupingBy(Item::getCategory, TreeMap::new, Collectors.mapping(Item::getName, Collectors.toList())))",
+"line_end": 69,
+"line_start": 69
+}
+],
+[
+"n4",
+"return",
+"return result",
+{
+"code_snippet": "return result",
+"line_end": 71,
+"line_start": 71
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4"
+]
+},
+"Streams:Streams.paperNames:122": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"true",
+"true"
+],
+[
+"e3",
+"n4",
+"n5",
+"true",
+"true"
+],
+[
+"e4",
+"n5",
+"n3",
+"back",
+"back"
+],
+[
+"e5",
+"n4",
+"n3",
+"back",
+"back"
+],
+[
+"e6",
+"n3",
+"n6",
+"false",
+"false"
+],
+[
+"e7",
+"n6",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 122,
+"line_start": 122
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"List<String> names = new ArrayList<>()",
+{
+"code_snippet": "List<String> names = new ArrayList<>()",
+"line_end": 123,
+"line_start": 123
+}
+],
+[
+"n3",
+"loop",
+"for (Item it : items)",
+{
+"code_snippet": "for (Item it : items)",
+"line_end": 124,
+"line_start": 124
+}
+],
+[
+"n4",
+"condition",
+"if (it.getCategory().equals(\"paper\"))",
+{
+"code_snippet": "if (it.getCategory().equals(\"paper\"))",
+"line_end": 125,
+"line_start": 125
+}
+],
+[
+"n5",
+"statement",
+"names.add(it.getName())",
+{
+"code_snippet": "names.add(it.getName())",
+"line_end": 126,
+"line_start": 126
+}
+],
+[
+"n6",
+"return",
+"return names",
+{
+"code_snippet": "return names",
+"line_end": 129,
+"line_start": 129
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6"
+]
+},
+"Streams:Streams.totalRevenue:80": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 80,
+"line_start": 80
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"stream-source",
+"int sum = orders.stream()",
+{
+"code_snippet": "int sum = orders.stream()",
+"line_end": 81,
+"line_start": 81
+}
+],
+[
+"n3",
+"stream-op",
+"mapToInt(Order::total)",
+{
+"code_snippet": "mapToInt(Order::total)",
+"line_end": 81,
+"line_start": 81
+}
+],
+[
+"n4",
+"stream-terminal",
+"sum()",
+{
+"code_snippet": "sum()",
+"line_end": 81,
+"line_start": 81
+}
+],
+[
+"n5",
+"return",
+"return sum",
+{
+"code_snippet": "return sum",
+"line_end": 82,
+"line_start": 82
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5"
+]
+},
+"Streams:Streams.upperNames:115": {
+"edges": [
+[
+"e0",
+"n0",
+"n2",
+"normal",
+""
+],
+[
+"e1",
+"n2",
+"n3",
+"normal",
+""
+],
+[
+"e2",
+"n3",
+"n4",
+"normal",
+""
+],
+[
+"e3",
+"n4",
+"n5",
+"normal",
+""
+],
+[
+"e4",
+"n5",
+"n6",
+"normal",
+""
+],
+[
+"e5",
+"n6",
+"n1",
+"normal",
+""
+]
+],
+"nodes": [
+[
+"n0",
+"start",
+"START",
+{
+"code_snippet": "START",
+"line_end": 115,
+"line_start": 115
+}
+],
+[
+"n1",
+"end",
+"END",
+{
+"code_snippet": "END",
+"line_end": null,
+"line_start": null
+}
+],
+[
+"n2",
+"statement",
+"List<String> out = new ArrayList<>()",
+{
+"code_snippet": "List<String> out = new ArrayList<>()",
+"line_end": 116,
+"line_start": 116
+}
+],
+[
+"n3",
+"stream-source",
+"items.stream()",
+{
+"code_snippet": "items.stream()",
+"line_end": 117,
+"line_start": 117
+}
+],
+[
+"n4",
+"stream-op",
+"map(Item::getName)",
+{
+"code_snippet": "map(Item::getName)",
+"line_end": 117,
+"line_start": 117
+}
+],
+[
+"n5",
+"stream-terminal",
+"forEach((n) -> out.add(n.toUpperCase()))",
+{
+"code_snippet": "forEach((n) -> out.add(n.toUpperCase()))",
+"line_end": 117,
+"line_start": 117
+}
+],
+[
+"n6",
+"return",
+"return out",
+{
+"code_snippet": "return out",
+"line_end": 118,
+"line_start": 118
+}
+]
+],
+"stmt_of": [
+"n2",
+"n3",
+"n4",
+"n5",
+"n6"
+]
+}
+}

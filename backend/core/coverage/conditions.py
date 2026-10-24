@@ -83,9 +83,16 @@ def _is_group(tokens: list, a: int, b: int) -> bool:
     return True
 
 
+def _is_wildcard(tokens: list, i: int, b: int) -> bool:
+    """`?` at i is a generic wildcard (List<?>, <? extends T>), not a ternary."""
+    return (_v(tokens, i) == "?" and i + 1 < b
+            and _v(tokens, i + 1) in ("extends", "super", ">", ","))
+
+
 def parse_condition(tokens: list, a: int, b: int) -> Cond:
     # ternary / lambda / assignment bind looser than || and &&: keep as one leaf
-    if any(v in _LOOSE for _, v in _top_level(tokens, a, b)):
+    if any(v in _LOOSE and not _is_wildcard(tokens, i, b)
+           for i, v in _top_level(tokens, a, b)):
         return Cond("leaf", a, b)
     for op, kind in (("||", "or"), ("&&", "and")):
         parts = _split(tokens, a, b, op)
@@ -141,7 +148,7 @@ def ternary_conditions(tokens: list, a: int, b: int) -> list[tuple[int, int]]:
     for i in range(a, b):
         if _v(tokens, i) != "?":
             continue
-        if i + 1 < b and _v(tokens, i + 1) in ("extends", "super", ">", ","):
+        if _is_wildcard(tokens, i, b):
             continue
         depth, start = 0, a
         for j in range(i - 1, a - 1, -1):

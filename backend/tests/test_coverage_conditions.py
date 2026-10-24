@@ -82,3 +82,9 @@ def test_loose_operators_make_single_leaf():
     for s in ("a ? b || c : d", "p || q ? r : s", "x = a || b"):
         t, c = parse(s)
         assert c.kind == "leaf" and not has_logic(c), s
+
+
+def test_wildcard_is_not_ternary():
+    t, c = parse("x instanceof List<?> && flag")
+    assert c.kind == "and"
+    assert [text(t, l) for l in leaves(c)] == ["x instanceof List < ? >", "flag"]

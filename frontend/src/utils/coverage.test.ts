@@ -65,4 +65,14 @@ describe('coverage', () => {
     expect(st.get(4)!.missing).toContain('x > 0 → ложь');
     expect(st.get(9)).toEqual({ state: 'miss', count: 0, missing: [] });
   });
+  it('merges overloads under one method', () => {
+    const ov: Probe[] = [
+      { id: 0, kind: 'method', line: 2, method: 'Demo.f', label: 'Demo.f', outcomes: ['выполнено'], slot: 0 },
+      { id: 1, kind: 'method', line: 6, method: 'Demo.f', label: 'Demo.f', outcomes: ['выполнено'], slot: 1 },
+    ];
+    const s = summarize(mergeCoverage(undefined, 'A', ov, [1, 0]));
+    expect(s.perMethod).toHaveLength(1);
+    expect(s.perMethod[0].called).toBe(true);
+    expect(s.methods).toEqual({ covered: 1, total: 1 });
+  });
 });

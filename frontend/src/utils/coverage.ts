@@ -39,12 +39,15 @@ const outcomesMetric = (c: Coverage, probes: Probe[], kind: ProbeKind): Metric =
 };
 
 export const summarize = (c: Coverage): CoverageSummary => {
-  const methodProbes = c.probes.filter((p) => p.kind === 'method');
-  const perMethod: MethodCoverage[] = methodProbes.map((mp) => {
-    const own = c.probes.filter((p) => p.method === mp.method);
+  const calledByMethod = new Map<string, boolean>();
+  for (const mp of c.probes) {
+    if (mp.kind === 'method') calledByMethod.set(mp.method, (calledByMethod.get(mp.method) ?? false) || count(c, mp, 0) > 0);
+  }
+  const perMethod: MethodCoverage[] = [...calledByMethod].map(([method, called]) => {
+    const own = c.probes.filter((p) => p.method === method);
     return {
-      method: mp.method,
-      called: count(c, mp, 0) > 0,
+      method,
+      called,
       lines: linesMetric(c, own),
       branches: outcomesMetric(c, own, 'branch'),
       conditions: outcomesMetric(c, own, 'cond'),

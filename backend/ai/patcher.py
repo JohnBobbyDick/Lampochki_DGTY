@@ -100,7 +100,7 @@ def replace_range(code: str, start: int, end: int, new: str, imports: list[str] 
     first = lines[start - 1]
     base = first[: len(first) - len(first.lstrip())]
     lines[start - 1:end] = reindent(new, base).split("\n")
-    return add_imports("\n".join(lines), imports or [])
+    return add_imports("\n".join(lines), imports or [], language)
 
 
 def _compile_errors(code: str, language: str | None = None) -> list[dict] | None:

@@ -35,3 +35,31 @@ def test_apply_rejects_python_syntax_error_by_language():
     patch = {"oldCode": "b = 2", "newCode": "b = (", "imports": [], "startLine": 2}
     r = TestClient(app).post("/api/ai/apply", json={"code": code, "patch": patch, "language": "python"})
     assert r.status_code == 200 and r.json()["ok"] is False
+
+
+_TRICKY = 'a = "System.out."\nb = 2\n'    # autodetect would call this Java
+
+
+def test_apply_adds_python_import_by_language():
+    patch = {"oldCode": "b = 2", "newCode": "b = math.pi", "imports": ["math"], "startLine": 2}
+    r = TestClient(app).post("/api/ai/apply", json={"code": _TRICKY, "patch": patch, "language": "python"})
+    out = r.json()
+    assert r.status_code == 200 and out["ok"] is True, out
+    assert "import math" in out["code"] and "import math;" not in out["code"]
+
+
+def test_bigo_combined_adds_python_import_by_language(monkeypatch):
+    from ai import bigo_diff, patcher
+    seen = {}
+    real = patcher.add_imports
+
+    def spy(code, imports, language=None):
+        out = real(code, imports, language)
+        seen["code"] = out[0]
+        return out
+
+    monkeypatch.setattr(patcher, "add_imports", spy)
+    patch = {"oldCode": "b = 2", "newCode": "b = math.pi", "imports": ["math"], "startLine": 2}
+    r = TestClient(app).post("/api/ai/bigo-combined", json={"code": _TRICKY, "patches": [patch], "language": "python"})
+    assert r.status_code == 200
+    assert "import math" in seen["code"] and "import math;" not in seen["code"]

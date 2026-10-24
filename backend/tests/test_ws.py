@@ -90,3 +90,37 @@ def test_stdin_limit_is_reported():
     msgs = _run_with_deadline(5)   # 1.25 MB > 1 MB
     assert msgs[-1]["type"] == "exit"
     assert sum(1 for m in msgs if m["type"] == "stderr" and LIMIT_MSG in m["data"]) == 1
+
+
+READ_ALL = "import sys\nprint(sys.stdin.read().replace(chr(10), '|'))\n"
+
+
+def _writers_alive() -> int:
+    import threading
+
+    return sum(1 for t in threading.enumerate() if t.name == "jb-stdin-writer" and t.is_alive())
+
+
+def test_eof_after_queued_input_ends_run_naturally():
+    with TestClient(app).websocket_connect("/api/ws/run") as ws:
+        ws.send_text(json.dumps({"type": "start", "code": READ_ALL, "language": "python"}))
+        ws.send_text(json.dumps({"type": "stdin", "data": "a\n"}))
+        ws.send_text(json.dumps({"type": "stdin", "data": "b\n"}))
+        ws.send_text(json.dumps({"type": "eof"}))
+        msgs = collect(ws)
+    assert "a|b|" in "".join(m.get("data", "") for m in msgs if m["type"] == "stdout"), msgs
+    assert msgs[-1]["code"] == 0
+
+
+def test_writer_thread_finishes_after_natural_exit():
+    import time
+
+    before = _writers_alive()
+    with TestClient(app).websocket_connect("/api/ws/run") as ws:
+        ws.send_text(json.dumps({"type": "start", "code": "print(1)\n", "language": "python"}))
+        ws.send_text(json.dumps({"type": "stdin", "data": "unused\n"}))
+        collect(ws)
+    deadline = time.monotonic() + 5
+    while _writers_alive() > before and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert _writers_alive() <= before

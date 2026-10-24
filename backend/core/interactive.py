@@ -95,7 +95,7 @@ class InteractiveProcess:
 
     def _ensure_writer(self) -> None:
         if self._writer is None and self.stdin:
-            self._writer = threading.Thread(target=self._write_loop, daemon=True)
+            self._writer = threading.Thread(target=self._write_loop, daemon=True, name="jb-stdin-writer")
             self._writer.start()
 
     def send(self, data: str) -> bool:
@@ -283,6 +283,7 @@ async def pump(proc: InteractiveProcess, emit: Emit) -> int:
     except (asyncio.TimeoutError, Exception):
         proc.kill()
 
+    proc.close_stdin()   # run is over: release the stdin writer thread
     return proc.popen.returncode if proc.popen.returncode is not None else -1
 
 

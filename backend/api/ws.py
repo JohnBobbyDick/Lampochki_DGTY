@@ -75,6 +75,8 @@ async def ws_run(ws: WebSocket) -> None:
     finally:
         if proc and proc.returncode is None:
             proc.kill()
+        if proc:
+            interactive.close_stdin(proc)   # idempotent: always release the writer thread
         if pump_task:
             await asyncio.gather(pump_task, return_exceptions=True)
         interactive.cleanup(tmp)

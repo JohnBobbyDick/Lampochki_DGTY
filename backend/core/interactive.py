@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import queue
 import shutil
 import subprocess
 import sys
@@ -20,6 +21,8 @@ from core.coverage.build import CovPlan
 Emit = Callable[[dict], Awaitable[None]]
 MAX_SESSION_SEC = 300
 MAX_OUT_BYTES = 1_000_000
+STDIN_LIMIT = 1_048_576   # total stdin bytes per run
+STDIN_LIMIT_MSG = "Слишком много ввода: лимит 1 МБ на запуск\n"
 
 
 def _prepare_docker(tmp: Path, fname: str, code: str) -> tuple[bool, CovPlan]:
@@ -68,6 +71,55 @@ class InteractiveProcess:
         self.popen = popen
         self.tmp = tmp
         self.stdin = popen.stdin
+        self._q: queue.Queue[bytes | None] = queue.Queue()
+        self._writer: threading.Thread | None = None
+        self._queued = 0
+        self._over = False
+
+    def _write_loop(self) -> None:
+        """Writer thread: blocking pipe writes happen here, never on the event loop."""
+        try:
+            while True:
+                item = self._q.get()
+                if item is None:
+                    break
+                self.stdin.write(item)
+                self.stdin.flush()
+        except (OSError, ValueError):
+            pass   # process died / pipe closed
+        finally:
+            try:
+                self.stdin.close()
+            except (OSError, ValueError):
+                pass
+
+    def _ensure_writer(self) -> None:
+        if self._writer is None and self.stdin:
+            self._writer = threading.Thread(target=self._write_loop, daemon=True)
+            self._writer.start()
+
+    def send(self, data: str) -> bool:
+        """Queue *data* for stdin.  False once the per-run cap is exceeded (this and later input is dropped)."""
+        if not self.stdin or self._over:
+            return not self._over
+        raw = data.encode("utf-8")
+        if self._queued + len(raw) > STDIN_LIMIT:
+            self._over = True
+            return False
+        self._queued += len(raw)
+        self._ensure_writer()
+        self._q.put(raw)
+        return True
+
+    def close_stdin(self) -> None:
+        """Close stdin after everything already queued has been written."""
+        if self._writer is not None:
+            self._q.put(None)
+        elif self.stdin:
+            try:
+                self.stdin.close()
+            except (OSError, ValueError):
+                pass
 
     @property
     def returncode(self) -> int | None:
@@ -78,6 +130,8 @@ class InteractiveProcess:
             self.popen.kill()
         except OSError:
             pass
+        if self._writer is not None:
+            self._q.put(None)   # unblock the writer if it is idle
 
 
 PY_COVERAGE_UNSUPPORTED = "Покрытие для Python пока не поддерживается"
@@ -232,13 +286,13 @@ async def pump(proc: InteractiveProcess, emit: Emit) -> int:
     return proc.popen.returncode if proc.popen.returncode is not None else -1
 
 
-async def feed(proc: InteractiveProcess, data: str) -> None:
-    if proc.stdin and not proc.stdin.closed:
-        try:
-            proc.stdin.write(data.encode("utf-8"))
-            proc.stdin.flush()
-        except (BrokenPipeError, ConnectionResetError, OSError):
-            pass
+async def feed(proc: InteractiveProcess, data: str) -> bool:
+    """Queue stdin data (non-blocking).  False when the per-run cap was exceeded."""
+    return proc.send(data)
+
+
+def close_stdin(proc: InteractiveProcess) -> None:
+    proc.close_stdin()
 
 
 def cleanup(tmp: Path | None) -> None:

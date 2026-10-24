@@ -53,3 +53,40 @@ def test_dev_origin_is_accepted():
     with TestClient(app).websocket_connect("/api/ws/run", headers={"origin": "http://localhost:3000"}) as ws:
         ws.send_text(json.dumps({"type": "start", "code": "public class B { int x = ; }"}))
         assert json.loads(ws.receive_text())["type"] == "compile_error"
+
+
+SLEEPER = "import time\ntime.sleep(60)\n"
+CHUNK = "x" * 262_144
+LIMIT_MSG = "Слишком много ввода: лимит 1 МБ на запуск"
+
+
+def _run_unread(chunks: int) -> list[dict]:
+    with TestClient(app).websocket_connect("/api/ws/run") as ws:
+        ws.send_text(json.dumps({"type": "start", "code": SLEEPER, "language": "python"}))
+        for _ in range(chunks):
+            ws.send_text(json.dumps({"type": "stdin", "data": CHUNK}))
+        ws.send_text(json.dumps({"type": "kill"}))
+        return collect(ws)
+
+
+def _run_with_deadline(chunks: int, seconds: float = 20.0) -> list[dict]:
+    import threading
+
+    box: list = []
+    t = threading.Thread(target=lambda: box.append(_run_unread(chunks)), daemon=True)
+    t.start()
+    t.join(seconds)
+    assert box, "сервер завис: exit не пришёл"
+    return box[0]
+
+
+def test_unread_stdin_does_not_block_stop():
+    msgs = _run_with_deadline(3)   # 768 KB: больше буфера канала, меньше лимита
+    assert msgs[-1]["type"] == "exit"
+    assert not any(LIMIT_MSG in m.get("data", "") for m in msgs)
+
+
+def test_stdin_limit_is_reported():
+    msgs = _run_with_deadline(5)   # 1.25 MB > 1 MB
+    assert msgs[-1]["type"] == "exit"
+    assert sum(1 for m in msgs if m["type"] == "stderr" and LIMIT_MSG in m["data"]) == 1

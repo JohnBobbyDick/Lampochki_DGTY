@@ -27,6 +27,7 @@ async def ws_run(ws: WebSocket) -> None:
     await ws.accept()
     proc = tmp = plan = pump_task = None
     started = 0.0
+    limit_reported = False
 
     async def emit(msg: dict) -> None:
         try:
@@ -62,12 +63,11 @@ async def ws_run(ws: WebSocket) -> None:
                     proc, tmp, plan = res
                     pump_task = asyncio.create_task(run_and_report())
             elif kind == "stdin" and proc:
-                await interactive.feed(proc, msg.get("data", ""))
-            elif kind == "eof" and proc and proc.stdin:
-                try:
-                    proc.stdin.close()
-                except OSError:
-                    pass
+                if not await interactive.feed(proc, msg.get("data", "")) and not limit_reported:
+                    limit_reported = True
+                    await emit({"type": "stderr", "data": interactive.STDIN_LIMIT_MSG})
+            elif kind == "eof" and proc:
+                interactive.close_stdin(proc)
             elif kind == "kill" and proc and proc.returncode is None:
                 proc.kill()
     except WebSocketDisconnect:

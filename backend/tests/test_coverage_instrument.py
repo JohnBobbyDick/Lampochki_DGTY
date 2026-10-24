@@ -268,3 +268,59 @@ def test_cov_runtime_api(tmp_path):
     # without the property the counters live in memory and the program still works
     out = subprocess.run(["java", "-cp", "out", "H"], cwd=tmp_path, capture_output=True, text=True)
     assert out.returncode == 0 and out.stdout.startswith("truefalse")
+
+
+def _strip_probes(text):
+    """Undo line/method probe insertions (no unbraced bodies in the inputs)."""
+    import re
+    return re.sub(r" __Cov\.h\(\d+\);", "", re.sub(r"__Cov\.h\(\d+\); ", "", text))
+
+
+ESCAPES = (
+    "public class Esc {\n"
+    "    public static void main(String[] args) {\n"
+    '        String s = "\\u00e9 hello world"; System.out.println(s); char a = \'\\u0041\'; System.out.println(a);\n'
+    "        char z = '\\u0000'; String bs = \"\\\\u0041\"; System.out.println((int) z + bs);\n"
+    "        \\u0069nt q = 7; System.out.println(q);\n"
+    "    }\n"
+    "}\n"
+)
+
+
+def test_unicode_escapes(tmp_path):
+    inst = instrument_java(ESCAPES)
+    lines = inst.code.split("\n")
+    assert '"\\u00e9 hello world"; __Cov.h(' in lines[2]
+    assert "'\\u0041'; __Cov.h(" in lines[2]
+    assert "__Cov.h(" in lines[4] and lines[4].index("__Cov.h(") < lines[4].index("\\u0069nt")
+    assert _strip_probes(inst.code) == ESCAPES
+    out, plan = run_cov(tmp_path, ESCAPES)
+    assert plan.error is None and out.returncode == 0, out.stderr
+    assert out.stdout == run_java(ESCAPES).stdout
+    assert "__Cov" not in out.stdout
+
+
+def test_tabs_and_crlf(tmp_path):
+    code = ("public class Crlf {\r\n\tpublic static void main(String[] a) {\r\n"
+            "\t\tint x = 1;\tint y = 2;\r\n\t\tif (x < y)\tSystem.out.println(\"t\\tab\");\r\n\t}\r\n}\r\n")
+    inst = instrument_java(code)
+    assert inst.code.count("\r\n") == code.count("\r\n")
+    assert "\t\t__Cov.h(" in inst.code and "int x = 1;\t__Cov.h(" in inst.code
+    import re
+    unwrapped = re.sub(r"\{ __Cov\.h\(\d+\); ([^\r\n]*?) \}", r"\1", inst.code)
+    assert _strip_probes(unwrapped) == code
+    assert "{ __Cov.h(" in inst.code.split("\r\n")[3] and inst.code.split("\r\n")[3].endswith('System.out.println("t\\tab"); }')
+    out, plan = run_cov(tmp_path, code)
+    assert plan.error is None and out.stdout == run_java(code).stdout
+
+
+def test_read_hits_rejects_symlink(tmp_path):
+    code = "public class S {\n    public static void main(String[] a) {\n        int x = 1;\n    }\n}\n"
+    _, plan = compile_local(tmp_path, "S.java", code)
+    assert read_hits(plan) is not None
+    secret = tmp_path / "secret.bin"
+    secret.write_bytes(bytes(plan.slots * 4))
+    plan.data_file.unlink()
+    plan.data_file.symlink_to(secret)
+    assert read_hits(plan) is None
+    assert (plan.data_file.parent.stat().st_mode & 0o777) == 0o755

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import stat
 import struct
 import subprocess
 from dataclasses import dataclass, field
@@ -67,10 +68,10 @@ def _without_coverage(tmp: Path, fname: str, code: str, error: str):
 def _success(tmp: Path, inst: instrument.Instrumented):
     cov_dir = tmp / "cov"
     cov_dir.mkdir(exist_ok=True)
-    os.chmod(cov_dir, 0o777)              # the docker runner writes here as another user
+    os.chmod(cov_dir, 0o755)              # not world-writable: the sandbox must not swap cov.bin
     data = cov_dir / "cov.bin"
     data.write_bytes(bytes(inst.slots * 4))
-    os.chmod(data, 0o666)
+    os.chmod(data, 0o666)                 # the docker runner maps it read-write as another user
     return None, CovPlan(inst.probes, inst.slots, data, None)
 
 
@@ -111,10 +112,24 @@ def read_hits(plan: CovPlan) -> list[int] | None:
     """Counters written by the program; None if the data file is missing or has the wrong size."""
     if plan.data_file is None:
         return None
+    size = plan.slots * 4
     try:
-        raw = plan.data_file.read_bytes()
+        # never follow a symlink planted by the program: it could point at any host file
+        fd = os.open(plan.data_file, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
     except OSError:
         return None
-    if len(raw) != plan.slots * 4:
+    try:
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode) or st.st_size != size:
+            return None
+        raw = b""
+        while len(raw) < size:
+            chunk = os.read(fd, size - len(raw))
+            if not chunk:
+                return None
+            raw += chunk
+    except OSError:
         return None
+    finally:
+        os.close(fd)
     return list(struct.unpack(f"<{plan.slots}i", raw))

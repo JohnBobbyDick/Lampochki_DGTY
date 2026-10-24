@@ -84,6 +84,51 @@ def instrument_java(code: str, *, strip: dict[int, int] | None = None) -> Instru
     return Instrumented(text, probes, slots, cov_java(slots, cu.package.name if cu.package else None))
 
 
+def _unescape_map(code: str) -> tuple[str, list[int] | None]:
+    """Decode ``\\uXXXX`` escapes the way javalang's ``pre_tokenize`` does.
+
+    Returns the decoded text and ``omap`` with ``omap[k]`` = offset in *code* of decoded char ``k``
+    (``omap[len(decoded)] == len(code)``), or ``None`` when there is no escape (identity).
+    """
+    if "\\u" not in code:
+        return code, None
+    out: list[str] = []
+    omap: list[int] = []
+    j, n = 0, len(code)
+    while j < n:
+        if code[j] == "\\" and j + 1 < n:
+            if code[j + 1] != "u":            # "\\\\", "\\n"…: the next char is never an escape start
+                out += code[j:j + 2]
+                omap += [j, j + 1]
+                j += 2
+                continue
+            k = j + 1
+            while k < n and code[k] == "u":
+                k += 1
+            try:
+                ch = chr(int(code[k:k + 4], 16))
+            except ValueError as exc:
+                raise CoverageUnavailable("Не удалось разобрать код для покрытия: неверная \\u-последовательность") from exc
+            out.append(ch)
+            omap.append(j)
+            j = k + 4
+            continue
+        out.append(code[j])
+        omap.append(j)
+        j += 1
+    omap.append(n)
+    decoded = "".join(out)
+    try:
+        tk = javalang.tokenizer.JavaTokenizer(code)
+        tk.pre_tokenize()
+        same = tk.data == decoded
+    except Exception:  # noqa: BLE001
+        same = False
+    if not same or decoded.count("\n") != code.count("\n"):
+        raise CoverageUnavailable("Не удалось разобрать код для покрытия: \\u-последовательности не поддерживаются")
+    return decoded, omap
+
+
 def _describe(exc: Exception) -> str:
     msg = getattr(exc, "description", None) or str(exc) or type(exc).__name__
     at = getattr(exc, "at", None)
@@ -121,8 +166,10 @@ class _Edit:
 class _Instrumenter:
     def __init__(self, code: str, tokens: list, strip: dict[int, int]):
         self.code, self.tokens, self.strip = code, tokens, strip
+        # javalang positions refer to the text after \\uXXXX escapes are decoded; map them back.
+        decoded, self.omap = _unescape_map(code)
         self.line_starts = [0]
-        for i, ch in enumerate(code):
+        for i, ch in enumerate(decoded):
             if ch == "\n":
                 self.line_starts.append(i + 1)
         self.tok_at = {(t.position.line, t.position.column): i for i, t in enumerate(tokens)}
@@ -130,12 +177,20 @@ class _Instrumenter:
         self.probes: list[_P] = []
 
     # ---- low level -----------------------------------------------------------------------------
-    def off(self, i: int) -> int:
+    def _doff(self, i: int) -> int:
+        """Offset of token *i* in the decoded text."""
         p = self.tokens[i].position
         return self.line_starts[p.line - 1] + p.column - 1
 
+    def off(self, i: int) -> int:
+        """Offset of token *i* in the original code."""
+        d = self._doff(i)
+        return d if self.omap is None else self.omap[d]
+
     def end_off(self, i: int) -> int:
-        return self.off(i) + len(self.tokens[i].value)
+        """Offset just past token *i* in the original code."""
+        d = self._doff(i) + len(self.tokens[i].value)
+        return d if self.omap is None else self.omap[d]
 
     def line(self, i: int) -> int:
         return self.tokens[i].position.line

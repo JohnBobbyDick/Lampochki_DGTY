@@ -318,7 +318,7 @@ class _CFGBuilder:
         for case in stmt.get("cases", []):
             pattern = " | ".join(str(lbl) for lbl in case.get("labels", ["_"]))
             guard = case.get("guard")
-            if not guard and _IRREFUTABLE.fullmatch(pattern):
+            if not guard and _irrefutable(pattern):
                 has_default = True
             label_text = f"{pattern} if {guard}" if guard else pattern
             case_node = self._add_node(
@@ -422,8 +422,66 @@ class _CFGBuilder:
 # Utility
 # ---------------------------------------------------------------------------
 
-# a `case` pattern that matches anything: the wildcard or a bare capture name
-_IRREFUTABLE = re.compile(r"[A-Za-z_]\w*")
+_NAME = re.compile(r"[A-Za-z_]\w*")
+_AS_NAME = re.compile(r"\s+as\s+[A-Za-z_]\w*$")
+_CONSTANTS = {"True", "False", "None"}  # literal patterns, not capture names
+
+
+def _split_top(text: str, sep: str) -> list[str]:
+    """Split *text* by *sep* at bracket depth 0, outside string literals."""
+    parts, depth, quote, start = [], 0, "", 0
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if quote:
+            if ch == "\\":
+                i += 1
+            elif ch == quote:
+                quote = ""
+        elif ch in "'\"":
+            quote = ch
+        elif ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth -= 1
+        elif ch == sep and depth == 0:
+            parts.append(text[start:i])
+            start = i + 1
+        i += 1
+    parts.append(text[start:])
+    return parts
+
+
+def _wrapped(text: str) -> bool:
+    """``(…)`` whose opening paren closes at the very end."""
+    if not (text.startswith("(") and text.endswith(")")):
+        return False
+    depth = 0
+    for i, ch in enumerate(text):
+        depth += ch == "("
+        depth -= ch == ")"
+        if depth == 0:
+            return i == len(text) - 1
+    return False
+
+
+def _irrefutable(pattern: str) -> bool:
+    """A `case` pattern that matches anything: ``_``, a bare capture name, ``p as z`` /
+    ``(p)`` around one, or an or-pattern with such an alternative.  ``True``/``False``/``None``
+    and dotted names (``Color.RED``) are value patterns."""
+    for alt in _split_top(pattern, "|"):
+        alt = alt.strip()
+        while True:
+            if _wrapped(alt) and len(_split_top(alt[1:-1], ",")) == 1:
+                alt = alt[1:-1].strip()
+            elif _AS_NAME.search(alt):
+                alt = _AS_NAME.sub("", alt).strip()
+            else:
+                break
+        if _NAME.fullmatch(alt) and alt not in _CONSTANTS:
+            return True
+    return False
+
 
 def _stmt_snippet(stmt: dict) -> str:
     """Produce a short code snippet from a statement dict."""

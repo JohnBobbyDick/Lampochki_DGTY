@@ -136,6 +136,25 @@ def test_match_wildcard_has_no_no_match_edge():
     assert any(n.label == "case _" for n in nodes)
 
 
+def _match_cfg(pattern: str):
+    code = f"def g(c):\n    match c:\n        case {pattern}:\n            return 1\n    return 0\n"
+    return build_cfg(_method(code, "g"))
+
+
+def test_literal_constant_cases_are_refutable():
+    for pattern in ["True", "False", "None", "Color.RED", "1 | 2", "(1, _)", "[x]", "'a|_'", "True as t"]:
+        nodes, edges = _match_cfg(pattern)
+        assert any(e.label == "no match" for e in edges), pattern
+        assert any(n.label == "return 0" for n in nodes), pattern
+
+
+def test_irrefutable_case_forms():
+    for pattern in ["_", "x", "1 | _", "_ as z", "x as y", "(_)", "((y) as z)", "Color.RED | other"]:
+        nodes, edges = _match_cfg(pattern)
+        assert not any(e.label == "no match" for e in edges), pattern
+        assert not any(n.label == "return 0" for n in nodes), pattern
+
+
 def test_python_ids_deterministic():
     a_nodes, a_edges, a_map = build_cfg_with_map(_method(CODE))
     b_nodes, b_edges, b_map = build_cfg_with_map(_method(CODE))

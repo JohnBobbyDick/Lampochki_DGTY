@@ -289,7 +289,7 @@ def test_tricky_constructs(tmp_path):
     labels = {(p.kind, p.label) for p in plan.probes}
     # constant loops: no branch probe
     assert not [p for p in plan.probes if p.kind == "branch" and "true" in p.label or p.label == "for (;;)"]
-    assert counts(plan, h, "branch", "?: (x >= 0)") == {T: 1, F: 2}   # abs(-3) twice, abs(3)? no: -3,-3
+    assert counts(plan, h, "branch", "?: (x >= 0)") == {T: 0, F: 2}   # abs() is only called with -3, twice
     assert counts(plan, h, "branch", "if ((abs(-3) > 2 ? abs(-3) : 0) > 2)") == {T: 1, F: 0}
     assert counts(plan, h, "branch", "?: (abs(-3) > 2)") == {T: 1, F: 0}
     assert counts(plan, h, "cond", "o instanceof String") == {T: 1, F: 0}

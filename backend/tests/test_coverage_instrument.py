@@ -306,6 +306,7 @@ def test_tabs_and_crlf(tmp_path):
     inst = instrument_java(code)
     assert inst.code.count("\r\n") == code.count("\r\n")
     assert "\t\t__Cov.h(" in inst.code and "int x = 1;\t__Cov.h(" in inst.code
+    inst = instrument_java(code, strip={4: 1})   # round-trip on line probes only (Task 3 adds branch/rel on line 4)
     import re
     unwrapped = re.sub(r"\{ __Cov\.h\(\d+\); ([^\r\n]*?) \}", r"\1", inst.code)
     assert _strip_probes(unwrapped) == code

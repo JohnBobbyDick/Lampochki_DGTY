@@ -36,7 +36,7 @@ def read_optional(path: str) -> str:
     try:
         with open(path, encoding="utf-8") as fh:
             return fh.read()
-    except OSError:
+    except Exception:
         pass
     return ""
 

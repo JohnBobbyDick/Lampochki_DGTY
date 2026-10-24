@@ -42,6 +42,7 @@
   --graph-bg: #0d0d0d; --graph-dot: #2a2a2a;
   --k-start: #2dd4bf; --k-end: #f472b6; --k-cond: #faff69; --k-loop: #60a5fa;
   --k-try: #a78bfa; --k-stmt: #a3a3a3; --k-call: #60a5fa; --k-class: #60a5fa;
+  --k-stream: #fb923c;
   color-scheme: dark;
 }
 
@@ -79,6 +80,7 @@
   --graph-bg: #f5f5f0; --graph-dot: #d6d6cc;
   --k-start: #0f766e; --k-end: #be185d; --k-cond: #5f6200; --k-loop: #1d4ed8;
   --k-try: #6d28d9; --k-stmt: #57574f; --k-call: #2563eb; --k-class: #2563eb;
+  --k-stream: #b45309;
   color-scheme: light;
 }
 
@@ -158,6 +160,7 @@ button, select, input, textarea { font: inherit; }
 [data-kind='start'] { --tone: var(--k-start); } [data-kind='end'] { --tone: var(--k-end); }
 [data-kind='cond'] { --tone: var(--k-cond); } [data-kind='loop'] { --tone: var(--k-loop); }
 [data-kind='try'], [data-kind='iface'] { --tone: var(--k-try); } [data-kind='stmt'] { --tone: var(--k-stmt); }
+[data-kind='stream'] { --tone: var(--k-stream); }
 [data-kind='call'] { --tone: var(--k-call); } [data-kind='class'] { --tone: var(--k-class); }
 
 .graph-body .react-flow { background: var(--graph-bg); transition: background-color .2s var(--ease); }
@@ -178,6 +181,7 @@ button, select, input, textarea { font: inherit; }
 .g-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--tone); flex: none; }
 .g-line { margin-left: auto; padding-left: 8px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); }
 .g-label { font-size: 0.75rem; line-height: 1.45; word-break: break-word; }
+.g-cfg[data-kind='stream'] .g-label { font-family: var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 .g-bigo { position: absolute; top: -10px; right: -10px; padding: 2px 8px; border-radius: var(--r-pill); font: 700 0.6875rem/1.4 var(--font-mono); box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
   background: var(--surface-elevated); color: var(--ink); border: 1px solid var(--hairline-strong); }
 .g-bigo.good { background: var(--ok); color: #fff; border-color: transparent; }

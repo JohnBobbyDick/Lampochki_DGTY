@@ -11,6 +11,9 @@ export const CFG_KINDS: Record<string, { kind: string; label: string }> = {
   catch: { kind: 'try', label: 'catch' },
   finally: { kind: 'try', label: 'finally' },
   statement: { kind: 'stmt', label: 'Операция' },
+  'stream-source': { kind: 'stream', label: 'Источник стрима' },
+  'stream-op': { kind: 'stream', label: 'Шаг стрима' },
+  'stream-terminal': { kind: 'stream', label: 'Итог стрима' },
 };
 
 /** Legend entries, one per colour family. */
@@ -20,5 +23,6 @@ export const LEGEND: { kind: string; label: string }[] = [
   { kind: 'loop', label: 'Цикл' },
   { kind: 'try', label: 'try / catch' },
   { kind: 'stmt', label: 'Операция' },
+  { kind: 'stream', label: 'Стрим' },
   { kind: 'end', label: 'Возврат / конец' },
 ];

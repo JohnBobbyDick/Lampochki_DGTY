@@ -20,6 +20,9 @@ const nodeTypes = {
   switch: CFGNode,
   return: CFGNode,
   throw: CFGNode,
+  'stream-source': CFGNode,
+  'stream-op': CFGNode,
+  'stream-terminal': CFGNode,
 };
 
 const CFGView: React.FC = () => {

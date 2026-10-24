@@ -32,7 +32,9 @@ function layoutGraph(
       ? { width: 280, height: 64 + 12 * 2 + 18 * (Math.max(1, n.data.fields?.length ?? 0) + Math.max(1, n.data.methods?.length ?? 0)) }
       : n.type === 'method'
         ? { width: 170, height: 90 }
-        : { width: 220, height: 70 };
+        : n.type.startsWith('stream-')
+          ? { width: 220, height: 46 + 18 * Math.ceil((n.label?.length ?? 0) / 26) }
+          : { width: 220, height: 70 };
 
   graphNodes.forEach((n) => g.setNode(n.id, size(n)));
   graphEdges.forEach((e) => g.setEdge(e.source, e.target));

@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import axios, { AxiosError } from 'axios';
-import { useStore } from '../store/useStore';
+import { useStore, AiPatch } from '../store/useStore';
 import { useProject } from '../store/useProject';
 import { downloadFile } from '../utils/download';
 import { GraphType, QualityGateResult } from '../types';
@@ -177,6 +177,16 @@ export function useApi() {
     const aiApply = (patch: unknown) =>
       call(async () => (await api.post('/ai/apply', { code: S().code, patch })).data, true);
 
+    /** Big O after applying several patches together; silent (no spinner, no error toast). */
+    const bigoCombined = async (code: string, patches: AiPatch[]): Promise<Record<string, string> | null> => {
+      try {
+        const { data } = await api.post('/ai/bigo-combined', { code, patches });
+        return (data?.bigo ?? null) as Record<string, string> | null;
+      } catch {
+        return null;
+      }
+    };
+
     const aiStatus = async () => {
       try {
         const { data } = await api.get('/ai/status');
@@ -187,7 +197,7 @@ export function useApi() {
     };
 
     return {
-      aiApply, aiStatus, aiExplain, aiFix, aiDecompose,
+      aiApply, aiStatus, bigoCombined, aiExplain, aiFix, aiDecompose,
       parseCode, getGraph, analyzeCode, generateCode, runCode, compareCode,
       decomposeCode, verifyDecomposition, downloadDecomposition, downloadChanged, qualityGate,
     };

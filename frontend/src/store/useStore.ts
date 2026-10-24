@@ -114,6 +114,8 @@ interface AppState {
   setEdges: (edges: Edge[]) => void;
   setDefects: (defects: Defect[]) => void;
   setBigo: (bigo: Record<string, string>) => void;
+  bigoAfterAi: Record<string, string>;
+  setBigoAfterAi: (b: Record<string, string>) => void;
   setHoveredLine: (line: number | null) => void;
   setHoveredNode: (nodeId: string | null) => void;
   setRunResult: (result: RunResult | null) => void;
@@ -137,6 +139,7 @@ export const useStore = create<AppState>((set, get) => ({
   edges: [],
   defects: [],
   bigo: {},
+  bigoAfterAi: {},
   hoveredLine: null,
   hoveredNode: null,
   runResult: null,
@@ -239,6 +242,7 @@ export const useStore = create<AppState>((set, get) => ({
   setEdges: (edges) => set({ edges }),
   setDefects: (defects) => set({ defects }),
   setBigo: (bigo) => set({ bigo }),
+  setBigoAfterAi: (bigoAfterAi) => set({ bigoAfterAi }),
   setHoveredLine: (line) => set({ hoveredLine: line }),
   setHoveredNode: (nodeId) => set({ hoveredNode: nodeId }),
   setRunResult: (result) => set({ runResult: result }),

@@ -18,6 +18,7 @@ import { FiAlertCircle, FiX } from 'react-icons/fi';
 import { useApi } from './hooks/useApi';
 import { useSync } from './hooks/useSync';
 import { useAutoReview } from './hooks/useAutoReview';
+import { useBigoAfter } from './hooks/useBigoAfter';
 import { useTheme, toggleTheme } from './hooks/useTheme';
 import { useColumns, COL_LIMITS } from './hooks/useColumns';
 
@@ -34,6 +35,7 @@ const plural = (n: number, forms: [string, string, string]) => {
 const App: React.FC = () => {
   useSync();
   useAutoReview();
+  useBigoAfter();
   const api = useApi();
   const theme = useTheme();
   const [side, setSide] = useState<Side>('diagnostics');

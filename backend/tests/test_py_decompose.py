@@ -226,3 +226,49 @@ def test_zip_contains_all_files():
     assert sorted(z.namelist()) == sorted(f["name"] for f in d["files"])
     for f in d["files"]:
         assert z.read(f["name"]).decode("utf-8") == f["code"]
+
+
+GLOBAL_COUNTER = '''counter = 0
+
+
+def parse_a(s):
+    return s.strip()
+
+
+def parse_b(s):
+    return s.split(",")
+
+
+def count_a():
+    global counter
+    counter += 1
+
+
+def count_b():
+    global counter
+    counter += 2
+
+
+def count_total():
+    return counter
+
+
+def main():
+    count_a()
+    count_b()
+    print(count_total(), parse_a(" x "), parse_b("a,b"))
+
+
+if __name__ == "__main__":
+    main()
+'''
+
+
+def test_global_rebound_name_stays_in_facade():
+    # `counter` is changed through `global`: shared mutable state, not a constant — it must not leave main.py
+    d = _decompose(GLOBAL_COUNTER)
+    assert "from parser import parse_a, parse_b" in _file(d, "main.py")
+    assert "counter = 0" in _file(d, "main.py")
+    assert any("count_a" in w and "counter" in w for w in d["warnings"])
+    assert all("counter = 0" not in f["code"] for f in d["files"] if f["name"] != "main.py")
+    assert _verify()["passed"]

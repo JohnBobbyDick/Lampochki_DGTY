@@ -234,7 +234,8 @@ def _decompose_python(code: str) -> DecomposeResponse:
     for s in body:
         for n in _bound(s):
             counts[n] = counts.get(n, 0) + 1
-    module_bound = set(counts) | _declared_globals(top)
+    rebound = _declared_globals(top)
+    module_bound = set(counts) | rebound
 
     future = [s for s in body if isinstance(s, pyast.ImportFrom) and s.module == "__future__"]
     imports = [s for s in body if isinstance(s, (pyast.Import, pyast.ImportFrom)) and s not in future]
@@ -354,14 +355,19 @@ def _decompose_python(code: str) -> DecomposeResponse:
         refs = facade_uses()
         for c in consts:
             users = {u.target for u in code_units if c.name in u.uses}
-            c.target = next(iter(users)) if c.name not in refs and len(users) == 1 else None
+            # a name rebound through `global` is shared mutable state, not a constant: it stays in main.py
+            movable = c.name not in refs and c.name not in rebound and len(users) == 1
+            c.target = next(iter(users)) if movable else None
         changed = False
         for u in code_units:
             if u.target is None:
                 continue
             for n in sorted(u.uses):
                 v = by_name.get(n)
-                if n == u.name or (v is None and n in clean_imports) or (v is not None and v.target == u.target)                         or (v is not None and v.kind != "const" and v.target is not None):
+                if (n == u.name
+                        or (v is None and n in clean_imports)
+                        or (v is not None and v.target == u.target)
+                        or (v is not None and v.kind != "const" and v.target is not None)):
                     continue
                 if v is not None and v.kind != "const" and v.target is None:
                     demote(u, f"{u.who[0]} {u.name} зависит от {n} из main.py — {u.who[1]} в main.py")

@@ -13,6 +13,8 @@ import re
 from core import runner
 from core.parser import parse_java
 
+from ai.bigo_diff import bigo_change
+
 _IMPORT_RE = re.compile(r"^\s*import\s+(static\s+)?([\w.]+(?:\.\*)?)\s*;", re.M)
 
 
@@ -155,7 +157,9 @@ async def build_patch(code: str, old: str, new: str, imports: list[str] | None,
     lines = code.split("\n")
     base = lines[start - 1][: len(lines[start - 1]) - len(lines[start - 1].lstrip())]
     valid, problems, warnings = await validate(code, patched, fix_line=fix_line)
+    before, after = bigo_change(code, patched, start, end) if valid else ({}, {})
     return {
+        "bigo_before": before, "bigo_after": after,
         "old_code": old_text, "new_code": reindent(new, base), "imports": added,
         "start_line": start, "end_line": end,
         "valid": valid, "problems": problems, "warnings": warnings,

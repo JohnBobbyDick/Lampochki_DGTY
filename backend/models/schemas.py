@@ -179,6 +179,8 @@ class AiPatch(CamelModel):
     valid: bool = True
     problems: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    bigo_before: dict[str, str] = Field(default_factory=dict)
+    bigo_after: dict[str, str] = Field(default_factory=dict)
 
 
 class AiApplyRequest(CamelModel):

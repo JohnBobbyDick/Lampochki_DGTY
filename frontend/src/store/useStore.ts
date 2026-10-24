@@ -12,6 +12,8 @@ export interface AiPatch {
   valid: boolean;
   problems: string[];
   warnings: string[];
+  bigoBefore?: Record<string, string>;
+  bigoAfter?: Record<string, string>;
 }
 
 export interface AiItem {

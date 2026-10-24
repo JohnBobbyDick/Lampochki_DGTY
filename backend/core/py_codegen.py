@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 
 from core.cfg_builder import build_cfg_with_map
+from core.code_generator import UnsupportedConstruct
 
 # header keywords whose text is editable; the alternatives a label may start with
 _HEADER_KW = {
@@ -18,6 +19,7 @@ _HEADER_KW = {
     "with": ("with",), "match": ("match",), "case": ("case",), "except": ("except",),
 }
 _KW_RE = re.compile(r"(?:async\s+)?([A-Za-z_]\w*)")
+_STMT_KW = {"ReturnStatement": "return", "ThrowStatement": "raise"}
 _EOL_RE = re.compile(r"(\r\n|\r|\n)")
 
 
@@ -53,7 +55,22 @@ def _header_text(original: str, label: str) -> str | None:
     if lm and lm.group(1) in _HEADER_KW[m.group(1)]:
         text = text[lm.end():].lstrip()
     prefix = m.group(0)
+    if text and _wrapped(original[m.end():].strip()) and not _wrapped(text):
+        text = f"({text})"  # keep the original parentheses (needed by a multi-line condition)
     return f"{prefix} {text}" if text else prefix
+
+
+def _wrapped(text: str) -> bool:
+    """True when *text* is entirely enclosed in one matching pair of parentheses."""
+    if not (text.startswith("(") and text.endswith(")")):
+        return False
+    depth = 0
+    for i, ch in enumerate(text):
+        depth += ch == "("
+        depth -= ch == ")"
+        if depth == 0:
+            return i == len(text) - 1
+    return False
 
 
 def _indent_continuation(text: str, indent: str) -> str:
@@ -73,7 +90,7 @@ def _replacement(lines: list[str], stmt: dict, label: str) -> tuple[tuple[int, i
             # def / class inside a body: only the header text is editable
             head = stmt.get("expression") or ""
             if not head or not _slice(lines, rng).startswith(head):
-                return None
+                raise UnsupportedConstruct("Заголовок вложенной функции или класса нельзя изменить через граф")
             *before, last = head.split("\n")
             end_line = rng[0] + len(before)
             end_col = (rng[1] if not before else 0) + len(last)
@@ -81,6 +98,9 @@ def _replacement(lines: list[str], stmt: dict, label: str) -> tuple[tuple[int, i
             new = label.strip().removesuffix(":").rstrip() or None
         else:
             new = label.strip() or "pass"
+            kw = _STMT_KW.get(stmt.get("type", ""))
+            if kw and new != "pass" and not re.match(rf"{kw}\b", new):
+                new = f"{kw} {new}"  # as in Java: the label may omit the keyword
     else:
         return None
     if new is None:
@@ -98,6 +118,8 @@ def apply_edits(code: str, method: dict, edits: dict[str, str]) -> tuple[str, li
     planned: list[tuple[tuple[int, int, int, int], str, str]] = []
     for nid, label in edits.items():
         stmt = stmt_of.get(nid)
+        if label is not None:
+            label = _EOL_RE.sub("\n", str(label))
         if stmt is None or label is None or label == labels.get(nid):
             continue
         rep = _replacement(lines, stmt, str(label))

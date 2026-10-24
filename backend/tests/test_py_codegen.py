@@ -190,3 +190,48 @@ def test_api_generate_python_edit_and_syntax_error():
                                            "language": "python"})
     assert r.status_code == 422
     assert "некорректный Python-код" in r.json()["detail"]
+
+
+def test_parenthesised_header_keeps_parens():
+    code = "def f(a, b):\n    while (a or\n            b):\n        a = b = 0\n    if (a):\n        pass\n"
+    m = _method(code, "f")
+    nodes, _, _ = build_cfg_with_map(m)
+    loop = next(n for n in nodes if n.label.startswith("while"))
+    new, _ = apply_edits(code, m, {loop.id: "while a and\n    b"})
+    assert new.startswith("def f(a, b):\n    while (a and\n        b):\n        a = b = 0\n")
+    assert not parse_python(new)["errors"]
+    new, _ = _edit(code, "f", "if a", "if b")
+    assert _diff(code, new) == [("    if (a):", "    if (b):")]
+    new, _ = _edit(code, "f", "if a", "if (b)")
+    assert _diff(code, new) == [("    if (a):", "    if (b):")]
+
+
+def test_return_and_raise_keyword_added():
+    code = "def f(x):\n    if x:\n        raise ValueError(x)\n    return x\n"
+    new, _ = _edit(code, "f", "return x", "x + 1")
+    assert _diff(code, new) == [("    return x", "    return x + 1")]
+    new, _ = _edit(code, "f", "return x", "returned")
+    assert _diff(code, new) == [("    return x", "    return returned")]
+    new, _ = _edit(code, "f", "raise ValueError(x)", "KeyError(x)")
+    assert _diff(code, new) == [("        raise ValueError(x)", "        raise KeyError(x)")]
+    new, _ = _edit(code, "f", "return x", "")
+    assert _diff(code, new) == [("    return x", "    pass")]
+
+
+def test_crlf_label_normalised():
+    code = "def f():\r\n    x = 1\r\n    return x\r\n"
+    new, _ = _edit(code, "f", "x = 1", "x = g(\r\n    1)")
+    assert new == "def f():\r\n    x = g(\r\n        1)\r\n    return x\r\n"
+    assert "\r\r" not in new
+
+
+def test_unappliable_nested_header_is_rejected(monkeypatch):
+    from core import py_codegen
+    from core.code_generator import UnsupportedConstruct
+    code = "def f():\n    def inner(a):\n        return a\n    return inner\n"
+    m = _method(code, "f")
+    stmt = m["body"][0]
+    monkeypatch.setitem(stmt, "expression", "def other(a)")
+    nid = next(n.id for n in build_cfg_with_map(m)[0] if n.label == "def other(a)")
+    with pytest.raises(UnsupportedConstruct, match="нельзя изменить"):
+        py_codegen.apply_edits(code, m, {nid: "def inner(b)"})

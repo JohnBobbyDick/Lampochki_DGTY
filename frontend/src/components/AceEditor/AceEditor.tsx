@@ -82,7 +82,10 @@ const JavaEditor: React.FC = () => {
     if (!session) return;
     covStates.forEach((st, line) => session.addGutterDecoration(line - 1, `ace-cov-${st.state}`));
     return () => {
-      covStates.forEach((st, line) => session.removeGutterDecoration(line - 1, `ace-cov-${st.state}`));
+      /* Ace has already shifted rows after the edit: clear every row, not the remembered ones */
+      for (let r = 0; r < session.getLength(); r++) {
+        for (const c of ['hit', 'miss', 'partial']) session.removeGutterDecoration(r, `ace-cov-${c}`);
+      }
     };
   }, [covStates]);
 
@@ -107,11 +110,15 @@ const JavaEditor: React.FC = () => {
       tip.style.top = `${e.clientY - box.top + 12}px`;
     };
     ed.on('guttermousemove' as any, onGutter);
+    ed.on('guttermouseout' as any, hide);
+    ed.on('mousemove', hide);
     ed.on('mouseout' as any, hide);
     ed.container.addEventListener('mouseleave', hide);
     ed.on('mousewheel' as any, hide);
     return () => {
       ed.off('guttermousemove' as any, onGutter);
+      ed.off('guttermouseout' as any, hide);
+      ed.off('mousemove', hide);
       ed.off('mouseout' as any, hide);
       ed.off('mousewheel' as any, hide);
       ed.container.removeEventListener('mouseleave', hide);

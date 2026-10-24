@@ -51,6 +51,9 @@ interface AppState {
   hoveredNode: string | null;
   runResult: RunResult | null;
   compareResult: CompareResult | null;
+  /** bumped by the "Сравнить" button: asks the bottom panel to show the run comparison tab */
+  compareTabNonce: number;
+  openCompareTab: () => void;
   decomposition: DecomposedFile[] | null;
   decomposeWarnings: string[];
   gateResult: QualityGateResult | null;
@@ -135,6 +138,7 @@ export const useStore = create<AppState>((set, get) => ({
   hoveredNode: null,
   runResult: null,
   compareResult: null,
+  compareTabNonce: 0,
   decomposition: null,
   decomposeWarnings: [],
   gateResult: null,
@@ -236,6 +240,7 @@ export const useStore = create<AppState>((set, get) => ({
   setHoveredNode: (nodeId) => set({ hoveredNode: nodeId }),
   setRunResult: (result) => set({ runResult: result }),
   setCompareResult: (result) => set({ compareResult: result }),
+  openCompareTab: () => set((st) => ({ compareTabNonce: st.compareTabNonce + 1 })),
   setDecomposition: (decomposition) => set({ decomposition }),
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),

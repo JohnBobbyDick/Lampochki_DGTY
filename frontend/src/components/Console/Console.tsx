@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FiSquare } from 'react-icons/fi';
 import { useStore } from '../../store/useStore';
+import { useProject } from '../../store/useProject';
+import { runStatus } from '../../utils/runs';
 
 type Seg = { kind: 'out' | 'err' | 'in' | 'sys'; text: string };
 
@@ -14,6 +16,7 @@ const Console: React.FC = () => {
   const [line, setLine] = useState('');
   const wsRef = useRef<WebSocket | null>(null);
   const inputs = useRef<string[]>([]);
+  const stopped = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -28,6 +31,11 @@ const Console: React.FC = () => {
     const st = useStore.getState();
     st.setRunResult(null);
     inputs.current = [];
+    stopped.current = false;
+    const fileId = useProject.getState().activeId;
+    let stdout = '';
+    let stderr = '';
+    let compileFailed = false; // the backend sends `exit` after `compile_error`: not a run
     setSegs([]);
     setRunning(true);
 
@@ -36,9 +44,10 @@ const Console: React.FC = () => {
     ws.onopen = () => ws.send(JSON.stringify({ type: 'start', code: st.code }));
     ws.onmessage = (ev) => {
       const m = JSON.parse(ev.data);
-      if (m.type === 'stdout') push({ kind: 'out', text: m.data });
-      else if (m.type === 'stderr') push({ kind: 'err', text: m.data });
+      if (m.type === 'stdout') { stdout += m.data; push({ kind: 'out', text: m.data }); }
+      else if (m.type === 'stderr') { stderr += m.data; push({ kind: 'err', text: m.data }); }
       else if (m.type === 'compile_error') {
+        compileFailed = true;
         push({ kind: 'err', text: m.text });
         useStore.getState().setRunResult({
           stdout: '', stderr: m.text, exitCode: 1, durationMs: 0, compileErrors: m.errors,
@@ -46,8 +55,12 @@ const Console: React.FC = () => {
       } else if (m.type === 'exit') {
         push({ kind: 'sys', text: `\n[завершено · exit ${m.code} · ${m.durationMs} ms]\n` });
         setRunning(false);
-        // recorded inputs are reused by "Compare"
-        useStore.getState().setStdin(inputs.current.length ? inputs.current.join('\n') + '\n' : '');
+        const stdin = inputs.current.length ? inputs.current.join('\n') + '\n' : '';
+        useStore.getState().setStdin(stdin);
+        if (!compileFailed) useProject.getState().recordRun({
+          stdout, stderr, exitCode: m.code, durationMs: m.durationMs, stdin, code: st.code,
+          status: runStatus(m.code, stderr, stopped.current), at: Date.now(),
+        }, fileId);
         ws.close();
       }
     };
@@ -77,7 +90,11 @@ const Console: React.FC = () => {
     setLine('');
   };
 
-  const stop = () => wsRef.current?.send(JSON.stringify({ type: 'kill' }));
+  const stop = () => {
+    stopped.current = true;
+    wsRef.current?.send(JSON.stringify({ type: 'kill' }));
+  };
+
 
   return (
     <div className="console" onClick={() => inputRef.current?.focus()}>

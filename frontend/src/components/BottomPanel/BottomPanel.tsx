@@ -15,11 +15,14 @@ const BottomPanel: React.FC = () => {
   const [tab, setTab] = useState<Tab>('console');
   const runNonce = useStore((s) => s.runNonce);
   const cmp = useStore((s) => s.compareResult);
+  const compareTabNonce = useStore((s) => s.compareTabNonce);
   const gate = useStore((s) => s.gateResult);
 
   /* follow what the user just did */
   useEffect(() => { if (runNonce > 0) setTab('console'); }, [runNonce]);
-  useEffect(() => { if (cmp) setTab('compare'); }, [cmp]);
+  useEffect(() => { if (compareTabNonce > 0) setTab('compare'); }, [compareTabNonce]);
+  /* the AI patch "Проверить поведение" result lives in the checks tab */
+  useEffect(() => { if (cmp) setTab('checks'); }, [cmp]);
   useEffect(() => { if (gate) setTab('checks'); }, [gate]);
 
   const verdict = gate ? (gate.passed ? 'ok' : 'fail') : cmp ? compareVerdict(cmp) : null;

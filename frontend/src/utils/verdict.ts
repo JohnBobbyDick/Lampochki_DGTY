@@ -17,3 +17,6 @@ export const VERDICT_TITLE: Record<Verdict, string> = {
   warn: 'Подтвердить не удалось',
   fail: 'Поведение изменилось',
 };
+
+/** Verdict for "previous run vs last run" of one file. */
+export const RUN_VERDICT_TITLE = { same: 'Вывод не изменился', changed: 'Вывод изменился' } as const;

@@ -64,10 +64,7 @@ const App: React.FC = () => {
   const hasOriginal = useStore((s) => !!s.originalCode);
 
   const run = () => useStore.getState().requestRun();
-  const compare = () => {
-    const st = useStore.getState();
-    return api.compareCode(st.originalCode || st.code, st.code);
-  };
+  const compare = () => useStore.getState().openCompareTab();
   const decompose = () => {
     setSide('decompose');
     return api.decomposeCode();
@@ -135,7 +132,7 @@ const App: React.FC = () => {
         <div className="header-group">
           {isLoading && <span className="spinner" role="status" aria-label="Выполняется" />}
           <button className="btn" onClick={decompose} title="Ctrl+D" aria-label="Декомпозиция"><FiLayers /><span className="lbl">Декомпозиция</span></button>
-          <button className="btn" onClick={compare} disabled={isLoading} title="Запустить исходный и текущий код и сравнить вывод" aria-label="Сравнить"><FiGitMerge /><span className="lbl">Сравнить</span></button>
+          <button className="btn" onClick={compare} title="Сравнить предыдущий и последний запуск этого файла" aria-label="Сравнить"><FiGitMerge /><span className="lbl">Сравнить</span></button>
           <button className="btn primary run-btn" onClick={run} disabled={isLoading} title="Ctrl+Enter" aria-label="Запустить"><FiPlay /><span className="lbl">Запустить</span></button>
         </div>
       </header>

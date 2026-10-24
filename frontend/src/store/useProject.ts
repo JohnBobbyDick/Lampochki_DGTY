@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useStore } from './useStore';
 import { DEMO, EXAMPLES } from '../project/examples';
+import { pushRun, RunRecord } from '../utils/runs';
 
 export interface ProjectFile {
   id: string;        // "folder/Name.java"
@@ -14,6 +15,9 @@ interface ProjectState {
   files: ProjectFile[];
   activeId: string;
   openIds: string[];
+  /** last runs per file id (in memory), for the previous-vs-last comparison */
+  runs: Record<string, RunRecord[]>;
+  recordRun: (r: RunRecord, fileId?: string) => void;
   open: (id: string) => void;
   close: (id: string) => void;
   addFile: (name: string, text: string) => void;
@@ -38,6 +42,9 @@ export const useProject = create<ProjectState>((set, get) => ({
   files: INITIAL,
   activeId: DEMO_ID,
   openIds: [DEMO_ID],
+  runs: {},
+
+  recordRun: (r, fileId) => set((s) => ({ runs: pushRun(s.runs, fileId ?? s.activeId, r) })),
 
   open: (id) => {
     const s = get();

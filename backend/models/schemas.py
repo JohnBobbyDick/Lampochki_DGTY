@@ -249,3 +249,15 @@ class AiReviewResponse(CamelModel):
     suggestions: list[AiReviewItem] = Field(default_factory=list)
     source: str = "none"
     note: str = ""
+
+
+# ── Files ──────────────────────────────────────────────────────────────────────
+
+class ZipFile(CamelModel):
+    """One file to put into the downloaded archive; `path` is the project file id (`src/Demo.java`)."""
+    path: str
+    code: str
+
+
+class ZipRequest(CamelModel):
+    files: list[ZipFile]

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { FiChevronRight, FiFolder } from 'react-icons/fi';
+import { FiChevronRight, FiDownload, FiFolder } from 'react-icons/fi';
 import { LuFileCode } from 'react-icons/lu';
 import { useStore } from '../../store/useStore';
 import { useProject } from '../../store/useProject';
+import { useApi } from '../../hooks/useApi';
 
 const FOLDERS: { id: string; label: string; hint: string }[] = [
   { id: 'src', label: 'src', hint: 'Ваши файлы' },
@@ -17,6 +18,8 @@ const ProjectTree: React.FC = () => {
   const activeId = useProject((s) => s.activeId);
   const open = useProject((s) => s.open);
   const live = useStore((s) => s.code);
+  const { downloadChanged } = useApi();
+  const hasChanged = files.some((f) => (f.id === activeId ? live : f.code) !== f.original);
   const [closed, setClosed] = useState<Record<string, boolean>>({});
 
   return (
@@ -24,6 +27,12 @@ const ProjectTree: React.FC = () => {
       <div className="tree-head">
         <span>Проект</span>
         <span className="count">{files.length}</span>
+      </div>
+      <div className="tree-actions">
+        <button className="btn small" disabled={!hasChanged} onClick={() => downloadChanged()}
+                title={hasChanged ? 'Скачать zip с изменёнными файлами' : 'Нет изменённых файлов'}>
+          <FiDownload aria-hidden="true" /> Скачать изменённые
+        </button>
       </div>
       <div className="tree-body">
         <div className="tree-root"><FiFolder /> java-blueprints</div>
@@ -55,7 +64,8 @@ const ProjectTree: React.FC = () => {
           );
         })}
       </div>
-      <div className="tree-foot">Загрузите свой <b>.java</b> — он появится в <b>src</b>.</div>
+      <div className="tree-foot">
+Загрузите свой <b>.java</b> — он появится в <b>src</b>.</div>
     </nav>
   );
 };

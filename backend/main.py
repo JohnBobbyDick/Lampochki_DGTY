@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import ALLOWED_ORIGINS
-from api import analyze, decompose, generate, graph, parse, run, ws, ai
+from api import analyze, decompose, files, generate, graph, parse, run, ws, ai
 
 app = FastAPI(title="Java Blueprints API", version="1.0.0")
 
@@ -15,7 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for module in (parse, graph, analyze, generate, run, decompose, ws, ai):
+for module in (parse, graph, analyze, generate, run, decompose, files, ws, ai):
     app.include_router(module.router, prefix="/api")
 
 

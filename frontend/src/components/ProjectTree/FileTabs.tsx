@@ -1,8 +1,9 @@
 import React from 'react';
-import { FiX } from 'react-icons/fi';
+import { FiDownload, FiX } from 'react-icons/fi';
 import { LuFileCode } from 'react-icons/lu';
 import { useStore } from '../../store/useStore';
 import { useProject } from '../../store/useProject';
+import { downloadFile } from '../../utils/download';
 
 /** Open files above the editor. */
 const FileTabs: React.FC = () => {
@@ -27,6 +28,10 @@ const FileTabs: React.FC = () => {
               <span>{f.name}</span>
               {dirty && <i className="dirty" title="Файл изменён"><span className="sr-only">(изменён)</span></i>}
             </button>
+            {active && (
+              <button className="file-tab-close" aria-label={`Скачать ${f.name}`} title="Скачать файл"
+                      onClick={() => downloadFile(f.name, live)}><FiDownload /></button>
+            )}
             {openIds.length > 1 && (
               <button className="file-tab-close" aria-label={`Закрыть ${f.name}`} onClick={() => close(id)}><FiX /></button>
             )}

@@ -1,6 +1,8 @@
 import { useCallback, useMemo } from 'react';
 import axios, { AxiosError } from 'axios';
 import { useStore } from '../store/useStore';
+import { useProject } from '../store/useProject';
+import { downloadFile } from '../utils/download';
 import { GraphType, QualityGateResult } from '../types';
 
 const api = axios.create({
@@ -110,12 +112,21 @@ export function useApi() {
     const downloadDecomposition = () =>
       call(async () => {
         const { data } = await api.post('/decompose/zip', {}, { responseType: 'blob' });
-        const url = URL.createObjectURL(data);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'decomposed.zip';
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadFile('decomposed.zip', data);
+        return true;
+      });
+
+    /** Zip of every project file whose current text differs from its original (server builds the archive). */
+    const downloadChanged = () =>
+      call(async () => {
+        const { files, activeId } = useProject.getState();
+        const changed = files
+          .map((f) => ({ path: f.id, code: f.id === activeId ? S().code : f.code, original: f.original }))
+          .filter((f) => f.code !== f.original)
+          .map(({ path, code }) => ({ path, code }));
+        if (!changed.length) return false;
+        const { data } = await api.post('/files/zip', { files: changed }, { responseType: 'blob' });
+        downloadFile('changed.zip', data);
         return true;
       });
 
@@ -172,7 +183,7 @@ export function useApi() {
     return {
       aiApply, aiStatus, aiExplain, aiFix, aiDecompose,
       parseCode, getGraph, analyzeCode, generateCode, runCode, compareCode,
-      decomposeCode, verifyDecomposition, downloadDecomposition, qualityGate,
+      decomposeCode, verifyDecomposition, downloadDecomposition, downloadChanged, qualityGate,
     };
   }, [call]);
 }

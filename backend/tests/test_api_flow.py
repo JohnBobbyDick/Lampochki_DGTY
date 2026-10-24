@@ -1,3 +1,5 @@
+import io
+import zipfile
 import re
 
 import pytest
@@ -75,3 +77,21 @@ def test_analyze_reports_compile_errors(read_java):
 def test_analyze_compiles_clean_code(read_java):
     parse(read_java("Calculator"))
     assert client.post("/api/analyze").json()["compileErrors"] == []
+
+
+def test_zip_changed_files():
+    r = client.post("/api/files/zip", json={"files": [{"path": "src/Demo.java", "code": "class Demo {}"},
+                                                     {"path": "examples/Calc (2).java", "code": "class C {}"}]})
+    z = zipfile.ZipFile(io.BytesIO(r.content))
+    assert r.status_code == 200 and sorted(z.namelist()) == ["examples/Calc (2).java", "src/Demo.java"]
+    assert 'filename="changed.zip"' in r.headers["content-disposition"]
+    assert r.headers["content-type"] == "application/zip"
+
+
+@pytest.mark.parametrize("bad", ["../evil.java", "/etc/passwd", "a\\b.java", ""])
+def test_zip_rejects_unsafe_paths(bad):
+    assert client.post("/api/files/zip", json={"files": [{"path": bad, "code": "x"}]}).status_code == 422
+
+
+def test_zip_rejects_empty_list():
+    assert client.post("/api/files/zip", json={"files": []}).status_code == 422

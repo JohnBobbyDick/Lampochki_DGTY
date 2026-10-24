@@ -98,6 +98,29 @@ async def explain(defect: dict, code: str, full_code: str | None = None) -> dict
     return {"explanation": fallback_text, "fixed_code": fallback_code, "patch": None, "source": "static", "note": note}
 
 
+async def fix_error(code: str, line: int | None, message: str) -> dict:
+    """Patch for a compile/syntax error; the patch is shown only if it removes that error and adds none."""
+    static = {"explanation": f"ИИ не настроен — исправьте ошибку вручную: {message}", "fixed_code": "",
+              "patch": None, "source": "static", "note": ""}
+    if not llm_client.is_configured():
+        return static
+    try:
+        data, results = await _generate_patches(
+            _prompt("syntax_fix", message=message, line=line if line is not None else "?", code=_clip(code)), code,
+            lambda t: bool(llm_client.parse_json(t).get("explanation")),
+            lambda d: [{"old_code": d.get("old_code", ""), "new_code": d.get("new_code", ""),
+                        "imports": d.get("imports"), "line": line}],
+            fix_line=line)
+    except llm_client.LLMUnavailable as exc:
+        return {**static, "note": str(exc)}
+    if not data.get("explanation"):
+        return {**static, "note": "LLM вернул ответ в неожиданном формате."}
+    patch = results[0][1] if results and results[0][1] and results[0][1]["valid"] else None
+    return {"explanation": data["explanation"], "fixed_code": "", "patch": patch,
+            "source": llm_client.settings()["provider"],
+            "note": "" if patch else "ИИ не нашёл правки, которую можно безопасно применить."}
+
+
 async def suggest(code: str, context: str = "") -> dict:
     try:
         raw = await llm_client.generate(

@@ -7,7 +7,7 @@ from ai import ai_analyzer, llm_client, patcher
 from core.decomposer import decompose as run_decompose
 from core.bigo_analyzer import analyze_ast
 from core.defect_detector import detect_defects
-from models.schemas import (AiApplyRequest, AiApplyResponse, AiDecomposeResponse, AiReviewRequest, AiReviewResponse, AiExplainRequest, AiExplainResponse, AiStatus,
+from models.schemas import (AiApplyRequest, AiApplyResponse, AiDecomposeResponse, AiReviewRequest, AiReviewResponse, AiExplainRequest, AiExplainResponse, AiFixRequest, AiStatus,
                             AiSuggestRequest, AiSuggestResponse)
 
 router = APIRouter(prefix="/ai")
@@ -32,6 +32,12 @@ async def explain(req: AiExplainRequest) -> AiExplainResponse:
         s.ast, d.get("method", ""),
     )
     return AiExplainResponse(**await ai_analyzer.explain(d, fragment, s.code))
+
+
+@router.post("/fix", response_model=AiExplainResponse)
+async def fix(req: AiFixRequest) -> AiExplainResponse:
+    """Fix a compile/syntax error in the code sent with the request (no prior /api/parse needed)."""
+    return AiExplainResponse(**await ai_analyzer.fix_error(req.code, req.line, req.message))
 
 
 @router.post("/suggest", response_model=AiSuggestResponse)

@@ -208,6 +208,12 @@ class AiExplainResponse(CamelModel):
     note: str = ""
 
 
+class AiFixRequest(CamelModel):
+    code: str
+    line: int | None = None
+    message: str
+
+
 class AiSuggestRequest(CamelModel):
     code_fragment: str
     context: str = ""

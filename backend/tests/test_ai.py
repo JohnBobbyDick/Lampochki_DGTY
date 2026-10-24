@@ -92,3 +92,41 @@ def test_dotenv_inline_comments_and_quotes(tmp_path, monkeypatch):
     import os
     assert os.environ["LLM_PROVIDER"] == "gemini" and os.environ["GEMINI_API_KEY"] == "abc #1"
     assert os.environ["X_PLAIN"] == "v"
+
+
+def _mock_fix_llm(monkeypatch, payload):
+    monkeypatch.setenv("LLM_ENABLED", "true")
+    monkeypatch.setenv("GEMINI_API_KEY", "k")
+    prompts = []
+
+    async def fake(prompt, **kw):
+        prompts.append(prompt)
+        return json.dumps(payload)
+
+    monkeypatch.setattr(llm_client, "generate", fake)
+    return prompts
+
+
+def test_fix_without_llm_is_static():
+    r = client.post("/api/ai/fix", json={"code": "class A { int f() { return 1 } }", "line": 1,
+                                         "message": "';' expected"}).json()
+    assert r["source"] == "static" and r["patch"] is None and "';' expected" in r["explanation"]
+
+
+def test_fix_with_mocked_gemini_returns_valid_patch(monkeypatch, read_java):
+    broken = read_java("Calculator").replace("return left / right;", "return left / right", 1)
+    line = broken.splitlines().index("                    return left / right") + 1
+    prompts = _mock_fix_llm(monkeypatch, {"explanation": "Не хватает точки с запятой", "old_code": "return left / right",
+                                          "new_code": "return left / right;", "imports": []})
+    r = client.post("/api/ai/fix", json={"code": broken, "line": line, "message": "';' expected"}).json()
+    assert r["patch"]["valid"] and r["patch"]["newCode"].strip() == "return left / right;"
+    assert r["source"] == "gemini" and r["fixedCode"] == "" and "';' expected" in prompts[0]
+
+
+def test_fix_drops_patch_that_does_not_fix_the_error(monkeypatch, read_java):
+    broken = read_java("Calculator").replace("return left / right;", "return left / right", 1)
+    line = broken.splitlines().index("                    return left / right") + 1
+    _mock_fix_llm(monkeypatch, {"explanation": "x", "old_code": "return left / right", "new_code": "return left / right",
+                                "imports": []})
+    r = client.post("/api/ai/fix", json={"code": broken, "line": line, "message": "';' expected"}).json()
+    assert r["patch"] is None and "безопасно применить" in r["note"]

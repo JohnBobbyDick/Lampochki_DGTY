@@ -110,7 +110,7 @@ async def fix_error(code: str, line: int | None, message: str) -> dict:
             lambda t: bool(llm_client.parse_json(t).get("explanation")),
             lambda d: [{"old_code": d.get("old_code", ""), "new_code": d.get("new_code", ""),
                         "imports": d.get("imports"), "line": line}],
-            fix_line=line)
+            fix_line=line or 0)    # 0 = line unknown: fix mode still demands strictly fewer errors
     except llm_client.LLMUnavailable as exc:
         return {**static, "note": str(exc)}
     if not data.get("explanation"):

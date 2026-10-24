@@ -130,3 +130,14 @@ def test_fix_drops_patch_that_does_not_fix_the_error(monkeypatch, read_java):
                                 "imports": []})
     r = client.post("/api/ai/fix", json={"code": broken, "line": line, "message": "';' expected"}).json()
     assert r["patch"] is None and "безопасно применить" in r["note"]
+
+
+def test_fix_without_line_still_requires_error_to_go_away(monkeypatch, read_java):
+    broken = read_java("Calculator").replace("return left / right;", "return left / right", 1)
+    body = {"code": broken, "line": None, "message": "';' expected"}
+    _mock_fix_llm(monkeypatch, {"explanation": "x", "old_code": "return left / right", "new_code": "return left /  right",
+                                "imports": []})
+    assert client.post("/api/ai/fix", json=body).json()["patch"] is None
+    _mock_fix_llm(monkeypatch, {"explanation": "x", "old_code": "return left / right", "new_code": "return left / right;",
+                                "imports": []})
+    assert client.post("/api/ai/fix", json=body).json()["patch"]["valid"]

@@ -70,9 +70,19 @@ def find_method(ast: dict, ref: str | None) -> tuple[dict, dict] | None:
 
 
 def _find(ast: dict, ref: str, cls_name: str, name: str) -> tuple[dict, dict] | None:
-    for cls in ast.get("classes", []):
-        if cls_name and cls["name"] != cls_name and cls["name"] not in ("Module", ""):
-            continue
+    """The class named *cls_name* first; then (or with no *cls_name* — any class) the Python
+    module pseudo-class, so a module function never shadows a same-named method of the class."""
+    classes = ast.get("classes", [])
+    if cls_name:
+        found = _scan([c for c in classes if c["name"] == cls_name], ref, name)
+        if found is not None:
+            return found
+        classes = [c for c in classes if c["name"] in ("Module", "")]
+    return _scan(classes, ref, name)
+
+
+def _scan(classes: list[dict], ref: str, name: str) -> tuple[dict, dict] | None:
+    for cls in classes:
         for m in cls.get("methods", []) + cls.get("constructors", []):
             if (not name) or m["name"] == name:
                 if ref or m.get("body"):

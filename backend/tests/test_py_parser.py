@@ -198,3 +198,27 @@ def test_with_body_still_reaches_cfg():
     res = parse_python("def f(p):\n    with open(p) as f:\n        data = f.read()\n    return data\n")
     nodes, _ = build_cfg(_method(res, "f"))
     assert any(n.label == "data = f.read()" for n in nodes)
+
+
+CLASH = ("def total(xs):\n    return sum(xs)\n\n"
+         "class Cart:\n    def total(self):\n        return self.price * 2\n")
+
+
+def test_find_method_prefers_class_over_module_on_name_clash():
+    res = parse_python(CLASH)
+    cls, m = state.find_method(res["ast"], "Cart.total")
+    assert cls["name"] == "Cart" and m["name"] == "total"
+    cls, m = state.find_method(res["ast"], "Module.total")
+    assert cls["name"] == "Module"
+    assert state.find_method(res["ast"], "total")[0]["name"] == "Module"
+
+
+def test_graph_of_class_method_on_name_clash():
+    from fastapi.testclient import TestClient
+    from main import app
+    client = TestClient(app)
+    assert client.post("/api/parse", json={"code": CLASH, "language": "python"}).status_code == 200
+    labels = [n["label"] for n in
+              client.get("/api/graph", params={"type": "cfg", "method": "Cart.total"}).json()["nodes"]]
+    assert any("self.price" in l for l in labels), labels
+    assert not any("sum(xs)" in l for l in labels), labels

@@ -46,7 +46,7 @@ def run(coro):
     return asyncio.run(coro)
 
 
-# ── locate / reindent / imports ─────────────────────────────────────────────────
+# locate / reindent / imports
 
 def test_locate_ignores_indentation_and_blank_lines():
     assert patcher.locate(CODE, OLD) == (6, 12)
@@ -72,7 +72,7 @@ def test_add_imports_skips_existing_and_wildcards():
     assert out2.startswith("import java.util.Map;") and added2 == ["java.util.Map"]
 
 
-# ── build / validate / apply ────────────────────────────────────────────────────
+# build / validate / apply
 
 def test_build_patch_valid_and_behaviour_equivalent():
     p = run(patcher.build_patch(CODE, OLD, NEW, [], hint_line=6))
@@ -119,7 +119,7 @@ def test_noop_patch_is_dropped():
     assert run(patcher.build_patch(CODE, OLD, OLD, [], 6)) is None
 
 
-# ── through the API with a mocked LLM ───────────────────────────────────────────
+# through the API with a mocked LLM
 
 def mock_llm(monkeypatch, payload):
     monkeypatch.setenv("LLM_ENABLED", "true")
@@ -217,7 +217,7 @@ def test_applied_patch_keeps_program_output():
     assert compare_code(CODE, out["code"], "Demo").behavior_preserved
 
 
-# ── unified validity rule ───────────────────────────────────────────────────────
+# unified validity rule
 
 from pathlib import Path
 

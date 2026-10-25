@@ -11,7 +11,7 @@ from ai import llm_client
 from main import app
 
 
-# ── list parsing ────────────────────────────────────────────────────────────────
+# list parsing
 
 def test_parse_proxy_formats():
     assert gp.parse_proxy("1.2.3.4:8080:user:pa:ss") == "http://user:pa%3Ass@1.2.3.4:8080"
@@ -34,7 +34,7 @@ def test_credentials_are_masked_in_logs():
     assert gp.mask_proxy(None) == "direct"
 
 
-# ── retry algorithm ─────────────────────────────────────────────────────────────
+# retry algorithm
 
 @pytest.fixture
 def env(monkeypatch):
@@ -148,7 +148,7 @@ def test_no_proxies_means_direct_connection(env, monkeypatch):
     assert proxies == [None]
 
 
-# ── /api/ai/review ──────────────────────────────────────────────────────────────
+# /api/ai/review
 
 def test_review_endpoint(env, monkeypatch, read_java):
     review = {"summary": "Хороший код", "suggestions": [
@@ -167,7 +167,7 @@ def test_review_is_silent_when_llm_is_off(monkeypatch, read_java):
     assert r["suggestions"] == [] and r["source"] == "none"
 
 
-# ── proxy protocol auto-rotation ────────────────────────────────────────────────
+# proxy protocol auto-rotation
 
 def test_proxy_without_scheme_is_auto():
     url = gp.parse_proxy("1.2.3.4:8080:u:p", scheme="auto")

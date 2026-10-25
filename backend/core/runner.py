@@ -349,7 +349,6 @@ def run_python_files(files: dict[str, str], entry_file: str = "main.py", stdin_i
 
 def run_files(files: dict[str, str], main_class: str, stdin_input: str = "", timeout_sec: int = 10) -> RunResponse:
     """Compile every file in *files* (name -> source) and run *main_class*."""
-    # Check if this is a Python project
     if any(name.endswith(".py") for name in files):
         entry = f"{main_class}.py" if not main_class.endswith(".py") else main_class
         return run_python_files(files, entry_file=entry, stdin_input=stdin_input, timeout_sec=timeout_sec)

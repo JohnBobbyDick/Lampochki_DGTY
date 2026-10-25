@@ -1,6 +1,6 @@
 export interface GraphNode {
   id: string;
-  type: string; // "start", "end", "statement", "condition", "loop", "try", "catch", "finally", "switch", "return", "throw", "method", "class"
+  type: string; // CFG: a key of CFG_KINDS (GraphCanvas/nodes/kinds.ts); call/class graphs: "method", "class", "interface"
   label: string;
   data: {
     lineStart: number;

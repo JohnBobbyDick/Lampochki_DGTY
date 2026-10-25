@@ -1,4 +1,4 @@
-"""Python parser: full statement set, source text, spans (stage 7, task 3)."""
+"""Python parser: full statement set, source text, spans."""
 
 from pathlib import Path
 

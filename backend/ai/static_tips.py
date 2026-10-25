@@ -97,8 +97,6 @@ TIPS_PYTHON: list[tuple[str, str, str]] = [
      "@functools.lru_cache (мемоизацию) или итеративный алгоритм.", ""),
 ]
 
-TIPS = TIPS_JAVA    # backwards-compatible name
-
 DEFAULT = ("Подробного совета в базе паттернов нет. Следуйте рекомендации анализатора; для детального разбора "
            "включите AI (LLM_ENABLED=true и GEMINI_API_KEY).", "")
 

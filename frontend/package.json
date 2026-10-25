@@ -10,13 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@dagrejs/dagre": "^1.1.4",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
-    "@reactflow/background": "^11.3.14",
-    "@reactflow/controls": "^11.2.14",
-    "@reactflow/core": "^11.11.4",
-    "@reactflow/minimap": "^11.7.14",
     "ace-builds": "^1.36.5",
     "axios": "^1.7.9",
     "diff": "^7.0.0",

@@ -79,9 +79,7 @@ def _result(tokens: list, s: int, e: int, body_start: int | None) -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
 # Statement ranges (token indexes / char offsets) for span-based code edits
-# ---------------------------------------------------------------------------
 
 _OPEN, _CLOSE = "([{", ")]}"
 _DECL_HEADS = ("class", "interface", "enum")

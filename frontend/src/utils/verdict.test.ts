@@ -12,7 +12,6 @@ describe('compareVerdict and output match checks', () => {
     };
     expect(compareVerdict(res)).toBe('ok');
     expect(VERDICT_TITLE[compareVerdict(res)]).toBe('Поведение сохранено');
-    // Output match step is truthy
     expect(!res.diff || res.behaviorPreserved).toBe(true);
   });
 

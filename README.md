@@ -16,6 +16,8 @@
 docker compose up --build        # UI: http://localhost
 ```
 
+Развёртывание на сервере Ubuntu с доменом и HTTPS — [`docs/deploy-ubuntu.md`](docs/deploy-ubuntu.md).
+
 ## Локальная разработка
 
 ```bash

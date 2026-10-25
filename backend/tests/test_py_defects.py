@@ -1,4 +1,4 @@
-"""Python defect rules (stage 7, task 7) and their static tips."""
+"""Python defect rules and their static tips."""
 
 import os
 import textwrap
@@ -30,7 +30,7 @@ def _monolith(name: str):
     return detect_defects(ast, code, analyze_ast(ast))
 
 
-# 1. string concatenation in a loop ---------------------------------------------------------------
+# 1. string concatenation in a loop
 
 def test_string_concat_augassign():
     ds = _with(_defects("""
@@ -78,7 +78,7 @@ def test_concat_outside_loop_is_fine():
     """), "конкатенация строки")
 
 
-# 2. membership in a list inside a loop -------------------------------------------------------------
+# 2. membership in a list inside a loop
 
 def test_membership_in_list_in_loop():
     ds = _with(_defects("""
@@ -121,7 +121,7 @@ def test_membership_in_comprehension():
     assert len(ds) == 1
 
 
-# 3. nested loop over the same collection -----------------------------------------------------------
+# 3. nested loop over the same collection
 
 def test_nested_same_collection_python_text():
     ds = _with(_defects("""
@@ -149,7 +149,7 @@ def test_loop_else_is_not_nested():
     assert not _with(ds, "вложенн") and not _with(ds, "повторная обработка")
 
 
-# 4. swallowed / general except ---------------------------------------------------------------------
+# 4. swallowed / general except
 
 @pytest.mark.parametrize("head", ["except:", "except Exception:", "except BaseException:", "except Exception as e:"])
 def test_swallowed_exception(head):
@@ -197,7 +197,7 @@ def test_bare_except_warning():
     assert len(ds) == 1 and ds[0].severity == "warning" and ds[0].line_start == 5
 
 
-# 5. mutable default argument -----------------------------------------------------------------------
+# 5. mutable default argument
 
 @pytest.mark.parametrize("default", ["[]", "{}", "set()", "list()", "dict()"])
 def test_mutable_default(default):
@@ -227,7 +227,7 @@ def test_mutable_default_in_method_and_nested_def():
     assert sorted(d.method for d in ds) == ["C.m", "C.m.inner"]
 
 
-# 6. range(len(x)) ----------------------------------------------------------------------------------
+# 6. range(len(x))
 
 def test_range_len():
     ds = _with(_defects("""
@@ -246,7 +246,7 @@ def test_enumerate_is_fine():
     """), "перебор индексов")
 
 
-# unused imports ------------------------------------------------------------------------------------
+# unused imports
 
 def test_unused_from_import():
     ds = _with(_defects("""
@@ -267,7 +267,7 @@ def test_unused_alias_import():
     assert len(ds) == 1
 
 
-# nested defs ---------------------------------------------------------------------------------------
+# nested defs
 
 def test_nested_def_not_reported_twice():
     ds = _with(_defects("""
@@ -280,7 +280,7 @@ def test_nested_def_not_reported_twice():
     assert [d.method for d in ds] == ["Module.outer.inner"]
 
 
-# examples ------------------------------------------------------------------------------------------
+# examples
 
 def test_logger_example():
     ds = _monolith("logger.py")
@@ -326,7 +326,7 @@ def test_every_python_defect_has_a_python_tip(name):
 
 
 
-# fix round -----------------------------------------------------------------------------------------
+# fix round
 
 @pytest.mark.parametrize("lit", ["(1, 2, 3)", '["a", "b"]', "{1, 2}"])
 def test_membership_in_constant_literal_is_fine(lit):

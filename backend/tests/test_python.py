@@ -180,7 +180,7 @@ def test_python_code_generator_edit():
 """
     res = parse_python(code)
     method = res["ast"]["classes"][0]["methods"][0]
-    edits = {"n2": "total = 100"}  # edit first statement
+    edits = {"n2": "total = 100"}
     new_code, changed = apply_edits(code, method, edits)
     assert new_code == code.replace("total = 0", "total = 100") and changed == ["n2"]
 

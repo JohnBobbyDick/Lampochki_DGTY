@@ -46,7 +46,7 @@ _SEARCH_OPS = {"contains", "indexOf", "lastIndexOf", "remove", "containsAll", "r
 _KEYED_OPS = {"contains", "containsKey", "get", "put", "remove", "add", "getOrDefault", "putIfAbsent"}
 
 
-# ── statement tree helpers (also used by defect_detector) ────────────────────────────────────────
+# statement tree helpers (also used by defect_detector)
 
 def _children(stmt: dict):
     for key in ("body", "then", "else", "finally"):
@@ -149,7 +149,7 @@ def _argc(args: str) -> int:
     return n
 
 
-# ── cost arithmetic ─────────────────────────────────────────────────────────────────────────────
+# cost arithmetic
 
 def _mul(a: Cost, b: Cost) -> Cost:
     if a[0] >= EXP[0] or b[0] >= EXP[0]:
@@ -187,7 +187,7 @@ def complexity_label(cost: Cost | None, recursive: bool = True) -> str:
     return f"O({' '.join(parts)})" if parts else "O(1)"
 
 
-# ── loops ───────────────────────────────────────────────────────────────────────────────────────
+# loops
 
 _DOUBLING = re.compile(r"\b2\s*\*\s*\w|\w\s*\*\s*2\b|<<\s*1\b")
 _HALVING_RHS = re.compile(r"/\s*2\b|>>\s*1\b|\*\s*2\b|<<\s*1\b")
@@ -234,7 +234,7 @@ def _loop_cost(loop: dict) -> Cost:
     return LINEAR
 
 
-# ── Python expressions ──────────────────────────────────────────────────────────────────────────
+# Python expressions
 
 _PY_SEQ_TYPES = {"list", "List", "Sequence", "MutableSequence", "tuple", "Tuple", "str", "deque", "Deque"}
 _PY_HASH_TYPES = {"set", "Set", "frozenset", "FrozenSet", "AbstractSet", "MutableSet", "dict", "Dict", "Mapping",
@@ -313,7 +313,7 @@ def _py_self_call_text(text: str, cls_name: str | None, method: dict) -> str:
     return re.sub(rf"\b(?:self|cls)\s*\.\s*(?={name}\s*\()", "", text)
 
 
-# ── per-class context ───────────────────────────────────────────────────────────────────────────
+# per-class context
 
 class _Analyzer:
     def __init__(self, ast: dict):

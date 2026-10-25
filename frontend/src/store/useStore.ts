@@ -35,7 +35,7 @@ export interface AiAnswer {
 }
 
 interface AppState {
-  /* ── data ── */
+  /* data */
   language: 'java' | 'python';
   code: string;
   originalCode: string;
@@ -93,7 +93,7 @@ interface AppState {
   error: string | null;
   storageWarning: string | null;
 
-  /* ── actions ── */
+  /* actions */
   setLanguage: (lang: 'java' | 'python') => void;
   setCode: (code: string) => void;
   setOriginalCode: (code: string) => void;
@@ -229,7 +229,7 @@ export const useStore = create<AppState>((set, get) => ({
       if (a.patch && !fragmentPresent(code, a.patch.oldCode)) next = { ...next, patch: null };
       return next;
     };
-    // code that is exactly the result of an applied AI patch keeps its "applied" drawer (undo / check behaviour)
+    // code that is exactly the result of an applied AI patch keeps its "applied" AI tab (undo / check behaviour)
     const nextAi = ai && code !== reviewSkip ? pruneAnswer(ai) : ai;
     const nextReview = aiReview && pruneAnswer(aiReview);
     if (nextAi !== ai || nextReview !== aiReview) set({ ai: nextAi, aiReview: nextReview });

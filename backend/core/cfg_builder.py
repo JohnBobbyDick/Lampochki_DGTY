@@ -27,9 +27,7 @@ def _plain(src: str) -> Tail:
     return (src, "normal", "")
 
 
-# ---------------------------------------------------------------------------
 # Public API
-# ---------------------------------------------------------------------------
 
 def build_cfg(method_ast: dict) -> tuple[list[GraphNode], list[GraphEdge]]:
     """Build a control-flow graph for a single method."""
@@ -61,9 +59,7 @@ def max_line(stmt: Any, default: int | None = None) -> int | None:
     return best
 
 
-# ---------------------------------------------------------------------------
 # Internal builder
-# ---------------------------------------------------------------------------
 
 class _CFGBuilder:
     """Stateful builder that walks statement dicts and emits graph elements."""
@@ -78,7 +74,7 @@ class _CFGBuilder:
         # stack of enclosing breakable/continuable constructs
         self._ctx: list[dict[str, Any]] = []
 
-    # -- helpers -----------------------------------------------------------
+    # helpers
 
     def _add_node(
         self,
@@ -118,7 +114,7 @@ class _CFGBuilder:
         for src, etype, label in tails:
             self._add_edge(src, target, etype, label)
 
-    # -- main build --------------------------------------------------------
+    # main build
 
     def build(self) -> None:
         start = self._add_node("start", "START", line_start=self.method.get("line_start"))
@@ -129,7 +125,7 @@ class _CFGBuilder:
         tails = self._process_block(body, [_plain(start.id)])
         self._connect(tails, end.id)
 
-    # -- block processing --------------------------------------------------
+    # block processing
 
     def _process_block(self, stmts: list[dict], tails: list[Tail]) -> list[Tail]:
         for stmt in stmts:
@@ -161,7 +157,7 @@ class _CFGBuilder:
             return handler(stmt, tails)
         return self._process_generic(stmt, tails)
 
-    # -- generic -----------------------------------------------------------
+    # generic
 
     def _process_generic(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
         if stmt.get("stream"):
@@ -173,7 +169,7 @@ class _CFGBuilder:
         self._connect(tails, node.id)
         return [_plain(node.id)]
 
-    # -- stream pipelines ---------------------------------------------------
+    # stream pipelines
 
     def _process_stream(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
         """One node per pipeline part: source -> ops -> terminal (labels are not truncated)."""
@@ -193,7 +189,7 @@ class _CFGBuilder:
             node = nxt
         return [_plain(node.id)]
 
-    # -- if / else ---------------------------------------------------------
+    # if / else
 
     def _process_if(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
         cond_text = stmt.get("condition", "?")
@@ -212,7 +208,7 @@ class _CFGBuilder:
         out.extend(self._process_block(else_body, [(cond.id, "false", "false")]))
         return out
 
-    # -- loops -------------------------------------------------------------
+    # loops
 
     def _process_loop(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
         if stmt.get("type") == "ForStatement":
@@ -242,7 +238,7 @@ class _CFGBuilder:
         # exit: the false path plus any `break`
         return [(loop.id, "false", "false")] + ctx["breaks"]
 
-    # -- with (Python) -----------------------------------------------------
+    # with (Python)
 
     def _process_with(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
         text = f"with {stmt.get('items', '')}"
@@ -268,7 +264,7 @@ class _CFGBuilder:
         self._add_edge(cond.id, entry.id, "back", "true")
         return [(cond.id, "false", "false")] + ctx["breaks"]
 
-    # -- switch ------------------------------------------------------------
+    # switch
 
     def _process_switch(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
         if stmt.get("no_fallthrough"):
@@ -337,7 +333,7 @@ class _CFGBuilder:
             out.append((sw.id, "normal", "no match"))
         return out
 
-    # -- try / catch / finally ---------------------------------------------
+    # try / catch / finally
 
     def _process_try(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
         label = "try"
@@ -378,7 +374,7 @@ class _CFGBuilder:
             return self._process_block(finally_body, [_plain(fin.id)])
         return out
 
-    # -- jumps -------------------------------------------------------------
+    # jumps
 
     def _process_return(self, stmt: dict, tails: list[Tail]) -> list[Tail]:
         if stmt.get("stream"):
@@ -422,9 +418,7 @@ class _CFGBuilder:
         return [_plain(node.id)]
 
 
-# ---------------------------------------------------------------------------
 # Utility
-# ---------------------------------------------------------------------------
 
 _NAME = re.compile(r"[A-Za-z_]\w*")
 _AS_NAME = re.compile(r"\s+as\s+[A-Za-z_]\w*$")

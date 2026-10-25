@@ -19,9 +19,7 @@ class UnsupportedConstruct(Exception):
     """Raised when a graph structure cannot be turned back into valid code."""
 
 
-# ---------------------------------------------------------------------------
 # Java Statement rendering
-# ---------------------------------------------------------------------------
 
 def _end(text: str) -> str:
     text = text.rstrip()
@@ -256,9 +254,7 @@ def _render_if(s: dict, level: int, prefix: str) -> list[str]:
     return lines
 
 
-# ---------------------------------------------------------------------------
 # Applying graph edits to a method
-# ---------------------------------------------------------------------------
 
 _PATTERNS = {
     "IfStatement": re.compile(r"^\s*if\s*(?:\((.*)\)|(.*))\s*$", re.S),
@@ -425,9 +421,7 @@ def find_method(ast: dict, name: str, class_name: str | None = None) -> tuple[di
     return None
 
 
-# ---------------------------------------------------------------------------
 # Class skeletons
-# ---------------------------------------------------------------------------
 
 def generate_skeleton(ast: dict) -> str:
     out: list[str] = []

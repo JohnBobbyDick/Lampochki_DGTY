@@ -9,3 +9,4 @@ api_gemini.txt
 backend/.venv/
 .venv/
 .vscode/
+.DS_Store

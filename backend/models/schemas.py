@@ -11,7 +11,7 @@ class CamelModel(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
-# ── Parse ──────────────────────────────────────────────────────────────────────
+# Parse
 
 class ParseRequest(CamelModel):
     """Request body for parsing source code."""
@@ -29,7 +29,7 @@ class ParseResponse(CamelModel):
     language: str = Field("java", description="Language of the parsed source ('java' | 'python')")
 
 
-# ── Graph ──────────────────────────────────────────────────────────────────────
+# Graph
 
 class GraphRequest(CamelModel):
     """Query parameters for graph generation."""
@@ -66,7 +66,7 @@ class GraphResponse(CamelModel):
     edges: list[GraphEdge] = Field(default_factory=list)
 
 
-# ── Analyze ────────────────────────────────────────────────────────────────────
+# Analyze
 
 class Defect(CamelModel):
     """A single detected code defect."""
@@ -88,7 +88,7 @@ class AnalyzeResponse(CamelModel):
     compile_errors: list[dict] | None = Field(default=None, description="javac errors {file, line, message}; [] when javac ran clean, null when javac did not run")
 
 
-# ── Generate ───────────────────────────────────────────────────────────────────
+# Generate
 
 class GenerateRequest(CamelModel):
     """Request to generate code from an edited graph."""
@@ -102,7 +102,7 @@ class GenerateResponse(CamelModel):
     changed_nodes: list[str] = Field(default_factory=list)
 
 
-# ── Run ────────────────────────────────────────────────────────────────────────
+# Run
 
 class RunRequest(CamelModel):
     """Request to compile and run code."""
@@ -122,7 +122,7 @@ class RunResponse(CamelModel):
     compile_errors: list[dict] = Field(default_factory=list, description="[{line, message}] from compiler/interpreter")
 
 
-# ── Compare ────────────────────────────────────────────────────────────────────
+# Compare
 
 class CompareRequest(CamelModel):
     """Request to run and compare two versions of code."""
@@ -141,7 +141,7 @@ class CompareResponse(CamelModel):
     behavior_preserved: bool = True
 
 
-# ── Decompose ──────────────────────────────────────────────────────────────────
+# Decompose
 
 class DecomposedFile(CamelModel):
     """One file proposed by the decomposer."""
@@ -161,7 +161,7 @@ class DecomposeResponse(CamelModel):
     warnings: list[str] = Field(default_factory=list)
 
 
-# ── Quality Gate ───────────────────────────────────────────────────────────────
+# Quality Gate
 
 class QualityGateResponse(CamelModel):
     """Result of running the quality gate checks."""
@@ -169,7 +169,7 @@ class QualityGateResponse(CamelModel):
     details: dict = Field(default_factory=dict)
 
 
-# ── AI ─────────────────────────────────────────────────────────────────────────
+# AI
 
 class AiStatus(CamelModel):
     enabled: bool
@@ -275,7 +275,7 @@ class AiReviewResponse(CamelModel):
     note: str = ""
 
 
-# ── Files ──────────────────────────────────────────────────────────────────────
+# Files
 
 class ZipFile(CamelModel):
     """One file to put into the downloaded archive; `path` is the project file id (`src/Demo.java`)."""

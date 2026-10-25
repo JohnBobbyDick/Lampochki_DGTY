@@ -181,7 +181,7 @@ export function useApi() {
       st.setAiLoading(true);
       const seq = S().aiSeq;
       const data = await call(async () => (await api.post('/ai/explain', { defect, language: S().language })).data, true);
-      if (S().aiSeq !== seq) return data; // the drawer was closed while waiting
+      if (S().aiSeq !== seq) return data; // the AI tab was closed while waiting
       st.setAiLoading(false);
       if (data) {
         st.setAi({ title: '✨ Объяснение дефекта', text: data.explanation, patch: data.patch, source: data.source, note: data.note });
@@ -196,7 +196,7 @@ export function useApi() {
       st.setAiLoading(true);
       const seq = S().aiSeq;
       const data = await call(async () => (await api.post('/ai/fix', { code: st.code, line: err.line, message: err.message, language: st.language })).data, true);
-      if (S().aiSeq !== seq) return data; // the drawer was closed while waiting
+      if (S().aiSeq !== seq) return data; // the AI tab was closed while waiting
       st.setAiLoading(false);
       if (data) {
         st.setAi({ title: '✨ Исправление ошибки', text: data.explanation, patch: data.patch, source: data.source, note: data.note });

@@ -44,7 +44,7 @@ _REL_OPS = {ast.Lt: 0, ast.LtE: 1, ast.Gt: 2, ast.GtE: 3, ast.Eq: 4, ast.NotEq: 
 _RT = "_jb_cov"
 
 
-# ---- instrumentation -----------------------------------------------------------------------------
+# instrumentation
 
 def instrument(source: str) -> tuple[ast.Module, list[dict]]:
     """Parse *source* and insert probes; returns the module AST and the probes as plain dicts
@@ -76,7 +76,7 @@ class _Transformer(ast.NodeTransformer):
             slot += len(d["outcomes"])
         return out
 
-    # ---- helpers -----------------------------------------------------------------------------------
+    # helpers
     def probe(self, kind: str, node: ast.AST, label: str, outcomes: list[str]) -> ast.Constant:
         ref = ast.Constant(0)
         d = {"kind": kind, "line": node.lineno, "method": self.ctx, "label": label, "outcomes": list(outcomes)}
@@ -134,7 +134,7 @@ class _Transformer(ast.NodeTransformer):
             node = self.call("r", [rel[0], ast.Constant(rel[1]), node.left, node.comparators[0]], node)
         return self.call("c", [pc, node], node) if pc else node
 
-    # ---- definitions ---------------------------------------------------------------------------
+    # definitions
     def visit_FunctionDef(self, node):
         node.decorator_list = [self.visit(d) for d in node.decorator_list]
         node.args = self.visit(node.args)
@@ -162,7 +162,7 @@ class _Transformer(ast.NodeTransformer):
         self.owner = saved
         return node
 
-    # ---- statements ----------------------------------------------------------------------------
+    # statements
     def visit_If(self, node):
         node.test = self.decision(node.test, f"if {self.text(node.test)}")
         node.body = self.body(node.body)
@@ -220,7 +220,7 @@ class _Transformer(ast.NodeTransformer):
             c.body = [entry] + self.body(c.body)
         return node
 
-    # ---- expressions ---------------------------------------------------------------------------
+    # expressions
     def visit_IfExp(self, node):
         node.test = self.decision(node.test, self.text(node.test))
         node.body = self.visit(node.body)
@@ -228,7 +228,7 @@ class _Transformer(ast.NodeTransformer):
         return node
 
 
-# ---- runtime -------------------------------------------------------------------------------------
+# runtime
 
 _I32 = struct.Struct("<i")
 _MAX = 0x7FFFFFFF
@@ -298,7 +298,7 @@ class _Cov:
             self.h(s + 1)
 
 
-# ---- loader (``_jb_run.py``: ``import py_cov; py_cov.run("main.py")``) ------------------------
+# loader (``_jb_run.py``: ``import py_cov; py_cov.run("main.py")``)
 
 _loader_main = None
 

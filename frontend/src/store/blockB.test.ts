@@ -116,7 +116,6 @@ describe('Block B: UI improvements and state', () => {
       const file = files[0];
       const origCode = file.original;
 
-      // modify file
       useProject.setState({
         files: files.map((f) => (f.id === file.id ? { ...f, code: 'modified code' } : f)),
         activeId: file.id,
@@ -126,7 +125,6 @@ describe('Block B: UI improvements and state', () => {
       expect(useProject.getState().files.find((f) => f.id === file.id)?.code).toBe('modified code');
       expect(useStore.getState().code).toBe('modified code');
 
-      // reset file
       useProject.getState().resetFile(file.id);
 
       expect(useProject.getState().files.find((f) => f.id === file.id)?.code).toBe(origCode);

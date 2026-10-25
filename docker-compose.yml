@@ -17,7 +17,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "80:80"
+      - "${JB_HTTP_BIND:-80}:80"   # behind a host proxy (Caddy): JB_HTTP_BIND=127.0.0.1:8080
     depends_on:
       - backend
     restart: unless-stopped

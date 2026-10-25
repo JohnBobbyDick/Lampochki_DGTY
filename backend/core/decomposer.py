@@ -114,7 +114,7 @@ def plan(ast: dict) -> tuple[dict, dict[str, list[dict]], list[dict], list[str]]
     return mono, groups, mono.get("inner_classes", []), warnings
 
 
-# ── Python ─────────────────────────────────────────────────────────────────────
+# Python
 # Units are top-level functions and whole classes (methods never leave their class). `main`, the code of the
 # module itself and units relying on module globals that stay behind remain in the facade `main.py`. A module
 # constant moves together with its users only when every user lands in the same module. Moved code is sliced
@@ -478,7 +478,7 @@ def _decompose_python(code: str) -> DecomposeResponse:
     return DecomposeResponse(files=files, warnings=warnings)
 
 
-# ── Java: Extract Class for instance state ─────────────────────────────────────
+# Java: Extract Class for instance state
 
 # a moved field initializer must be free of side effects: `new T<>()` / `new T[]{…}` / literals
 _SAFE_INIT = re.compile(r"^(?:new\s+[\w.$<>?,\s\[\]]+(?:\(\s*\)|\[\s*\d*\s*\](?:\s*\{[^;]*\})?)"

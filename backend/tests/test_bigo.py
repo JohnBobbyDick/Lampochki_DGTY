@@ -107,7 +107,7 @@ def test_generic_catch_and_unused_var():
     assert "Общий catch" in msgs and "unused" in msgs and "Неиспользуемый импорт" in msgs
 
 
-# ── stream chains: structural Big O from the steps ─────────────────────────────────────────────
+# stream chains: structural Big O from the steps
 
 def _stream_cost(body, params="List<Integer> xs, List<Integer> ys, List<List<Integer>> ls, int n"):
     code = f"import java.util.*; import java.util.stream.*; class A {{ Object f({params}){{ {body} }} }}"

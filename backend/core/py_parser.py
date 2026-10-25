@@ -4,7 +4,7 @@ Produces a structured AST dictionary, a line_map (node-id -> line number),
 and a list of syntax/parse errors, compatible with the Java AST schema
 used by CFG builder, Call Graph, Class Diagram, and Defect Detector.
 
-Python-specific additions (see docs/superpowers/plans/2026-10-24-stage7-python.md, «Решения»):
+Python-specific additions:
 statement text is taken from the source (``ast.get_source_segment``), every statement has
 ``span = {line, col, end_line, end_col}`` (``col`` — 0-based character offset), compound statements
 (and except/case clauses) have ``header`` — from the keyword up to the header ``:`` (excluded).
@@ -95,7 +95,7 @@ class _Extractor:
         self._collect: list[list[dict[str, Any]]] = []  # nested-def methods of the current function
         self._names: list[str] = []  # qualified name of the current function
 
-    # -- positions and text ------------------------------------------------
+    # positions and text
 
     def _line(self, lineno: int) -> str:
         return self.lines[lineno - 1] if 0 < lineno <= len(self.lines) else ""
@@ -204,7 +204,7 @@ class _Extractor:
                 return self.header(lineno, len(self._line(lineno)) - len(stripped))
         return None
 
-    # -- statements --------------------------------------------------------
+    # statements
 
     def stmts(self, body: list[ast.stmt], parent_id: str) -> list[dict[str, Any]]:
         return [self.stmt(x, parent_id) for x in body]
@@ -338,7 +338,7 @@ class _Extractor:
             "body": self.stmts(c.body, parent_id),
         }
 
-    # -- functions and classes ---------------------------------------------
+    # functions and classes
 
     def func(self, fn: ast.FunctionDef | ast.AsyncFunctionDef, cls_name: str,
              qual: str | None = None) -> list[dict[str, Any]]:

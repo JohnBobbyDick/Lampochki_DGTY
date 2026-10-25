@@ -91,7 +91,7 @@ def _detect(ast: dict, code: str, bigo: dict[str, str] | None) -> list[Defect]:
             qname = f"{cls['name']}.{m['name']}"
             body = m.get("body", [])
 
-            # 1. nested loops ------------------------------------------------
+            # 1. nested loops
             loops = find_loops(body)
             for loop, depth in loops:
                 if depth < 2:
@@ -120,7 +120,7 @@ def _detect(ast: dict, code: str, bigo: dict[str, str] | None) -> list[Defect]:
                     big_o=big, big_o_after=_power(power - 1), message=msg, recommendation=rec,
                 ))
 
-            # 2/3. catch blocks ---------------------------------------------
+            # 2/3. catch blocks
             for s in _walk_stmts(body):
                 if s.get("type") != "TryStatement":
                     continue
@@ -142,7 +142,7 @@ def _detect(ast: dict, code: str, bigo: dict[str, str] | None) -> list[Defect]:
                             recommendation="Ловить конкретные типы исключений (IOException, NumberFormatException…)",
                         ))
 
-            # 4. unused locals -----------------------------------------------
+            # 4. unused locals
             all_text = " ".join(_walk_exprs(body))
             for s in _walk_stmts(body):
                 if s.get("type") == "LocalVariableDeclaration":
@@ -164,7 +164,7 @@ def _detect(ast: dict, code: str, bigo: dict[str, str] | None) -> list[Defect]:
     else:
         defects.extend(_stream_defects(ast))
 
-    # 5. unused imports -------------------------------------------------------
+    # 5. unused imports
     body_text = "\n".join(l for l in lines if not l.strip().startswith("import "))
     for imp in ([] if python else ast.get("imports", [])):
         if imp.get("wildcard") or imp.get("static"):
@@ -178,7 +178,7 @@ def _detect(ast: dict, code: str, bigo: dict[str, str] | None) -> list[Defect]:
                 recommendation="Удалить импорт",
             ))
 
-    # 6. duplicated methods ----------------------------------------------------
+    # 6. duplicated methods
     seen: dict[str, str] = {}
     for cls in ast.get("classes", []):
         for m in cls["methods"]:
@@ -196,7 +196,7 @@ def _detect(ast: dict, code: str, bigo: dict[str, str] | None) -> list[Defect]:
             else:
                 seen[key] = q
 
-    # 7. recursion hint ----------------------------------------------------------
+    # 7. recursion hint
     for key, val in (bigo or {}).items():
         exponential = val == "O(2^n)"
         if ("рекурсия" in val or exponential) and "." in key:
@@ -261,9 +261,7 @@ def _enclosing_loop(stmts: list[dict], target: dict) -> dict | None:
     return r or None
 
 
-# ---------------------------------------------------------------------------
 # Stream API rules (decomposed chains only: see `stmt["stream"]`)
-# ---------------------------------------------------------------------------
 
 _TO_COLLECTION = re.compile(r"^Collectors\.(toList|toSet)\(\)$")
 _MUTATE = re.compile(r"\b([A-Za-z_]\w*)\s*\.\s*(add|put|remove)\s*\(")
@@ -383,9 +381,7 @@ def _stream_defects(ast: dict) -> list[Defect]:
     return found
 
 
-# ---------------------------------------------------------------------------
 # Python rules (methods with `language: "python"`, see core/py_parser.py)
-# ---------------------------------------------------------------------------
 
 _PY_GENERIC_EXC = {"Exception", "BaseException"}
 _PY_MUTABLE_CALLS = {"list", "dict", "set", "bytearray", "defaultdict", "OrderedDict", "Counter", "deque"}
@@ -532,7 +528,7 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
                         f"Превратите «{text}» в set до цикла (или храните элементы сразу в set) — проверка in "
                         f"станет O(1)", "O(n²)", after="O(n)")
 
-            # 3. nested loops (the same collection → pairs) --------------------------------
+            # 3. nested loops (the same collection → pairs)
             for loop, depth in loops:
                 if depth < 2:
                     continue
@@ -550,7 +546,7 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
                 add(line, "error" if depth >= 3 else "warning", msg, rec, big, max_line(loop, line) or line,
                     after=_power(depth - 1))
 
-            # 1/2. string concatenation and list membership once per iteration --------------
+            # 1/2. string concatenation and list membership once per iteration
             in_loops: set[int] = set()
             for loop, _ in loops:
                 if loop.get("type") == "WhileStatement":      # the condition is evaluated on every iteration
@@ -568,7 +564,7 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
                 if id(s) not in in_loops:
                     memberships(s, _PY_EXPR_KEYS, False)
 
-            # 6. for i in range(len(x)) ----------------------------------------------------
+            # 6. for i in range(len(x))
             for loop, _ in loops:
                 coll = _py_range_len(loop)
                 if coll is not None:
@@ -577,7 +573,7 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
                         f"перебирать напрямую",
                         f"Писать for item in {coll}, а если нужен индекс — for i, item in enumerate({coll})")
 
-            # 4. swallowed / general except ------------------------------------------------
+            # 4. swallowed / general except
             for s in _walk_stmts(body):
                 if s.get("type") != "TryStatement":
                     continue
@@ -600,7 +596,7 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
                             f"KeyboardInterrupt и SystemExit",
                             "Указать конкретный тип исключения: except ValueError: (или хотя бы except Exception:)")
 
-    # 5. mutable default arguments and unused imports: straight from the source -----------------
+    # 5. mutable default arguments and unused imports: straight from the source
     try:
         tree = pyast.parse(code)
     except (SyntaxError, ValueError):

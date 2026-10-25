@@ -5,7 +5,7 @@ afterwards in source order (by edit offset), so numbering is deterministic.  Edi
 newline, so line numbers of the instrumented code match the original (javac errors and stack traces
 point at the user's lines).
 
-Probes (see the stage 4 plan, "Формат данных"):
+Probes:
   * ``line``   — ``__Cov.h(s);`` before every statement of a method / constructor / initializer body and
     everything nested in it (block lambdas, anonymous and local classes). Field initializers are untouched.
   * ``method`` — ``__Cov.h(s);`` right after the ``{`` of a named class' method/constructor body
@@ -193,7 +193,7 @@ class _Instrumenter:
         self.probes: list[_P] = []
         self.done_q: set[int] = set()       # `?` tokens whose ternary condition is instrumented
 
-    # ---- low level -----------------------------------------------------------------------------
+    # low level
     def _doff(self, i: int) -> int:
         """Offset of token *i* in the decoded text."""
         p = self.tokens[i].position
@@ -243,7 +243,7 @@ class _Instrumenter:
         out.append(self.code[pos:])
         return "".join(out), probes, slot
 
-    # ---- token spans ---------------------------------------------------------------------------
+    # token spans
     def start_tok(self, node) -> int | None:
         """First token of a statement: javalang's position moved back over a label and over the
         modifiers/annotations of a local declaration."""
@@ -321,7 +321,7 @@ class _Instrumenter:
             end = self.match(self.scan(end + 2, "{"))
         return end
 
-    # ---- declarations --------------------------------------------------------------------------
+    # declarations
     def type_decl(self, decl, method_ctx: str | None) -> None:
         """A named class/interface/enum (top-level, member or local)."""
         name = decl.name
@@ -385,7 +385,7 @@ class _Instrumenter:
             self.edit(at, [" __Cov.h(", _Ref(p), ");"])
         self.block(stmts, ctx)
 
-    # ---- statements ----------------------------------------------------------------------------
+    # statements
     def block(self, stmts, ctx: str) -> None:
         for s in stmts or []:
             self.stmt(s, ctx)
@@ -507,7 +507,7 @@ class _Instrumenter:
                 self.ternaries(st, en + 1, ctx)
             self.expr(s, ctx)
 
-    # ---- decisions -----------------------------------------------------------------------------
+    # decisions
     def kw(self, s, word: str) -> int | None:
         """Token index of the keyword *word* that starts statement *s* (after its labels)."""
         pos = getattr(s, "position", None)

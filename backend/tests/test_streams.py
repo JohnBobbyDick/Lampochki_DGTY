@@ -136,9 +136,7 @@ def test_not_decomposed():
         assert "stream" not in s, body
 
 
-# ---------------------------------------------------------------------------
-# Task 2: pipeline nodes in the CFG and editing single steps
-# ---------------------------------------------------------------------------
+# Pipeline nodes in the CFG and editing single steps
 
 _CHAIN = ("List<Integer> r = xs.stream().filter(x -> x > 0).map(x -> x * 2)"
           ".collect(Collectors.toList());\n System.out.println(r);")

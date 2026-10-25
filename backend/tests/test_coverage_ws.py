@@ -109,7 +109,7 @@ def test_exit_sent_when_final_coverage_raises(monkeypatch):
     assert msgs[-2]["error"] == "Данные покрытия не получены"
 
 
-# ---- Python ------------------------------------------------------------------------------------
+# Python
 
 def _run_py(code):
     with TestClient(app).websocket_connect("/api/ws/run") as ws:

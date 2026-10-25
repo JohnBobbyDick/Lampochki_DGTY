@@ -179,7 +179,7 @@ def _root():
 
 def test_nginx_overwrites_forwarded_for():
     lines = [l for l in (_root() / "frontend/nginx.conf").read_text().splitlines()
-             if "X-Forwarded-For" in l and not l.strip().startswith("#")]
+             if "proxy_set_header X-Forwarded-For" in l and not l.strip().startswith("#")]
     assert lines
     for l in lines:
         assert "$remote_addr" in l

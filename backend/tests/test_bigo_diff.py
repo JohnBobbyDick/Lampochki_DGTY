@@ -68,7 +68,7 @@ def test_same_complexity_kept(read_java):
     assert p["bigo_before"]["Analyzer.mergeItems"] == p["bigo_after"]["Analyzer.mergeItems"] == "O(n²)"
 
 
-# ---- combined application of several patches -------------------------------------------------
+# combined application of several patches
 
 from ai.bigo_diff import combined_bigo  # noqa: E402
 

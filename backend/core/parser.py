@@ -67,9 +67,7 @@ from javalang.tree import (
 from core.streams import stream_of
 
 
-# ---------------------------------------------------------------------------
 # Public API
-# ---------------------------------------------------------------------------
 
 def parse_java(code: str) -> dict[str, Any]:
     """Parse Java source into a structured dict.
@@ -101,11 +99,9 @@ def parse_java(code: str) -> dict[str, Any]:
         errors.append(f"Parse error: {exc}")
         return {"ast": ast_dict, "line_map": line_map, "errors": errors}
 
-    # Package
     if tree.package:
         ast_dict["package"] = tree.package.name
 
-    # Imports
     ast_dict["imports"] = [
         {"path": imp.path, "static": imp.static, "wildcard": imp.wildcard}
         for imp in (tree.imports or [])
@@ -250,9 +246,7 @@ def _label_from_src(d: dict) -> None:
         d.pop("stream", None)
 
 
-# ---------------------------------------------------------------------------
 # Class / interface / enum extraction
-# ---------------------------------------------------------------------------
 
 def _make_id(prefix: str, name: str) -> str:
     """Deterministic short id from prefix + name."""
@@ -397,9 +391,7 @@ def _extract_enum(node: EnumDeclaration, code_lines: list[str], line_map: dict[s
     }
 
 
-# ---------------------------------------------------------------------------
 # Fields
-# ---------------------------------------------------------------------------
 
 def _extract_fields(
     members: list,
@@ -429,9 +421,7 @@ def _extract_fields(
     return fields
 
 
-# ---------------------------------------------------------------------------
 # Methods & constructors
-# ---------------------------------------------------------------------------
 
 def _extract_methods(
     members: list,
@@ -547,9 +537,7 @@ def _body_line_range(node: Any, code_lines: list[str]) -> dict:
     return {"start": start, "end": end}
 
 
-# ---------------------------------------------------------------------------
 # Body statement extraction  (recursive, produces nested list[dict])
-# ---------------------------------------------------------------------------
 
 def _extract_body_statements(body: list | None) -> list[dict]:
     """Convert a javalang statement list into a JSON-serialisable form."""
@@ -583,7 +571,7 @@ _LOSSY = [0]
 
 def _stmt_fields(stmt: Any, d: dict[str, Any]) -> dict:
 
-    # ── IfStatement ────────────────────────────────────────────────────
+    # IfStatement
     if isinstance(stmt, IfStatement):
         d["condition"] = _expr_to_str(stmt.condition)
         d["then"] = _extract_body_statements(
@@ -596,7 +584,7 @@ def _stmt_fields(stmt: Any, d: dict[str, Any]) -> dict:
         )
         return d
 
-    # ── For / While / Do ───────────────────────────────────────────────
+    # For / While / Do
     if isinstance(stmt, ForStatement):
         d["control"] = _expr_to_str(stmt.control) if stmt.control else ""
         d["body"] = _extract_body_statements(
@@ -618,7 +606,7 @@ def _stmt_fields(stmt: Any, d: dict[str, Any]) -> dict:
         )
         return d
 
-    # ── Switch ─────────────────────────────────────────────────────────
+    # Switch
     if isinstance(stmt, SwitchStatement):
         d["expression"] = _expr_to_str(stmt.expression)
         cases: list[dict] = []
@@ -635,7 +623,7 @@ def _stmt_fields(stmt: Any, d: dict[str, Any]) -> dict:
         d["expression"] = _expr_to_str(stmt.expression)
         return d
 
-    # ── Try / Catch / Finally ──────────────────────────────────────────
+    # Try / Catch / Finally
     if isinstance(stmt, TryStatement):
         d["body"] = _extract_body_statements(stmt.block) if stmt.block else []
         catches: list[dict] = []
@@ -658,7 +646,7 @@ def _stmt_fields(stmt: Any, d: dict[str, Any]) -> dict:
         d["finally"] = _extract_body_statements(stmt.finally_block) if stmt.finally_block else []
         return d
 
-    # ── Return / Throw ─────────────────────────────────────────────────
+    # Return / Throw
     if isinstance(stmt, ReturnStatement):
         d["expression"] = _expr_to_str(stmt.expression)
         _set_stream(d, stmt.expression, "return ")
@@ -668,12 +656,12 @@ def _stmt_fields(stmt: Any, d: dict[str, Any]) -> dict:
         d["expression"] = _expr_to_str(stmt.expression)
         return d
 
-    # ── Block ──────────────────────────────────────────────────────────
+    # Block
     if isinstance(stmt, BlockStatement):
         d["body"] = _extract_body_statements(stmt.statements) if stmt.statements else []
         return d
 
-    # ── Local variable declaration ─────────────────────────────────────
+    # Local variable declaration
     if isinstance(stmt, LocalVariableDeclaration):
         d["var_type"] = _type_to_str(stmt.type)
         d["modifiers"] = _modifiers_list(getattr(stmt, "modifiers", None))
@@ -690,7 +678,7 @@ def _stmt_fields(stmt: Any, d: dict[str, Any]) -> dict:
             _set_stream(d, stmt.declarators[0].initializer, head)
         return d
 
-    # ── Statement expression (method call, assignment, etc.) ───────────
+    # Statement expression (method call, assignment, etc.)
     if isinstance(stmt, StatementExpression):
         d["expression"] = _expr_to_str(stmt.expression)
         e = stmt.expression
@@ -723,9 +711,7 @@ def _set_stream(d: dict, expr: Any, prefix: str) -> None:
         d["stream"] = stream
 
 
-# ---------------------------------------------------------------------------
 # Expression → string helper
-# ---------------------------------------------------------------------------
 
 def _prefix_postfix(expr: Any, core: str) -> str:
     pre = "".join(getattr(expr, "prefix_operators", None) or [])
@@ -890,9 +876,7 @@ def _stmt_text(stmt: Any) -> str:
     return _expr_to_str(stmt)
 
 
-# ---------------------------------------------------------------------------
 # Best-effort parse (token-level fallback)
-# ---------------------------------------------------------------------------
 
 def _best_effort_parse(code: str, errors: list[str]) -> dict:
     """Attempt to extract basic structure via tokenization when full parse fails."""

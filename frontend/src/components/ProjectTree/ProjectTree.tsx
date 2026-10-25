@@ -71,7 +71,6 @@ const ProjectTree: React.FC = () => {
     return () => window.removeEventListener('click', onDocClick);
   }, [menu]);
 
-  // Show files belonging to current language
   const files = allFiles.filter((f) => (language === 'python' ? f.language === 'python' : f.language === 'java'));
 
   // Collect all unique folders containing files or empty folders

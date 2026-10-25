@@ -20,7 +20,7 @@ def _by(ds, key):
     return [d for d in ds if key in d.message]
 
 
-# 1. stream over the same collection inside a loop over it -----------------
+# 1. stream over the same collection inside a loop over it
 def test_stream_in_loop_same_collection():
     ds = _defects("for (Integer x : xs) {\n long c = xs.stream().filter(v -> v > x).count();\n}")
     r = _by(ds, "Повторный стрим")
@@ -40,7 +40,7 @@ def test_stream_in_loop_other_collection_ok():
     assert _by(ds, "Повторный стрим") == []
 
 
-# 2. collect(...).size() -------------------------------------------------------
+# 2. collect(...).size()
 def test_collect_size():
     ds = _defects("int k = xs.stream().filter(v -> v > 0).collect(Collectors.toList()).size();")
     r = _by(ds, "count()")
@@ -52,7 +52,7 @@ def test_collect_without_size_ok():
     assert _by(ds, "count()") == []
 
 
-# 3. filter().findFirst().isPresent() -----------------------------------------
+# 3. filter().findFirst().isPresent()
 def test_find_first_is_present():
     ds = _defects("boolean b = xs.stream().filter(v -> v > 0).findFirst().isPresent();")
     r = _by(ds, "anyMatch")
@@ -69,7 +69,7 @@ def test_any_match_ok():
     assert _by(ds, "anyMatch") == []
 
 
-# 4. sorted().findFirst() -----------------------------------------------------
+# 4. sorted().findFirst()
 def test_sorted_find_first():
     ds = _defects("Optional<Integer> o = xs.stream().sorted().findFirst();")
     r = _by(ds, "min(")
@@ -82,7 +82,7 @@ def test_min_ok():
     assert _by(ds, "min(") == []
 
 
-# 5. forEach mutating an outer collection -------------------------------------
+# 5. forEach mutating an outer collection
 def test_foreach_add_outer():
     ds = _defects("xs.stream().filter(v -> v > 0).forEach(v -> out.add(v));")
     r = _by(ds, "collect(")
@@ -99,7 +99,7 @@ def test_foreach_param_method_ok():
     assert _by(ds, "collect(") == []
 
 
-# 6. loop -> stream ------------------------------------------------------------
+# 6. loop -> stream
 def test_loop_if_add():
     ds = _defects("for (Integer x : xs) {\n if (x > 0) {\n out.add(x);\n }\n}")
     r = _by(ds, "Цикл можно заменить")
@@ -117,7 +117,7 @@ def test_loop_two_statements_ok():
     assert _by(ds, "Цикл можно заменить") == []
 
 
-# tips ---------------------------------------------------------------------------
+# tips
 def test_tips_for_all_messages():
     ds = _defects(
         "for (Integer x : xs) {\n long c = xs.stream().count();\n}\n"
@@ -137,7 +137,7 @@ def test_tips_for_all_messages():
     assert len(seen) == len(keys)
 
 
-# existing defects unchanged ------------------------------------------------------
+# existing defects unchanged
 def test_monolith_defects_unchanged():
     base = json.load(open(os.path.join(os.path.dirname(__file__), "data", "monolith_defects.json"), encoding="utf-8"))
     root = os.path.join(os.path.dirname(__file__), "..", "..", "test_monoliths")
@@ -147,7 +147,7 @@ def test_monolith_defects_unchanged():
         got = json.loads(json.dumps(got, ensure_ascii=False))
         for d in got:
             d.pop("big_o_after")    # added after the baseline: the expected effect of the recommendation
-        if os.path.basename(f) not in base:  # Streams.java has no pre-stage-6 baseline (new demo)
+        if os.path.basename(f) not in base:  # newer demos (Streams, Warehouse…) have no baseline
             continue
         old = base[os.path.basename(f)]
         # every pre-existing defect is unchanged; the only additions are the new "loop -> stream" hints
@@ -155,7 +155,7 @@ def test_monolith_defects_unchanged():
         assert all(d["message"].startswith("Цикл можно заменить") for d in got if d not in old), f
 
 
-# the demo example ----------------------------------------------------------------
+# the demo example
 def test_streams_demo_has_all_rules_and_stream_nodes(read_java):
     from core.cfg_builder import build_cfg
     code = read_java("Streams")

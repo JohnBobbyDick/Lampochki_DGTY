@@ -126,7 +126,7 @@ Big O after AI: `utils/speedup.ts` (f(n) ratio at n = 1000, nice rounding), `uti
 `components/BigoChange` (`utils/bigoChange.ts`) in DiagnosticsPanel's «Сложность методов · Big O» row and `PatchView`.
 `hooks/useApi.ts` wraps all backend calls;
 `hooks/useSync.ts` drives the edit → 500 ms debounce → `/parse` → `/analyze` + `/graph` loop and lays graphs
-out with dagre. `hooks/useAutoReview.ts` fires `/api/ai/review` 5 s after the last edit and cancels on new edits.
+out with ELK (`elkjs` 0.12.0 layered layout via `utils/elkLayout.ts`, rendered by `components/GraphCanvas/LabeledEdge.tsx` with orthogonal bend points and loop ports). The graph button toggles visibility (defaults to closed, closes on language switch); editor expands when hidden; the bottom panel opens on the first run/compare action (`hasBottom`). `useProject.ts` persists project tree changes (creation, rename, deletion of files/folders, language auto-detection) in IndexedDB (`jb.project.v1`, `utils/projectStorage.ts`) with a 500 ms debounce, taking live code from `useStore.code`. `hooks/useAutoReview.ts` fires `/api/ai/review` 5 s after the last edit and cancels on new edits.
 Example Java files live in both `frontend/src/examples/` and `test_monoliths/` (the latter used by backend tests).
 
 ## Tests

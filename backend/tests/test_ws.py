@@ -171,6 +171,22 @@ def test_interactive_waiting_for_input_costs_no_cpu(monkeypatch):
     assert "hello Ann" in out and msgs[-1]["code"] == 0
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="process groups are POSIX only")
+def test_interactive_kills_background_children(tmp_path):
+    """A child the program starts (and leaves holding stdout) dies with the run instead of living on."""
+    flag = tmp_path / "alive"
+    child = "import pathlib, sys, time; time.sleep(3); pathlib.Path(sys.argv[1]).write_text('x')"
+    code = f"import subprocess, sys\nsubprocess.Popen([sys.executable, '-c', {child!r}, {str(flag)!r}])\nprint('started')\n"
+    t0 = time.monotonic()
+    with TestClient(app).websocket_connect("/api/ws/run") as ws:
+        ws.send_text(json.dumps({"type": "start", "code": code, "language": "python"}))
+        msgs = collect(ws)
+    assert time.monotonic() - t0 < 3          # the run does not wait for the child
+    assert "started" in "".join(m.get("data", "") for m in msgs if m["type"] == "stdout")
+    time.sleep(3.5)
+    assert not flag.exists()                  # the child was killed with the run's process group
+
+
 def test_interactive_java_memory_limit():
     code = "public class OOM { public static void main(String[] a){ byte[] b = new byte[120 * 1024 * 1024]; } }"
     with TestClient(app).websocket_connect("/api/ws/run") as ws:

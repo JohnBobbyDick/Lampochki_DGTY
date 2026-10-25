@@ -6,6 +6,7 @@ import asyncio
 import os
 import queue
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -20,6 +21,14 @@ from core.coverage.build import CovPlan
 
 Emit = Callable[[dict], Awaitable[None]]
 MAX_SESSION_SEC = 60      # wall time incl. waiting for input; the program's own work is capped by runner.CPU_LIMIT_SEC
+NO_CPU_LIMIT_SEC = 10     # wall cap where RLIMIT_CPU is unavailable (Windows without docker): waiting counts again
+# POSIX subprocess mode: the program gets its own process group, killed as a whole (children cannot outlive the run)
+OWN_GROUP = os.name == "posix"
+
+
+def session_limit() -> float:
+    """Wall-time cap of a console session: long only where the CPU time of the program is limited."""
+    return MAX_SESSION_SEC if os.name == "posix" or runner.SANDBOX_MODE == "docker" else NO_CPU_LIMIT_SEC
 MEASURE_SEC = 10          # background measuring run: no input, so wall time is all work
 MAX_MEMORY_MB = 100
 MAX_MEMORY_BYTES = MAX_MEMORY_MB * 1024 * 1024
@@ -125,8 +134,9 @@ class InteractiveProcess:
     """Wrapper around subprocess.Popen providing an async-friendly interface
     that works consistently across all event loops (including Windows SelectorEventLoop)."""
 
-    def __init__(self, popen: subprocess.Popen, tmp: Path, job_handle=None):
+    def __init__(self, popen: subprocess.Popen, tmp: Path, job_handle=None, own_group: bool = False):
         self.popen = popen
+        self.own_group = own_group
         self.tmp = tmp
         self.stdin = popen.stdin
         self.job_handle = job_handle
@@ -189,6 +199,7 @@ class InteractiveProcess:
             self.popen.kill()
         except OSError:
             pass
+        self.kill_group()
         if self._writer is not None:
             self._q.put(None)   # unblock the writer if it is idle
         if self.job_handle and sys.platform == "win32":
@@ -198,6 +209,16 @@ class InteractiveProcess:
                 self.job_handle = None
             except Exception:
                 pass
+
+
+    def kill_group(self) -> None:
+        """Kill whatever the program started (its process group); a no-op without an own group."""
+        if not self.own_group:
+            return
+        try:
+            os.killpg(self.popen.pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError, OSError):
+            pass
 
 
 async def start_session(
@@ -246,8 +267,9 @@ async def start_session(
             bufsize=0,
             env=None if runner.SANDBOX_MODE == "docker" else runner.child_env(),
             preexec_fn=None if runner.SANDBOX_MODE == "docker" else runner.cpu_preexec(),
+            start_new_session=OWN_GROUP and runner.SANDBOX_MODE != "docker",
         )
-        return InteractiveProcess(popen, tmp), tmp, plan
+        return InteractiveProcess(popen, tmp, own_group=OWN_GROUP and runner.SANDBOX_MODE != "docker"), tmp, plan
     except FileNotFoundError as exc:
         shutil.rmtree(tmp, ignore_errors=True)
         await emit({"type": "stderr", "data": f"Java toolchain not found: {exc}\n"})
@@ -287,6 +309,7 @@ async def _start_python(code: str, emit: Emit) -> tuple[InteractiveProcess, Path
             cmd, cwd=None if docker else tmp, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, bufsize=0, env=env,
             preexec_fn=None if docker else runner.python_preexec(cpu=runner.CPU_LIMIT_SEC),
+            start_new_session=OWN_GROUP and not docker,
         )
     except Exception as exc:  # noqa: BLE001
         shutil.rmtree(tmp, ignore_errors=True)
@@ -294,14 +317,14 @@ async def _start_python(code: str, emit: Emit) -> tuple[InteractiveProcess, Path
         await emit({"type": "exit", "code": 127, "durationMs": 0})
         return None
     job_handle = _apply_windows_memory_limit(popen, MAX_MEMORY_BYTES)
-    return InteractiveProcess(popen, tmp, job_handle=job_handle), tmp, plan
+    return InteractiveProcess(popen, tmp, job_handle=job_handle, own_group=OWN_GROUP and not docker), tmp, plan
 
 
 async def pump(proc: InteractiveProcess, emit: Emit, max_sec: float | None = None) -> int:
     """Forward output until the process exits (or limits are hit); returns exit code.
 
-    *max_sec*: wall-time cap, MAX_SESSION_SEC by default."""
-    max_sec = max_sec or MAX_SESSION_SEC
+    *max_sec*: wall-time cap, :func:`session_limit` by default."""
+    max_sec = max_sec or session_limit()
     loop = asyncio.get_running_loop()
     q: asyncio.Queue[tuple[str, bytes | None]] = asyncio.Queue()
     sent = 0
@@ -330,8 +353,13 @@ async def pump(proc: InteractiveProcess, emit: Emit, max_sec: float | None = Non
         elapsed = time.monotonic() - started
         remaining = max(0.1, max_sec - elapsed)
         try:
-            kind, chunk = await asyncio.wait_for(q.get(), timeout=remaining)
+            # short waits while the program runs: once it exits, children holding the pipes are killed at once
+            kind, chunk = await asyncio.wait_for(q.get(), timeout=min(remaining, 0.5) if proc.own_group else remaining)
         except asyncio.TimeoutError:
+            if time.monotonic() - started < max_sec:
+                if proc.popen.poll() is not None:
+                    proc.kill_group()
+                continue
             proc.kill()
             await emit({"type": "stderr", "data": f"\nTimeout: сессия дольше {max_sec:g} с\n"})
             break
@@ -353,6 +381,7 @@ async def pump(proc: InteractiveProcess, emit: Emit, max_sec: float | None = Non
     except (asyncio.TimeoutError, Exception):
         proc.kill()
 
+    proc.kill_group()    # background children of the program must not outlive the run
     proc.close_stdin()   # run is over: release the stdin writer thread
     code = proc.popen.returncode if proc.popen.returncode is not None else -1
     if code in runner.CPU_LIMIT_EXITS:

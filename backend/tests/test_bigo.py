@@ -171,3 +171,39 @@ def test_defects_carry_expected_effect(read_java):
         ast, b = analyze(code)
         d = next(d for d in detect_defects(ast, code, b) if d.method == method)
         assert (d.big_o, d.big_o_after) == (before, "O(n)")
+
+
+EXP_CALLER = """public class M {
+    static long fib(int n) { return n < 2 ? n : fib(n - 1) + fib(n - 2); }
+    static long sumFib(int k) {
+        long s = 0;
+        for (int i = 0; i < k; i++) s += fib(i);
+        return s;
+    }
+    public static void main(String[] a) { System.out.println(sumFib(20)); }
+}"""
+
+
+def test_exponential_recursion_reported_only_where_it_recurses():
+    ast, bigo = analyze(EXP_CALLER)
+    assert bigo["M.main"] == "O(2^n)"           # inherited from fib
+    rec = [d.method for d in detect_defects(ast, EXP_CALLER, bigo) if "вызывает себя дважды" in d.message]
+    assert rec == ["M.fib"]
+
+
+TRIPLE = """public class T {
+    static int triples(int[] a) {
+        int c = 0;
+        for (int i = 0; i < a.length; i++)
+            for (int j = i + 1; j < a.length; j++)
+                for (int k = j + 1; k < a.length; k++)
+                    if (a[i] + a[j] + a[k] == 0) c++;
+        return c;
+    }
+}"""
+
+
+def test_loop_nest_reported_once_at_its_depth():
+    ast, bigo = analyze(TRIPLE)
+    nested = [d for d in detect_defects(ast, TRIPLE, bigo) if "Вложенн" in d.message]
+    assert [(d.big_o, d.big_o_after, d.line_start) for d in nested] == [("O(n³)", "O(n²)", 6)]

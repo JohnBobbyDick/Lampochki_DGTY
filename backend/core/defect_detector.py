@@ -81,6 +81,11 @@ def detect_defects(ast: dict, code: str, bigo: dict[str, str] | None = None) -> 
         _CFG_CACHE.clear()
 
 
+def _outer_loop_ids(body: list, loops: list) -> set[int]:
+    """ids of loops that contain another loop: a nest is reported once, at its deepest level."""
+    return {id(outer) for loop, _ in loops if (outer := _enclosing_loop(body, loop)) is not None}
+
+
 def _detect(ast: dict, code: str, bigo: dict[str, str] | None) -> list[Defect]:
     defects: list[Defect] = []
     lines = code.splitlines()
@@ -91,10 +96,11 @@ def _detect(ast: dict, code: str, bigo: dict[str, str] | None) -> list[Defect]:
             qname = f"{cls['name']}.{m['name']}"
             body = m.get("body", [])
 
-            # 1. nested loops
+            # 1. nested loops: one defect per nest, at its innermost loop
             loops = find_loops(body)
+            has_inner = _outer_loop_ids(body, loops)
             for loop, depth in loops:
-                if depth < 2:
+                if depth < 2 or id(loop) in has_inner:
                     continue
                 outer = _enclosing_loop(body, loop)
                 same_iter = (
@@ -204,8 +210,8 @@ def _detect(ast: dict, code: str, bigo: dict[str, str] | None) -> list[Defect]:
             for cls in ast.get("classes", []):
                 for m in cls["methods"]:
                     if cls["name"] == cls_name and m["name"] == mname:
-                        if python and not is_recursive(m, cls_name):
-                            continue        # O(2^n) inherited from a call (print_table → fib), not its own recursion
+                        if not is_recursive(m, cls_name):
+                            continue        # O(2^n) inherited from a call (main → fib), not its own recursion
                         span = dict(line_start=m.get("line_start") or 0, line_end=(m.get("span") or {}).get("end", 0), method=key)
                         if exponential:
                             defects.append(Defect(
@@ -528,9 +534,10 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
                         f"Превратите «{text}» в set до цикла (или храните элементы сразу в set) — проверка in "
                         f"станет O(1)", "O(n²)", after="O(n)")
 
-            # 3. nested loops (the same collection → pairs)
+            # 3. nested loops (the same collection → pairs), one defect per nest
+            has_inner = _outer_loop_ids(body, loops)
             for loop, depth in loops:
-                if depth < 2:
+                if depth < 2 or id(loop) in has_inner:
                     continue
                 outer = _enclosing_loop(body, loop)
                 it = _py_iterable(loop)

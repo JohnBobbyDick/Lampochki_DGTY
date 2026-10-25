@@ -11,6 +11,13 @@ JAVA = "public class Alpha { public static int f(int x) { if (x > 0) { return 1;
 PY = "def g(x):\n    if x:\n        return 1\n    return 2\n"
 
 
+@pytest.fixture(autouse=True)
+def fresh_store(monkeypatch):
+    store = state.SessionStore()
+    monkeypatch.setattr(state, "STORE", store)
+    monkeypatch.setattr(state, "_current", state.contextvars.ContextVar("jb_session_t", default=state._Ctx(store.default)))
+
+
 def _hdr(sid):
     return {"X-Session-Id": sid}
 
@@ -54,7 +61,7 @@ def test_invalid_id_is_400(bad):
     assert "X-Session-Id" in r.json()["detail"]
 
 
-def test_lru_eviction(monkeypatch):
+def test_lru_eviction():
     store = state.SessionStore(max_sessions=3, idle_seconds=3600)
     ids = [str(uuid.uuid4()) for _ in range(4)]
     objs = [store.get(i) for i in ids[:3]]
@@ -108,3 +115,40 @@ def test_store_thread_safe():
     [t.start() for t in ts]
     [t.join() for t in ts]
     assert not errors and len(store) <= 20
+
+
+def test_unknown_ids_on_reads_do_not_create_or_evict(monkeypatch):
+    monkeypatch.setattr(state, "STORE", state.SessionStore(max_sessions=3))
+    c = TestClient(app)
+    mine = [str(uuid.uuid4()) for _ in range(3)]
+    for sid in mine:
+        assert c.post("/api/parse", json={"code": JAVA}, headers=_hdr(sid)).status_code == 200
+    for _ in range(50):
+        assert c.get("/api/graph", params={"type": "class"}, headers=_hdr(str(uuid.uuid4()))).status_code == 409
+    assert len(state.STORE) == 3
+    assert all(sid in state.STORE for sid in mine)
+    assert c.get("/api/graph", params={"type": "class"}, headers=_hdr(mine[0])).status_code == 200
+
+
+def test_per_ip_new_session_limit():
+    c = TestClient(app)
+    for _ in range(state.NEW_SESSIONS_PER_IP):
+        assert c.post("/api/parse", json={"code": JAVA}, headers=_hdr(str(uuid.uuid4()))).status_code == 200
+    r = c.post("/api/parse", json={"code": JAVA}, headers=_hdr(str(uuid.uuid4())))
+    assert r.status_code == 429
+    assert r.json()["detail"] == "Слишком много новых сессий, попробуйте позже"
+    # an existing session keeps working
+    sid = next(iter(state.STORE._items))
+    assert c.post("/api/parse", json={"code": JAVA}, headers=_hdr(sid)).status_code == 200
+
+
+def test_limit_window_expires():
+    now = [0.0]
+    store = state.SessionStore(clock=lambda: now[0])
+    for _ in range(state.NEW_SESSIONS_PER_IP):
+        store.register(str(uuid.uuid4()), state.Session(), ip="1.1.1.1")
+    with pytest.raises(state.HTTPException):
+        store.register(str(uuid.uuid4()), state.Session(), ip="1.1.1.1")
+    store.register(str(uuid.uuid4()), state.Session(), ip="2.2.2.2")
+    now[0] += state.NEW_SESSIONS_WINDOW + 1
+    store.register(str(uuid.uuid4()), state.Session(), ip="1.1.1.1")

@@ -24,6 +24,9 @@ class Session:
 
 MAX_SESSIONS = 200
 IDLE_SECONDS = 3600
+NEW_SESSIONS_PER_IP = 30
+NEW_SESSIONS_WINDOW = 600  # seconds
+TOO_MANY_SESSIONS = "Слишком много новых сессий, попробуйте позже"
 
 
 class SessionStore:
@@ -39,21 +42,51 @@ class SessionStore:
         self._clock = clock
         self._lock = threading.Lock()
         self._items: OrderedDict[str, tuple[Session, float]] = OrderedDict()  # oldest first
+        self._created: dict[str, list[float]] = {}  # ip -> creation times within the window
 
-    def get(self, sid: str) -> Session:
+    def _expire(self, now: float) -> None:
+        while self._items:
+            oldest = next(iter(self._items))
+            if now - self._items[oldest][1] <= self._idle:
+                break
+            del self._items[oldest]
+
+    def peek(self, sid: str) -> Session | None:
+        """The registered session (marked as used), or None: never creates, unknown ids change nothing."""
         now = self._clock()
         with self._lock:
-            while self._items:
-                oldest = next(iter(self._items))
-                if now - self._items[oldest][1] <= self._idle:
-                    break
-                del self._items[oldest]
+            self._expire(now)
             entry = self._items.pop(sid, None)
-            session = entry[0] if entry else Session()
+            if entry is None:
+                return None
+            self._items[sid] = (entry[0], now)
+            return entry[0]
+
+    def register(self, sid: str, session: Session, ip: str | None = None) -> None:
+        """Store a new session; at most NEW_SESSIONS_PER_IP per NEW_SESSIONS_WINDOW for one *ip* (else 429)."""
+        now = self._clock()
+        with self._lock:
+            self._expire(now)
+            if ip is not None:
+                for k in [k for k, v in self._created.items() if not v or now - v[-1] > NEW_SESSIONS_WINDOW]:
+                    del self._created[k]
+                times = [t for t in self._created.get(ip, []) if now - t <= NEW_SESSIONS_WINDOW]
+                if len(times) >= NEW_SESSIONS_PER_IP:
+                    self._created[ip] = times
+                    raise HTTPException(status_code=429, detail=TOO_MANY_SESSIONS)
+                self._created[ip] = times + [now]
+            self._items.pop(sid, None)
             self._items[sid] = (session, now)
             while len(self._items) > self._max:
                 self._items.popitem(last=False)
-            return session
+
+    def get(self, sid: str) -> Session:
+        """Existing session or a newly registered one."""
+        session = self.peek(sid)
+        if session is None:
+            session = Session()
+            self.register(sid, session)
+        return session
 
     def __len__(self) -> int:
         with self._lock:
@@ -65,7 +98,17 @@ class SessionStore:
 
 
 STORE = SessionStore()
-_current: contextvars.ContextVar[Session] = contextvars.ContextVar("jb_session", default=STORE.default)
+
+
+@dataclass
+class _Ctx:
+    session: Session
+    sid: str | None = None       # None: the shared default session
+    ip: str | None = None
+    registered: bool = True      # False: a fresh session not in STORE until the first load()
+
+
+_current: contextvars.ContextVar[_Ctx] = contextvars.ContextVar("jb_session", default=_Ctx(STORE.default))
 
 
 def parse_sid(raw: str | None) -> str | None:
@@ -75,9 +118,15 @@ def parse_sid(raw: str | None) -> str | None:
     return str(uuid.UUID(raw))
 
 
-def use(sid: str | None) -> contextvars.Token:
-    """Select the session for the current request context (None → the shared default)."""
-    return _current.set(STORE.get(sid) if sid else STORE.default)
+def use(sid: str | None, ip: str | None = None) -> contextvars.Token:
+    """Select the session for the current request context (None → the shared default).
+
+    An unknown id does not create anything: it gets a fresh unregistered Session that load() registers
+    (so random ids on read-only requests can neither fill nor evict the store)."""
+    if sid is None:
+        return _current.set(_Ctx(STORE.default))
+    found = STORE.peek(sid)
+    return _current.set(_Ctx(found or Session(), sid, ip, registered=found is not None))
 
 
 def reset(token: contextvars.Token) -> None:
@@ -85,7 +134,7 @@ def reset(token: contextvars.Token) -> None:
 
 
 def current() -> Session:
-    return _current.get()
+    return _current.get().session
 
 
 def load(code: str, language: str | None = None) -> Session:
@@ -93,7 +142,11 @@ def load(code: str, language: str | None = None) -> Session:
     from core.runner import is_python_code
     lang = "python" if is_python_code(code, language) else "java"
     parsed = langs.get(lang).parse(code)
-    s = current()
+    ctx = _current.get()
+    if not ctx.registered:
+        STORE.register(ctx.sid, ctx.session, ctx.ip)
+        ctx.registered = True
+    s = ctx.session
     s.code = code
     s.ast = parsed["ast"]
     s.line_map = parsed["line_map"]

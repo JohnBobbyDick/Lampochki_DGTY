@@ -11,7 +11,6 @@ from api import analyze, decompose, files, generate, graph, parse, run, ws, ai
 app = FastAPI(title="Java Blueprints API", version="1.0.0")
 
 
-
 @app.middleware("http")
 async def session_middleware(request: Request, call_next):
     """Pick the per-tab session from X-Session-Id (none → shared default; non-UUID → 400)."""
@@ -19,7 +18,7 @@ async def session_middleware(request: Request, call_next):
         sid = state.parse_sid(request.headers.get("x-session-id"))
     except ValueError:
         return JSONResponse(status_code=400, content={"detail": "Некорректный заголовок X-Session-Id: нужен UUID"})
-    token = state.use(sid)
+    token = state.use(sid, request.client.host if request.client else None)
     try:
         return await call_next(request)
     finally:

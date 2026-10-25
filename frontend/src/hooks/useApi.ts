@@ -4,6 +4,7 @@ import { useStore, AiPatch } from '../store/useStore';
 import { useProject } from '../store/useProject';
 import { downloadFile } from '../utils/download';
 import { getSessionId } from '../utils/sessionId';
+import { installSessionRecovery } from '../utils/sessionRecovery';
 import { GraphType, QualityGateResult } from '../types';
 
 const api = axios.create({
@@ -16,6 +17,10 @@ const api = axios.create({
 api.interceptors.request.use((cfg) => {
   cfg.headers.set('X-Session-Id', getSessionId());
   return cfg;
+});
+installSessionRecovery(api, () => {
+  const st = useStore.getState();
+  return { code: st.code, language: st.language };
 });
 
 /** Pull a readable message out of any thrown value. */

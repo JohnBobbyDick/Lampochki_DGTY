@@ -1,0 +1,33 @@
+# npm run build (tsc -b && vite build)
+
+> java-blueprints-frontend@1.0.0 build
+> tsc -b && vite build
+
+vite v6.4.5 building for production...
+transforming...
+✓ 383 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                                       1.11 kB │ gzip:   0.59 kB
+dist/assets/logo-java-cvjcrjDg.jpg                                    5.75 kB
+dist/assets/logo-python-CvL2dPTp.jpg                                  6.89 kB
+dist/assets/jetbrains-mono-vietnamese-wght-normal-Bt-aOZkq.woff2      7.50 kB
+dist/assets/jetbrains-mono-greek-wght-normal-Bw9x6K1M.woff2           9.00 kB
+dist/assets/inter-vietnamese-wght-normal-CBcvBZtf.woff2              10.25 kB
+dist/assets/inter-greek-ext-wght-normal-DlzME5K_.woff2               11.23 kB
+dist/assets/jetbrains-mono-cyrillic-wght-normal-D73BlboJ.woff2       12.11 kB
+dist/assets/jetbrains-mono-latin-ext-wght-normal-DBQx-q_a.woff2      15.20 kB
+dist/assets/inter-cyrillic-wght-normal-DqGufNeO.woff2                18.75 kB
+dist/assets/inter-greek-wght-normal-CkhJZR-_.woff2                   19.00 kB
+dist/assets/inter-cyrillic-ext-wght-normal-BOeWTOD4.woff2            25.96 kB
+dist/assets/jetbrains-mono-latin-wght-normal-B9CIFXIH.woff2          40.40 kB
+dist/assets/inter-latin-wght-normal-Dx4kXJAl.woff2                   48.26 kB
+dist/assets/inter-latin-ext-wght-normal-DO1Apj_S.woff2               85.07 kB
+dist/assets/index-C7dEXQTO.css                                       60.76 kB │ gzip:  14.57 kB
+dist/assets/index-CzRrhiKF.js                                     2,683.69 kB │ gzip: 809.00 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 7.26s

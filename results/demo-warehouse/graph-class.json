@@ -1,0 +1,392 @@
+{
+  "nodes": [
+    {
+      "id": "Entity",
+      "type": "class",
+      "label": "Entity",
+      "data": {
+        "lineStart": 45,
+        "lineEnd": 80,
+        "codeSnippet": "class Entity",
+        "fields": [
+          "- created: int",
+          "# id: String"
+        ],
+        "methods": [
+          "+ id(): String",
+          "~ createdCount(): int",
+          "+ equals(Object): boolean",
+          "+ hashCode(): int"
+        ]
+      }
+    },
+    {
+      "id": "Product",
+      "type": "class",
+      "label": "Product",
+      "data": {
+        "lineStart": 122,
+        "lineEnd": 183,
+        "codeSnippet": "class Product",
+        "fields": [
+          "- name: String",
+          "- category: Category",
+          "- price: double",
+          "- quantity: int"
+        ],
+        "methods": [
+          "~ name(): String",
+          "~ category(): Category",
+          "+ price(): double",
+          "~ quantity(): int",
+          "~ changePrice(double): void",
+          "~ take(int): void",
+          "~ put(int): void",
+          "~ stockValue(): double",
+          "+ compareTo(Product): int",
+          "+ toString(): String"
+        ]
+      }
+    },
+    {
+      "id": "Customer",
+      "type": "class",
+      "label": "Customer",
+      "data": {
+        "lineStart": 185,
+        "lineEnd": 208,
+        "codeSnippet": "class Customer",
+        "fields": [
+          "- name: String",
+          "- city: String",
+          "- vip: boolean"
+        ],
+        "methods": [
+          "~ name(): String",
+          "~ city(): String",
+          "~ vip(): boolean"
+        ]
+      }
+    },
+    {
+      "id": "OrderLine",
+      "type": "class",
+      "label": "OrderLine",
+      "data": {
+        "lineStart": 210,
+        "lineEnd": 218,
+        "codeSnippet": "class OrderLine",
+        "fields": [
+          "~ sku: String",
+          "~ quantity: int"
+        ],
+        "methods": []
+      }
+    },
+    {
+      "id": "Order",
+      "type": "class",
+      "label": "Order",
+      "data": {
+        "lineStart": 220,
+        "lineEnd": 250,
+        "codeSnippet": "class Order",
+        "fields": [
+          "- customerId: String",
+          "- status: Status",
+          "- lines: List<OrderLine>"
+        ],
+        "methods": [
+          "~ customerId(): String",
+          "~ status(): Status",
+          "~ moveTo(Status): void",
+          "~ lines(): List<OrderLine>",
+          "~ addLine(OrderLine): void"
+        ]
+      }
+    },
+    {
+      "id": "Pair",
+      "type": "class",
+      "label": "Pair",
+      "data": {
+        "lineStart": 252,
+        "lineEnd": 273,
+        "codeSnippet": "class Pair",
+        "fields": [
+          "- first: A",
+          "- second: B"
+        ],
+        "methods": [
+          "~ first(): A",
+          "~ second(): B",
+          "+ toString(): String"
+        ]
+      }
+    },
+    {
+      "id": "InvalidRecordException",
+      "type": "class",
+      "label": "InvalidRecordException",
+      "data": {
+        "lineStart": 277,
+        "lineEnd": 288,
+        "codeSnippet": "class InvalidRecordException",
+        "fields": [
+          "- lineNumber: int"
+        ],
+        "methods": [
+          "~ lineNumber(): int"
+        ]
+      }
+    },
+    {
+      "id": "OutOfStockException",
+      "type": "class",
+      "label": "OutOfStockException",
+      "data": {
+        "lineStart": 290,
+        "lineEnd": 294,
+        "codeSnippet": "class OutOfStockException",
+        "fields": [],
+        "methods": []
+      }
+    },
+    {
+      "id": "OrderRejectedException",
+      "type": "class",
+      "label": "OrderRejectedException",
+      "data": {
+        "lineStart": 296,
+        "lineEnd": 300,
+        "codeSnippet": "class OrderRejectedException",
+        "fields": [],
+        "methods": []
+      }
+    },
+    {
+      "id": "Warehouse",
+      "type": "class",
+      "label": "Warehouse",
+      "data": {
+        "lineStart": 304,
+        "lineEnd": 1066,
+        "codeSnippet": "class Warehouse",
+        "fields": [
+          "~ DEFAULT_DATA: String",
+          "~ LOW_STOCK: int",
+          "~ warnings: int",
+          "- products: Map<String, Product>",
+          "- customers: Map<String, Customer>",
+          "- orders: List<Order>",
+          "- auditLog: List<String>",
+          "- auditSeq: int"
+        ],
+        "methods": [
+          "~ audit(String): void",
+          "~ printAudit(int): void",
+          "~ load(List<String>): void",
+          "~ addProduct(Product): void",
+          "~ parseFields(int, String, int): String[]",
+          "~ parseMoney(int, String): double",
+          "~ parseCount(int, String): int",
+          "~ parseProduct(int, String): Product",
+          "~ parseCustomer(int, String): Customer",
+          "~ parseOrder(int, String): Order",
+          "~ readInput(String): List<String>",
+          "~ validateOrders(): List<String>",
+          "~ isValidSku(String): boolean",
+          "~ orderTotal(Order): double",
+          "~ applyDiscount(double, int): double",
+          "~ round2(double): double",
+          "~ ship(Order): void",
+          "~ shipPaidOrders(): Map<Status, Integer>",
+          "~ totalStockValue(): double",
+          "~ findLowStock(): List<Product>",
+          "~ valueByCategory(): Map<Category, Double>",
+          "~ findDuplicateNames(List<Product>): List<Pair<String, String>>",
+          "~ findSharedPurchases(): List<String>",
+          "~ countOrdersByCity(): Map<String, Long>",
+          "~ findBestCustomer(): Optional<Customer>",
+          "~ maxOf(Collection<T>): T",
+          "~ sizeOf(Iterable<void>): int",
+          "~ kindOf(Object): String",
+          "~ countMatching(Collection<Product>, Predicate<Product>): int",
+          "~ average(double): double",
+          "~ histogram(Collection<Product>, int, double): int[]",
+          "~ planRestock(int): Map<String, Integer>",
+          "~ topByValue(int): List<Product>",
+          "~ repriceScarce(int): int",
+          "~ categoriesWithGaps(): Set<Category>",
+          "~ checksum(String): long",
+          "~ formatMoney(double): String",
+          "~ formatRow(String): String",
+          "~ formatBar(int, int): String",
+          "~ printHeader(String): void",
+          "~ printProducts(): void",
+          "~ printOrders(): void",
+          "~ printAnalysis(): void",
+          "~ printHistogram(): void",
+          "~ printPlan(Map<String, Integer>): void",
+          "~ warn(String): void",
+          "~ renderTemplate(String, Map<String, String>): String",
+          "~ describeLevel(String): String",
+          "~ stockLevel(int): String",
+          "~ digitsSum(int): int",
+          "+ main(String[]): void"
+        ]
+      }
+    },
+    {
+      "id": "Category",
+      "type": "class",
+      "label": "«enum» Category",
+      "data": {
+        "lineStart": 82,
+        "lineEnd": 112,
+        "codeSnippet": "enum Category",
+        "fields": [
+          "+ FOOD",
+          "+ TECH",
+          "+ BOOKS",
+          "+ HOME",
+          "- title: String",
+          "- vat: double"
+        ],
+        "methods": [
+          "~ title(): String",
+          "~ withVat(double): double",
+          "~ fromCode(String): Category"
+        ]
+      }
+    },
+    {
+      "id": "Status",
+      "type": "class",
+      "label": "«enum» Status",
+      "data": {
+        "lineStart": 114,
+        "lineEnd": 120,
+        "codeSnippet": "enum Status",
+        "fields": [
+          "+ NEW",
+          "+ PAID",
+          "+ SHIPPED",
+          "+ CANCELLED"
+        ],
+        "methods": [
+          "~ isFinal(): boolean"
+        ]
+      }
+    },
+    {
+      "id": "Identifiable",
+      "type": "interface",
+      "label": "«interface» Identifiable",
+      "data": {
+        "lineStart": 29,
+        "lineEnd": 31,
+        "codeSnippet": "interface Identifiable",
+        "fields": [],
+        "methods": [
+          "+ id(): String"
+        ]
+      }
+    },
+    {
+      "id": "Priced",
+      "type": "interface",
+      "label": "«interface» Priced",
+      "data": {
+        "lineStart": 33,
+        "lineEnd": 43,
+        "codeSnippet": "interface Priced",
+        "fields": [],
+        "methods": [
+          "+ price(): double",
+          "+ currency(): String",
+          "+ formatted(): String"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "r0",
+      "source": "Entity",
+      "target": "Identifiable",
+      "type": "implements",
+      "label": "implements"
+    },
+    {
+      "id": "r1",
+      "source": "Product",
+      "target": "Entity",
+      "type": "extends",
+      "label": "extends"
+    },
+    {
+      "id": "r2",
+      "source": "Product",
+      "target": "Priced",
+      "type": "implements",
+      "label": "implements"
+    },
+    {
+      "id": "r3",
+      "source": "Product",
+      "target": "Category",
+      "type": "normal",
+      "label": "has"
+    },
+    {
+      "id": "r4",
+      "source": "Customer",
+      "target": "Entity",
+      "type": "extends",
+      "label": "extends"
+    },
+    {
+      "id": "r5",
+      "source": "Order",
+      "target": "Entity",
+      "type": "extends",
+      "label": "extends"
+    },
+    {
+      "id": "r6",
+      "source": "Order",
+      "target": "Status",
+      "type": "normal",
+      "label": "has"
+    },
+    {
+      "id": "r7",
+      "source": "Order",
+      "target": "OrderLine",
+      "type": "normal",
+      "label": "has"
+    },
+    {
+      "id": "r8",
+      "source": "Warehouse",
+      "target": "Product",
+      "type": "normal",
+      "label": "has"
+    },
+    {
+      "id": "r9",
+      "source": "Warehouse",
+      "target": "Customer",
+      "type": "normal",
+      "label": "has"
+    },
+    {
+      "id": "r10",
+      "source": "Warehouse",
+      "target": "Order",
+      "type": "normal",
+      "label": "has"
+    }
+  ]
+}

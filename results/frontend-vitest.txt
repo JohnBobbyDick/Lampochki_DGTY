@@ -1,0 +1,125 @@
+# node v20.20.2
+
+ RUN  v3.2.7 <repo>/frontend
+
+ ✓ src/utils/runs.test.ts > runs > keeps last two runs per file id 2ms
+ ✓ src/utils/runs.test.ts > runs > does not mix files with the same name in different folders 0ms
+ ✓ src/utils/runs.test.ts > runs > does not mutate the previous history 1ms
+ ✓ src/utils/runs.test.ts > runs > status: stop / limit / timeout / error / ok 0ms
+ ✓ src/utils/runs.test.ts > runs > compare masks timestamps and flags stdin change 0ms
+ ✓ src/utils/runs.test.ts > runs > compare: different output or status is not the same 0ms
+ ✓ src/utils/sessionId.test.ts > getSessionId > creates a UUID, stores it under jb.sid and reuses it 4ms
+ ✓ src/utils/sessionId.test.ts > getSessionId > takes an existing id from sessionStorage (tab reload) 0ms
+ ✓ src/utils/sessionId.test.ts > getSessionId > ignores a malformed stored id 0ms
+ ✓ src/utils/sessionId.test.ts > getSessionId > falls back to a stable in-memory id when storage throws 0ms
+ ✓ src/utils/speedup.test.ts > speedup > O(n²) -> O(n) = ~1000× быстрее 2ms
+ ✓ src/utils/speedup.test.ts > speedup > O(n) -> O(log n) = ~100× быстрее 0ms
+ ✓ src/utils/speedup.test.ts > speedup > O(n²) -> O(n log n) = ~100× быстрее 0ms
+ ✓ src/utils/speedup.test.ts > speedup > O(n log n) -> O(n) = ~10× быстрее 0ms
+ ✓ src/utils/speedup.test.ts > speedup > O(n) -> O(1) = ~1000× быстрее 0ms
+ ✓ src/utils/speedup.test.ts > speedup > O(n) -> O(n²) = ~1000× медленнее 0ms
+ ✓ src/utils/speedup.test.ts > speedup > O(n) -> O(n) =  0ms
+ ✓ src/utils/speedup.test.ts > speedup > O(?) рекурсия -> O(n) =  0ms
+ ✓ src/utils/speedup.test.ts > speedup > O(n) -> O(?) =  0ms
+ ✓ src/utils/speedup.test.ts > speedup >  -> O(n) =  0ms
+ ✓ src/utils/speedup.test.ts > speedup > O(2^n) -> O(n) = >1000000× быстрее 0ms
+ ✓ src/utils/speedup.test.ts > speedup > O(n) -> O(2^n) = >1000000× медленнее 0ms
+ ✓ src/utils/speedup.test.ts > speedup > O(n³) -> O(n²) = ~1000× быстрее 0ms
+ ✓ src/utils/speedup.test.ts > speedup > O(n⁴) -> O(n³) = ~1000× быстрее 1ms
+ ✓ src/utils/speedup.test.ts > speedup > O(n^6) -> O(n^5) = ~1000× быстрее 0ms
+ ✓ src/utils/speedup.test.ts > speedup > O(n⁵) -> O(n^6) = ~1000× медленнее 0ms
+ ✓ src/utils/speedup.test.ts > speedup > O(n² log n) -> O(n²) = ~10× быстрее 0ms
+ ✓ src/utils/speedup.test.ts > speedup > parses growth classes 1ms
+ ✓ src/utils/speedup.test.ts > speedup > rounds to nearest by logarithm 1ms
+ ✓ src/utils/bigoAfter.test.ts > applicablePatches > drops invalid and stale patches 2ms
+ ✓ src/utils/bigoAfter.test.ts > applicablePatches > counts the same patch once across ai and aiReview 1ms
+ ✓ src/utils/bigoAfter.test.ts > bigoAfter > 0 patches -> {} 0ms
+ ✓ src/utils/bigoAfter.test.ts > bigoAfter > 1 patch -> its bigoAfter 0ms
+ ✓ src/utils/bigoAfter.test.ts > bigoAfter > 2 patches with combined -> combined 0ms
+ ✓ src/utils/bigoAfter.test.ts > bigoAfter > 2 patches without combined -> best per method 0ms
+ ✓ src/utils/bigoAfter.test.ts > bigoAfter > unknown recursion does not beat a known complexity 0ms
+ ✓ src/utils/bigoAfter.test.ts > staticBigoAfter > uses the expected effect of the defect that sets the method label 0ms
+ ✓ src/utils/bigoAfter.test.ts > staticBigoAfter > ignores defects below the method label and methods without a rule 0ms
+ ✓ src/utils/bigoAfter.test.ts > staticBigoAfter > takes the worst estimate of several dominant defects, none if one is unknown 0ms
+ ✓ src/utils/sessionRecovery.test.ts > installSessionRecovery > on 409 re-parses once and retries the request 5ms
+ ✓ src/utils/sessionRecovery.test.ts > installSessionRecovery > does not loop when the retry also fails 6ms
+ ✓ src/store/blockB.test.ts > Block B: UI improvements and state > B2: showGraph > defaults to false and toggles with persistence 2ms
+ ✓ src/store/blockB.test.ts > Block B: UI improvements and state > B2: showGraph > setShowGraph explicitly sets and persists state 0ms
+ ✓ src/store/blockB.test.ts > Block B: UI improvements and state > B2: showGraph > closes graph on language switch 0ms
+ ✓ src/store/blockB.test.ts > Block B: UI improvements and state > B2: showGraph > closes graph in loadDocument when language changes 1ms
+ ✓ src/store/blockB.test.ts > Block B: UI improvements and state > B2: showGraph > keeps graph open in loadDocument when language does not change 0ms
+ ✓ src/store/blockB.test.ts > Block B: UI improvements and state > B3: hasBottom appearance after first action > is initially false 0ms
+ ✓ src/store/blockB.test.ts > Block B: UI improvements and state > B3: hasBottom appearance after first action > requestRun enables bottom panel 0ms
+ ✓ src/store/blockB.test.ts > Block B: UI improvements and state > B3: hasBottom appearance after first action > openCompareTab enables bottom panel 0ms
+ ✓ src/store/blockB.test.ts > Block B: UI improvements and state > B3: hasBottom appearance after first action > setCompareResult enables bottom panel if result provided 0ms
+ ✓ src/store/blockB.test.ts > Block B: UI improvements and state > B3: hasBottom appearance after first action > setGateResult enables bottom panel if result provided 0ms
+ ✓ src/store/blockB.test.ts > Block B: UI improvements and state > B4: resetFile in useProject > resets modified file to its original code 1ms
+ ✓ src/store/blockC2.test.ts > Block C2: File & folder creation, renaming, deletion, name validation > Name validation > rejects empty names 1ms
+ ✓ src/store/blockC2.test.ts > Block C2: File & folder creation, renaming, deletion, name validation > Name validation > rejects invalid characters (/ \ : * ? " < > |) 2ms
+ ✓ src/store/blockC2.test.ts > Block C2: File & folder creation, renaming, deletion, name validation > Name validation > rejects duplicate names in the same folder 0ms
+ ✓ src/store/blockC2.test.ts > Block C2: File & folder creation, renaming, deletion, name validation > Name validation > warns when file extension is neither .java nor .py 0ms
+ ✓ src/store/blockC2.test.ts > Block C2: File & folder creation, renaming, deletion, name validation > Create file and folder > creates a new file in a folder and opens it 1ms
+ ✓ src/store/blockC2.test.ts > Block C2: File & folder creation, renaming, deletion, name validation > Create file and folder > creates a new folder 1ms
+ ✓ src/store/blockC2.test.ts > Block C2: File & folder creation, renaming, deletion, name validation > Rename file and language switching > renames a file and preserves history and coverage 1ms
+ ✓ src/store/blockC2.test.ts > Block C2: File & folder creation, renaming, deletion, name validation > Rename file and language switching > changes language when renaming .java to .py 1ms
+ ✓ src/store/blockC2.test.ts > Block C2: File & folder creation, renaming, deletion, name validation > Rename folder > renames a folder and updates all files inside it 2ms
+ ✓ src/store/blockC2.test.ts > Block C2: File & folder creation, renaming, deletion, name validation > Delete file and folder > deleting active file opens a neighbor file 1ms
+ ✓ src/store/blockC2.test.ts > Block C2: File & folder creation, renaming, deletion, name validation > Delete file and folder > deleting last file shows empty state 0ms
+ ✓ src/store/blockC2.test.ts > Block C2: File & folder creation, renaming, deletion, name validation > Delete file and folder > deleting an example file tracks it in deletedExampleIds 1ms
+ ✓ src/store/blockC2.test.ts > Block C2: File & folder creation, renaming, deletion, name validation > Delete file and folder > restoreExamples restores deleted examples and resets modified examples without touching user files 1ms
+ ✓ src/store/blockC2.test.ts > Block C2: File & folder creation, renaming, deletion, name validation > Delete file and folder > deletes folder and all contained files 1ms
+ ✓ src/store/blockC1.test.ts > Block C1: Browser Project Storage (IndexedDB) > saves project to IndexedDB under jb.project.v1 including live code from useStore 7ms
+ ✓ src/store/blockC1.test.ts > Block C1: Browser Project Storage (IndexedDB) > loads and restores saved project on init 3ms
+ ✓ src/store/blockC1.test.ts > Block C1: Browser Project Storage (IndexedDB) > corrupted data in storage gracefully falls back to standard examples 7ms
+ ✓ src/store/blockC1.test.ts > Block C1: Browser Project Storage (IndexedDB) > unavailable storage (private mode / blocked) works in memory and shows single warning 3ms
+ ✓ src/store/blockC1.test.ts > Block C1: Browser Project Storage (IndexedDB) > storage quota exceeded shows single unobtrusive warning 3ms
+ ✓ src/store/blockC1.test.ts > Block C1: Browser Project Storage (IndexedDB) > mergeWithBuiltinExamples preserves user modifications, respects deleted examples, and adds new examples 0ms
+ ✓ src/utils/coverage.test.ts > coverage > sums hits of the same code and counts runs 2ms
+ ✓ src/utils/coverage.test.ts > coverage > starts over for different code or hits length 1ms
+ ✓ src/utils/coverage.test.ts > coverage > formats percent 0ms
+ ✓ src/utils/coverage.test.ts > coverage > summarizes metrics 1ms
+ ✓ src/utils/coverage.test.ts > coverage > reports per method coverage and uncalled methods 1ms
+ ✓ src/utils/coverage.test.ts > coverage > lists missing outcomes ordered by line then id 0ms
+ ✓ src/utils/coverage.test.ts > coverage > computes line states 1ms
+ ✓ src/utils/coverage.test.ts > coverage > merges overloads under one method 0ms
+ ✓ src/store/useStore.test.ts > pruneStale > removes review items whose fragment is gone 2ms
+ ✓ src/store/useStore.test.ts > pruneStale > nulls ai.patch when its fragment is gone 0ms
+ ✓ src/store/useStore.test.ts > pruneStale > keeps ai.patch while the fragment is present 0ms
+ ✓ src/store/useStore.test.ts > pruneStale > keeps ai untouched when code equals reviewSkip 0ms
+ ✓ src/store/graphReset.test.ts > switching file or language resets the graph state > opening a Python file drops the Java method, methods, AST and graph 5ms
+ ✓ src/store/graphReset.test.ts > switching file or language resets the graph state > switching the language in the header does the same 1ms
+ ✓ src/store/graphReset.test.ts > every document load triggers a re-parse > bumps docNonce even when the new text equals the current one 0ms
+ ✓ src/store/graphReset.test.ts > every document load triggers a re-parse > opening another file with the same text bumps docNonce too 6ms
+ ✓ src/utils/fragment.test.ts > fragmentPresent > ignores indentation and blank lines 1ms
+ ✓ src/utils/fragment.test.ts > fragmentPresent > false when edited 0ms
+ ✓ src/utils/fragment.test.ts > fragmentPresent > false for empty 0ms
+ ✓ src/store/useProject.test.ts > per-file coverage > sums two runs of the same text 4ms
+ ✓ src/store/useProject.test.ts > per-file coverage > drops coverage on edit and does not restore it when text returns 1ms
+ ✓ src/store/useProject.test.ts > per-file coverage > clears a stale coverage error on edit 0ms
+ ✓ src/store/useProject.test.ts > per-file coverage > ignores a run whose code differs from the current text 0ms
+ ✓ src/store/useProject.test.ts > per-file coverage > keeps coverage of a file after switching away and back 4ms
+ ✓ src/store/useProject.test.ts > per-file coverage > resetCoverage clears everything and error keeps accumulated data 1ms
+ ✓ src/utils/verdict.test.ts > compareVerdict and output match checks > returns ok when behavior preserved and both exit with 0 2ms
+ ✓ src/utils/verdict.test.ts > compareVerdict and output match checks > returns warn when behavior preserved but non-zero exit code 0ms
+ ✓ src/utils/verdict.test.ts > compareVerdict and output match checks > returns fail when behavior not preserved 0ms
+ ✓ src/utils/verdict.test.ts > compareVerdict and output match checks > correctly detects matching output even if one run had an error fixed by AI 0ms
+ ✓ src/utils/graphEmpty.test.ts > graphEmptyText > names the current language 2ms
+ ✓ src/utils/graphEmpty.test.ts > graphEmptyText > shows the server error instead of the hint 0ms
+ ✓ src/utils/graphEmpty.test.ts > methodAfterParse > keeps a method that still exists 1ms
+ ✓ src/utils/graphEmpty.test.ts > methodAfterParse > falls back to the first method of the new file 0ms
+ ✓ src/utils/graphEmpty.test.ts > methodAfterParse > is null when the file has no methods 0ms
+ ✓ src/utils/bigoChange.test.ts > bigoChange > ignores missing, same and unknown labels 2ms
+ ✓ src/utils/bigoChange.test.ts > bigoChange > lists only changed methods 1ms
+ ✓ src/utils/language.test.ts > languageOf > detects by extension 2ms
+ ✓ src/store/blockD.test.ts > Block D: ELK Layered Graph Layout > layout is deterministic (same input produces identical positions and points) 188ms
+ ✓ src/store/blockD.test.ts > Block D: ELK Layered Graph Layout > all edges have route points with at least startPoint and endPoint 22ms
+ ✓ src/store/blockD.test.ts > Block D: ELK Layered Graph Layout > edge labels are placed on segments rather than nodes 13ms
+ ✓ src/store/blockD.test.ts > Block D: ELK Layered Graph Layout > supports TB direction (downwards) and LR direction (rightwards) 27ms
+ ✓ src/store/blockD.test.ts > Block D: ELK Layered Graph Layout > preserves node dimensions for different node types 0ms
+ ✓ src/store/blockD.test.ts > Block D: ELK Layered Graph Layout > pointsToSvgPath generates valid SVG path data 0ms
+
+ Test Files  18 passed (18)
+      Tests  115 passed (115)
+   Start at  11:04:51
+   Duration  1.44s (transform 572ms, setup 0ms, collect 2.78s, tests 399ms, environment 5ms, prepare 1.81s)
+

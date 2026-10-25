@@ -1,0 +1,161 @@
+{
+  "nodes": [
+    {
+      "id": "n0",
+      "type": "start",
+      "label": "START · Warehouse.findDuplicateNames",
+      "data": {
+        "lineStart": 636,
+        "lineEnd": 636,
+        "codeSnippet": "START",
+        "bigO": "O(n²)"
+      }
+    },
+    {
+      "id": "n1",
+      "type": "end",
+      "label": "END",
+      "data": {
+        "lineStart": null,
+        "lineEnd": null,
+        "codeSnippet": "END"
+      }
+    },
+    {
+      "id": "n2",
+      "type": "statement",
+      "label": "List<Pair<String, String>> pairs = new ArrayList<>()",
+      "data": {
+        "lineStart": 637,
+        "lineEnd": 637,
+        "codeSnippet": "List<Pair<String, String>> pairs = new ArrayList<>()"
+      }
+    },
+    {
+      "id": "n3",
+      "type": "loop",
+      "label": "for (Product a : items)",
+      "data": {
+        "lineStart": 638,
+        "lineEnd": 638,
+        "codeSnippet": "for (Product a : items)"
+      }
+    },
+    {
+      "id": "n4",
+      "type": "loop",
+      "label": "for (Product b : items)",
+      "data": {
+        "lineStart": 639,
+        "lineEnd": 639,
+        "codeSnippet": "for (Product b : items)",
+        "defects": [
+          "Вложенный цикл по одной и той же коллекции «items» — повторная обработка пар элементов в Warehouse.findDuplicateNames",
+          "Цикл можно заменить стримом в Warehouse.findDuplicateNames: xs.stream().filter(...).collect(...)"
+        ]
+      }
+    },
+    {
+      "id": "n5",
+      "type": "condition",
+      "label": "if ((a.compareTo(b) < 0) && a.name().equalsIgnoreCase(b.name()))",
+      "data": {
+        "lineStart": 640,
+        "lineEnd": 640,
+        "codeSnippet": "if ((a.compareTo(b) < 0) && a.name().equalsIgnoreCase(b.name()))"
+      }
+    },
+    {
+      "id": "n6",
+      "type": "statement",
+      "label": "pairs.add(new Pair<>(a.id(), b.id()))",
+      "data": {
+        "lineStart": 641,
+        "lineEnd": 641,
+        "codeSnippet": "pairs.add(new Pair<>(a.id(), b.id()))"
+      }
+    },
+    {
+      "id": "n7",
+      "type": "return",
+      "label": "return pairs",
+      "data": {
+        "lineStart": 645,
+        "lineEnd": 645,
+        "codeSnippet": "return pairs"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "source": "n0",
+      "target": "n2",
+      "type": "normal",
+      "label": ""
+    },
+    {
+      "id": "e1",
+      "source": "n2",
+      "target": "n3",
+      "type": "normal",
+      "label": ""
+    },
+    {
+      "id": "e2",
+      "source": "n3",
+      "target": "n4",
+      "type": "true",
+      "label": "true"
+    },
+    {
+      "id": "e3",
+      "source": "n4",
+      "target": "n5",
+      "type": "true",
+      "label": "true"
+    },
+    {
+      "id": "e4",
+      "source": "n5",
+      "target": "n6",
+      "type": "true",
+      "label": "true"
+    },
+    {
+      "id": "e5",
+      "source": "n6",
+      "target": "n4",
+      "type": "back",
+      "label": "back"
+    },
+    {
+      "id": "e6",
+      "source": "n5",
+      "target": "n4",
+      "type": "back",
+      "label": "back"
+    },
+    {
+      "id": "e7",
+      "source": "n4",
+      "target": "n3",
+      "type": "back",
+      "label": "back"
+    },
+    {
+      "id": "e8",
+      "source": "n3",
+      "target": "n7",
+      "type": "false",
+      "label": "false"
+    },
+    {
+      "id": "e9",
+      "source": "n7",
+      "target": "n1",
+      "type": "normal",
+      "label": ""
+    }
+  ]
+}

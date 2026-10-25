@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="115" failures="0" errors="0" time="0.350953">
+    <testsuite name="src/store/blockB.test.ts" timestamp="2026-10-25T08:04:54.449Z" hostname="MacBook-Air.local" tests="11" failures="0" errors="0" skipped="0" time="0.008153458">
+        <testcase classname="src/store/blockB.test.ts" name="Block B: UI improvements and state &gt; B2: showGraph &gt; defaults to false and toggles with persistence" time="0.001754792">
+        </testcase>
+        <testcase classname="src/store/blockB.test.ts" name="Block B: UI improvements and state &gt; B2: showGraph &gt; setShowGraph explicitly sets and persists state" time="0.000464792">
+        </testcase>
+        <testcase classname="src/store/blockB.test.ts" name="Block B: UI improvements and state &gt; B2: showGraph &gt; closes graph on language switch" time="0.000397834">
+        </testcase>
+        <testcase classname="src/store/blockB.test.ts" name="Block B: UI improvements and state &gt; B2: showGraph &gt; closes graph in loadDocument when language changes" time="0.002445333">
+        </testcase>
+        <testcase classname="src/store/blockB.test.ts" name="Block B: UI improvements and state &gt; B2: showGraph &gt; keeps graph open in loadDocument when language does not change" time="0.000350291">
+        </testcase>
+        <testcase classname="src/store/blockB.test.ts" name="Block B: UI improvements and state &gt; B3: hasBottom appearance after first action &gt; is initially false" time="0.000283708">
+        </testcase>
+        <testcase classname="src/store/blockB.test.ts" name="Block B: UI improvements and state &gt; B3: hasBottom appearance after first action &gt; requestRun enables bottom panel" time="0.000202459">
+        </testcase>
+        <testcase classname="src/store/blockB.test.ts" name="Block B: UI improvements and state &gt; B3: hasBottom appearance after first action &gt; openCompareTab enables bottom panel" time="0.000187708">
+        </testcase>
+        <testcase classname="src/store/blockB.test.ts" name="Block B: UI improvements and state &gt; B3: hasBottom appearance after first action &gt; setCompareResult enables bottom panel if result provided" time="0.000324875">
+        </testcase>
+        <testcase classname="src/store/blockB.test.ts" name="Block B: UI improvements and state &gt; B3: hasBottom appearance after first action &gt; setGateResult enables bottom panel if result provided" time="0.000239041">
+        </testcase>
+        <testcase classname="src/store/blockB.test.ts" name="Block B: UI improvements and state &gt; B4: resetFile in useProject &gt; resets modified file to its original code" time="0.000518375">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/store/blockC1.test.ts" timestamp="2026-10-25T08:04:54.451Z" hostname="MacBook-Air.local" tests="6" failures="0" errors="0" skipped="0" time="0.023375">
+        <testcase classname="src/store/blockC1.test.ts" name="Block C1: Browser Project Storage (IndexedDB) &gt; saves project to IndexedDB under jb.project.v1 including live code from useStore" time="0.007912833">
+        </testcase>
+        <testcase classname="src/store/blockC1.test.ts" name="Block C1: Browser Project Storage (IndexedDB) &gt; loads and restores saved project on init" time="0.00416825">
+        </testcase>
+        <testcase classname="src/store/blockC1.test.ts" name="Block C1: Browser Project Storage (IndexedDB) &gt; corrupted data in storage gracefully falls back to standard examples" time="0.002930417">
+        </testcase>
+        <testcase classname="src/store/blockC1.test.ts" name="Block C1: Browser Project Storage (IndexedDB) &gt; unavailable storage (private mode / blocked) works in memory and shows single warning" time="0.002182875">
+        </testcase>
+        <testcase classname="src/store/blockC1.test.ts" name="Block C1: Browser Project Storage (IndexedDB) &gt; storage quota exceeded shows single unobtrusive warning" time="0.004662584">
+        </testcase>
+        <testcase classname="src/store/blockC1.test.ts" name="Block C1: Browser Project Storage (IndexedDB) &gt; mergeWithBuiltinExamples preserves user modifications, respects deleted examples, and adds new examples" time="0.000556958">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/store/blockC2.test.ts" timestamp="2026-10-25T08:04:54.452Z" hostname="MacBook-Air.local" tests="14" failures="0" errors="0" skipped="0" time="0.014889209">
+        <testcase classname="src/store/blockC2.test.ts" name="Block C2: File &amp; folder creation, renaming, deletion, name validation &gt; Name validation &gt; rejects empty names" time="0.001183791">
+        </testcase>
+        <testcase classname="src/store/blockC2.test.ts" name="Block C2: File &amp; folder creation, renaming, deletion, name validation &gt; Name validation &gt; rejects invalid characters (/ \ : * ? &quot; &lt; &gt; |)" time="0.000815834">
+        </testcase>
+        <testcase classname="src/store/blockC2.test.ts" name="Block C2: File &amp; folder creation, renaming, deletion, name validation &gt; Name validation &gt; rejects duplicate names in the same folder" time="0.000295875">
+        </testcase>
+        <testcase classname="src/store/blockC2.test.ts" name="Block C2: File &amp; folder creation, renaming, deletion, name validation &gt; Name validation &gt; warns when file extension is neither .java nor .py" time="0.000200167">
+        </testcase>
+        <testcase classname="src/store/blockC2.test.ts" name="Block C2: File &amp; folder creation, renaming, deletion, name validation &gt; Create file and folder &gt; creates a new file in a folder and opens it" time="0.000668416">
+        </testcase>
+        <testcase classname="src/store/blockC2.test.ts" name="Block C2: File &amp; folder creation, renaming, deletion, name validation &gt; Create file and folder &gt; creates a new folder" time="0.000667792">
+        </testcase>
+        <testcase classname="src/store/blockC2.test.ts" name="Block C2: File &amp; folder creation, renaming, deletion, name validation &gt; Rename file and language switching &gt; renames a file and preserves history and coverage" time="0.000609458">
+        </testcase>
+        <testcase classname="src/store/blockC2.test.ts" name="Block C2: File &amp; folder creation, renaming, deletion, name validation &gt; Rename file and language switching &gt; changes language when renaming .java to .py" time="0.000502417">
+        </testcase>
+        <testcase classname="src/store/blockC2.test.ts" name="Block C2: File &amp; folder creation, renaming, deletion, name validation &gt; Rename folder &gt; renames a folder and updates all files inside it" time="0.000782708">
+        </testcase>
+        <testcase classname="src/store/blockC2.test.ts" name="Block C2: File &amp; folder creation, renaming, deletion, name validation &gt; Delete file and folder &gt; deleting active file opens a neighbor file" time="0.001084041">
+        </testcase>
+        <testcase classname="src/store/blockC2.test.ts" name="Block C2: File &amp; folder creation, renaming, deletion, name validation &gt; Delete file and folder &gt; deleting last file shows empty state" time="0.00038825">
+        </testcase>
+        <testcase classname="src/store/blockC2.test.ts" name="Block C2: File &amp; folder creation, renaming, deletion, name validation &gt; Delete file and folder &gt; deleting an example file tracks it in deletedExampleIds" time="0.000835625">
+        </testcase>
+        <testcase classname="src/store/blockC2.test.ts" name="Block C2: File &amp; folder creation, renaming, deletion, name validation &gt; Delete file and folder &gt; restoreExamples restores deleted examples and resets modified examples without touching user files" time="0.000463875">
+        </testcase>
+        <testcase classname="src/store/blockC2.test.ts" name="Block C2: File &amp; folder creation, renaming, deletion, name validation &gt; Delete file and folder &gt; deletes folder and all contained files" time="0.000769875">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/store/blockD.test.ts" timestamp="2026-10-25T08:04:54.453Z" hostname="MacBook-Air.local" tests="6" failures="0" errors="0" skipped="0" time="0.22561475">
+        <testcase classname="src/store/blockD.test.ts" name="Block D: ELK Layered Graph Layout &gt; layout is deterministic (same input produces identical positions and points)" time="0.160484917">
+        </testcase>
+        <testcase classname="src/store/blockD.test.ts" name="Block D: ELK Layered Graph Layout &gt; all edges have route points with at least startPoint and endPoint" time="0.0266615">
+        </testcase>
+        <testcase classname="src/store/blockD.test.ts" name="Block D: ELK Layered Graph Layout &gt; edge labels are placed on segments rather than nodes" time="0.013101">
+        </testcase>
+        <testcase classname="src/store/blockD.test.ts" name="Block D: ELK Layered Graph Layout &gt; supports TB direction (downwards) and LR direction (rightwards)" time="0.023809041">
+        </testcase>
+        <testcase classname="src/store/blockD.test.ts" name="Block D: ELK Layered Graph Layout &gt; preserves node dimensions for different node types" time="0.000291208">
+        </testcase>
+        <testcase classname="src/store/blockD.test.ts" name="Block D: ELK Layered Graph Layout &gt; pointsToSvgPath generates valid SVG path data" time="0.000117416">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/store/graphReset.test.ts" timestamp="2026-10-25T08:04:54.454Z" hostname="MacBook-Air.local" tests="4" failures="0" errors="0" skipped="0" time="0.005201167">
+        <testcase classname="src/store/graphReset.test.ts" name="switching file or language resets the graph state &gt; opening a Python file drops the Java method, methods, AST and graph" time="0.002228625">
+        </testcase>
+        <testcase classname="src/store/graphReset.test.ts" name="switching file or language resets the graph state &gt; switching the language in the header does the same" time="0.000829083">
+        </testcase>
+        <testcase classname="src/store/graphReset.test.ts" name="every document load triggers a re-parse &gt; bumps docNonce even when the new text equals the current one" time="0.000298542">
+        </testcase>
+        <testcase classname="src/store/graphReset.test.ts" name="every document load triggers a re-parse &gt; opening another file with the same text bumps docNonce too" time="0.000832625">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/store/useProject.test.ts" timestamp="2026-10-25T08:04:54.455Z" hostname="MacBook-Air.local" tests="6" failures="0" errors="0" skipped="0" time="0.007107">
+        <testcase classname="src/store/useProject.test.ts" name="per-file coverage &gt; sums two runs of the same text" time="0.001971583">
+        </testcase>
+        <testcase classname="src/store/useProject.test.ts" name="per-file coverage &gt; drops coverage on edit and does not restore it when text returns" time="0.00088575">
+        </testcase>
+        <testcase classname="src/store/useProject.test.ts" name="per-file coverage &gt; clears a stale coverage error on edit" time="0.000358958">
+        </testcase>
+        <testcase classname="src/store/useProject.test.ts" name="per-file coverage &gt; ignores a run whose code differs from the current text" time="0.000574792">
+        </testcase>
+        <testcase classname="src/store/useProject.test.ts" name="per-file coverage &gt; keeps coverage of a file after switching away and back" time="0.0009385">
+        </testcase>
+        <testcase classname="src/store/useProject.test.ts" name="per-file coverage &gt; resetCoverage clears everything and error keeps accumulated data" time="0.001477916">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/store/useStore.test.ts" timestamp="2026-10-25T08:04:54.455Z" hostname="MacBook-Air.local" tests="4" failures="0" errors="0" skipped="0" time="0.003957">
+        <testcase classname="src/store/useStore.test.ts" name="pruneStale &gt; removes review items whose fragment is gone" time="0.002021375">
+        </testcase>
+        <testcase classname="src/store/useStore.test.ts" name="pruneStale &gt; nulls ai.patch when its fragment is gone" time="0.000291125">
+        </testcase>
+        <testcase classname="src/store/useStore.test.ts" name="pruneStale &gt; keeps ai.patch while the fragment is present" time="0.000216042">
+        </testcase>
+        <testcase classname="src/store/useStore.test.ts" name="pruneStale &gt; keeps ai untouched when code equals reviewSkip" time="0.000293375">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/bigoAfter.test.ts" timestamp="2026-10-25T08:04:54.456Z" hostname="MacBook-Air.local" tests="10" failures="0" errors="0" skipped="0" time="0.006082">
+        <testcase classname="src/utils/bigoAfter.test.ts" name="applicablePatches &gt; drops invalid and stale patches" time="0.001581709">
+        </testcase>
+        <testcase classname="src/utils/bigoAfter.test.ts" name="applicablePatches &gt; counts the same patch once across ai and aiReview" time="0.000736959">
+        </testcase>
+        <testcase classname="src/utils/bigoAfter.test.ts" name="bigoAfter &gt; 0 patches -&gt; {}" time="0.00024825">
+        </testcase>
+        <testcase classname="src/utils/bigoAfter.test.ts" name="bigoAfter &gt; 1 patch -&gt; its bigoAfter" time="0.000106">
+        </testcase>
+        <testcase classname="src/utils/bigoAfter.test.ts" name="bigoAfter &gt; 2 patches with combined -&gt; combined" time="0.000257625">
+        </testcase>
+        <testcase classname="src/utils/bigoAfter.test.ts" name="bigoAfter &gt; 2 patches without combined -&gt; best per method" time="0.000604667">
+        </testcase>
+        <testcase classname="src/utils/bigoAfter.test.ts" name="bigoAfter &gt; unknown recursion does not beat a known complexity" time="0.000250917">
+        </testcase>
+        <testcase classname="src/utils/bigoAfter.test.ts" name="staticBigoAfter &gt; uses the expected effect of the defect that sets the method label" time="0.000606375">
+        </testcase>
+        <testcase classname="src/utils/bigoAfter.test.ts" name="staticBigoAfter &gt; ignores defects below the method label and methods without a rule" time="0.000244542">
+        </testcase>
+        <testcase classname="src/utils/bigoAfter.test.ts" name="staticBigoAfter &gt; takes the worst estimate of several dominant defects, none if one is unknown" time="0.000325125">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/bigoChange.test.ts" timestamp="2026-10-25T08:04:54.457Z" hostname="MacBook-Air.local" tests="2" failures="0" errors="0" skipped="0" time="0.007312">
+        <testcase classname="src/utils/bigoChange.test.ts" name="bigoChange &gt; ignores missing, same and unknown labels" time="0.004263375">
+        </testcase>
+        <testcase classname="src/utils/bigoChange.test.ts" name="bigoChange &gt; lists only changed methods" time="0.001248959">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/coverage.test.ts" timestamp="2026-10-25T08:04:54.457Z" hostname="MacBook-Air.local" tests="8" failures="0" errors="0" skipped="0" time="0.006404125">
+        <testcase classname="src/utils/coverage.test.ts" name="coverage &gt; sums hits of the same code and counts runs" time="0.002226625">
+        </testcase>
+        <testcase classname="src/utils/coverage.test.ts" name="coverage &gt; starts over for different code or hits length" time="0.000670958">
+        </testcase>
+        <testcase classname="src/utils/coverage.test.ts" name="coverage &gt; formats percent" time="0.000261167">
+        </testcase>
+        <testcase classname="src/utils/coverage.test.ts" name="coverage &gt; summarizes metrics" time="0.00063775">
+        </testcase>
+        <testcase classname="src/utils/coverage.test.ts" name="coverage &gt; reports per method coverage and uncalled methods" time="0.00051475">
+        </testcase>
+        <testcase classname="src/utils/coverage.test.ts" name="coverage &gt; lists missing outcomes ordered by line then id" time="0.000176291">
+        </testcase>
+        <testcase classname="src/utils/coverage.test.ts" name="coverage &gt; computes line states" time="0.00058625">
+        </testcase>
+        <testcase classname="src/utils/coverage.test.ts" name="coverage &gt; merges overloads under one method" time="0.000196167">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/fragment.test.ts" timestamp="2026-10-25T08:04:54.458Z" hostname="MacBook-Air.local" tests="3" failures="0" errors="0" skipped="0" time="0.002495625">
+        <testcase classname="src/utils/fragment.test.ts" name="fragmentPresent &gt; ignores indentation and blank lines" time="0.0012335">
+        </testcase>
+        <testcase classname="src/utils/fragment.test.ts" name="fragmentPresent &gt; false when edited" time="0.000161167">
+        </testcase>
+        <testcase classname="src/utils/fragment.test.ts" name="fragmentPresent &gt; false for empty" time="0.000227708">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/graphEmpty.test.ts" timestamp="2026-10-25T08:04:54.458Z" hostname="MacBook-Air.local" tests="5" failures="0" errors="0" skipped="0" time="0.002723792">
+        <testcase classname="src/utils/graphEmpty.test.ts" name="graphEmptyText &gt; names the current language" time="0.001100458">
+        </testcase>
+        <testcase classname="src/utils/graphEmpty.test.ts" name="graphEmptyText &gt; shows the server error instead of the hint" time="0.000239083">
+        </testcase>
+        <testcase classname="src/utils/graphEmpty.test.ts" name="methodAfterParse &gt; keeps a method that still exists" time="0.000225417">
+        </testcase>
+        <testcase classname="src/utils/graphEmpty.test.ts" name="methodAfterParse &gt; falls back to the first method of the new file" time="0.000117">
+        </testcase>
+        <testcase classname="src/utils/graphEmpty.test.ts" name="methodAfterParse &gt; is null when the file has no methods" time="0.000166084">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/language.test.ts" timestamp="2026-10-25T08:04:54.458Z" hostname="MacBook-Air.local" tests="1" failures="0" errors="0" skipped="0" time="0.002593958">
+        <testcase classname="src/utils/language.test.ts" name="languageOf &gt; detects by extension" time="0.001697">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/runs.test.ts" timestamp="2026-10-25T08:04:54.459Z" hostname="MacBook-Air.local" tests="6" failures="0" errors="0" skipped="0" time="0.005008833">
+        <testcase classname="src/utils/runs.test.ts" name="runs &gt; keeps last two runs per file id" time="0.001587709">
+        </testcase>
+        <testcase classname="src/utils/runs.test.ts" name="runs &gt; does not mix files with the same name in different folders" time="0.00024175">
+        </testcase>
+        <testcase classname="src/utils/runs.test.ts" name="runs &gt; does not mutate the previous history" time="0.000824458">
+        </testcase>
+        <testcase classname="src/utils/runs.test.ts" name="runs &gt; status: stop / limit / timeout / error / ok" time="0.000419">
+        </testcase>
+        <testcase classname="src/utils/runs.test.ts" name="runs &gt; compare masks timestamps and flags stdin change" time="0.000457542">
+        </testcase>
+        <testcase classname="src/utils/runs.test.ts" name="runs &gt; compare: different output or status is not the same" time="0.000142375">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/sessionId.test.ts" timestamp="2026-10-25T08:04:54.459Z" hostname="MacBook-Air.local" tests="4" failures="0" errors="0" skipped="0" time="0.0054145">
+        <testcase classname="src/utils/sessionId.test.ts" name="getSessionId &gt; creates a UUID, stores it under jb.sid and reuses it" time="0.003085625">
+        </testcase>
+        <testcase classname="src/utils/sessionId.test.ts" name="getSessionId &gt; takes an existing id from sessionStorage (tab reload)" time="0.000689916">
+        </testcase>
+        <testcase classname="src/utils/sessionId.test.ts" name="getSessionId &gt; ignores a malformed stored id" time="0.000423417">
+        </testcase>
+        <testcase classname="src/utils/sessionId.test.ts" name="getSessionId &gt; falls back to a stable in-memory id when storage throws" time="0.000242709">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/sessionRecovery.test.ts" timestamp="2026-10-25T08:04:54.460Z" hostname="MacBook-Air.local" tests="2" failures="0" errors="0" skipped="0" time="0.012402208">
+        <testcase classname="src/utils/sessionRecovery.test.ts" name="installSessionRecovery &gt; on 409 re-parses once and retries the request" time="0.005085083">
+        </testcase>
+        <testcase classname="src/utils/sessionRecovery.test.ts" name="installSessionRecovery &gt; does not loop when the retry also fails" time="0.006310792">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/speedup.test.ts" timestamp="2026-10-25T08:04:54.460Z" hostname="MacBook-Air.local" tests="19" failures="0" errors="0" skipped="0" time="0.008252625">
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(n²) -&gt; O(n) = ~1000× быстрее" time="0.001329208">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(n) -&gt; O(log n) = ~100× быстрее" time="0.000922084">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(n²) -&gt; O(n log n) = ~100× быстрее" time="0.000382917">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(n log n) -&gt; O(n) = ~10× быстрее" time="0.000299667">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(n) -&gt; O(1) = ~1000× быстрее" time="0.00035625">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(n) -&gt; O(n²) = ~1000× медленнее" time="0.000289416">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(n) -&gt; O(n) = " time="0.000134833">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(?) рекурсия -&gt; O(n) = " time="0.000207917">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(n) -&gt; O(?) = " time="0.000342875">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt;  -&gt; O(n) = " time="0.000417333">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(2^n) -&gt; O(n) = &gt;1000000× быстрее" time="0.000187458">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(n) -&gt; O(2^n) = &gt;1000000× медленнее" time="0.000100917">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(n³) -&gt; O(n²) = ~1000× быстрее" time="0.000115584">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(n⁴) -&gt; O(n³) = ~1000× быстрее" time="0.0004595">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(n^6) -&gt; O(n^5) = ~1000× быстрее" time="0.000130542">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(n⁵) -&gt; O(n^6) = ~1000× медленнее" time="0.000099291">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; O(n² log n) -&gt; O(n²) = ~10× быстрее" time="0.000151375">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; parses growth classes" time="0.0007075">
+        </testcase>
+        <testcase classname="src/utils/speedup.test.ts" name="speedup &gt; rounds to nearest by logarithm" time="0.000105625">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/utils/verdict.test.ts" timestamp="2026-10-25T08:04:54.462Z" hostname="MacBook-Air.local" tests="4" failures="0" errors="0" skipped="0" time="0.00396575">
+        <testcase classname="src/utils/verdict.test.ts" name="compareVerdict and output match checks &gt; returns ok when behavior preserved and both exit with 0" time="0.002132792">
+        </testcase>
+        <testcase classname="src/utils/verdict.test.ts" name="compareVerdict and output match checks &gt; returns warn when behavior preserved but non-zero exit code" time="0.000468792">
+        </testcase>
+        <testcase classname="src/utils/verdict.test.ts" name="compareVerdict and output match checks &gt; returns fail when behavior not preserved" time="0.000262167">
+        </testcase>
+        <testcase classname="src/utils/verdict.test.ts" name="compareVerdict and output match checks &gt; correctly detects matching output even if one run had an error fixed by AI" time="0.00016025">
+        </testcase>
+    </testsuite>
+</testsuites>

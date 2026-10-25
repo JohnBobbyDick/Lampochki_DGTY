@@ -1,0 +1,9 @@
+{
+  "node": "for (int i = 0; i < Math.min(count, width); i++)",
+  "newLabel": "for (int i = 0; i < count && i < width; i++)",
+  "changedNodes": [
+    "n3"
+  ],
+  "behaviorPreserved": true,
+  "diff": ""
+}

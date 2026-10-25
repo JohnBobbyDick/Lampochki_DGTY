@@ -1,0 +1,1331 @@
+{
+  "nodes": [
+    {
+      "id": "Entity.id",
+      "type": "method",
+      "label": "Entity.id",
+      "data": {
+        "lineStart": 57,
+        "lineEnd": 59,
+        "codeSnippet": "String id(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Entity.createdCount",
+      "type": "method",
+      "label": "Entity.createdCount",
+      "data": {
+        "lineStart": 61,
+        "lineEnd": 63,
+        "codeSnippet": "int createdCount(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Entity.equals",
+      "type": "method",
+      "label": "Entity.equals",
+      "data": {
+        "lineStart": 66,
+        "lineEnd": 74,
+        "codeSnippet": "boolean equals(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Entity.hashCode",
+      "type": "method",
+      "label": "Entity.hashCode",
+      "data": {
+        "lineStart": 77,
+        "lineEnd": 79,
+        "codeSnippet": "int hashCode(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Product.name",
+      "type": "method",
+      "label": "Product.name",
+      "data": {
+        "lineStart": 136,
+        "lineEnd": 138,
+        "codeSnippet": "String name(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Product.category",
+      "type": "method",
+      "label": "Product.category",
+      "data": {
+        "lineStart": 140,
+        "lineEnd": 142,
+        "codeSnippet": "Category category(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Product.price",
+      "type": "method",
+      "label": "Product.price",
+      "data": {
+        "lineStart": 144,
+        "lineEnd": 146,
+        "codeSnippet": "double price(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Product.quantity",
+      "type": "method",
+      "label": "Product.quantity",
+      "data": {
+        "lineStart": 148,
+        "lineEnd": 150,
+        "codeSnippet": "int quantity(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Product.changePrice",
+      "type": "method",
+      "label": "Product.changePrice",
+      "data": {
+        "lineStart": 152,
+        "lineEnd": 157,
+        "codeSnippet": "void changePrice(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Product.take",
+      "type": "method",
+      "label": "Product.take",
+      "data": {
+        "lineStart": 159,
+        "lineEnd": 164,
+        "codeSnippet": "void take(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Product.put",
+      "type": "method",
+      "label": "Product.put",
+      "data": {
+        "lineStart": 166,
+        "lineEnd": 168,
+        "codeSnippet": "void put(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Product.stockValue",
+      "type": "method",
+      "label": "Product.stockValue",
+      "data": {
+        "lineStart": 170,
+        "lineEnd": 172,
+        "codeSnippet": "double stockValue(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Product.compareTo",
+      "type": "method",
+      "label": "Product.compareTo",
+      "data": {
+        "lineStart": 175,
+        "lineEnd": 177,
+        "codeSnippet": "int compareTo(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Product.toString",
+      "type": "method",
+      "label": "Product.toString",
+      "data": {
+        "lineStart": 180,
+        "lineEnd": 182,
+        "codeSnippet": "String toString(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Customer.name",
+      "type": "method",
+      "label": "Customer.name",
+      "data": {
+        "lineStart": 197,
+        "lineEnd": 199,
+        "codeSnippet": "String name(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Customer.city",
+      "type": "method",
+      "label": "Customer.city",
+      "data": {
+        "lineStart": 201,
+        "lineEnd": 203,
+        "codeSnippet": "String city(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Customer.vip",
+      "type": "method",
+      "label": "Customer.vip",
+      "data": {
+        "lineStart": 205,
+        "lineEnd": 207,
+        "codeSnippet": "boolean vip(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Order.customerId",
+      "type": "method",
+      "label": "Order.customerId",
+      "data": {
+        "lineStart": 231,
+        "lineEnd": 233,
+        "codeSnippet": "String customerId(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Order.status",
+      "type": "method",
+      "label": "Order.status",
+      "data": {
+        "lineStart": 235,
+        "lineEnd": 237,
+        "codeSnippet": "Status status(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Order.moveTo",
+      "type": "method",
+      "label": "Order.moveTo",
+      "data": {
+        "lineStart": 239,
+        "lineEnd": 241,
+        "codeSnippet": "void moveTo(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Order.lines",
+      "type": "method",
+      "label": "Order.lines",
+      "data": {
+        "lineStart": 243,
+        "lineEnd": 245,
+        "codeSnippet": "List<OrderLine> lines(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Order.addLine",
+      "type": "method",
+      "label": "Order.addLine",
+      "data": {
+        "lineStart": 247,
+        "lineEnd": 249,
+        "codeSnippet": "void addLine(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Pair.first",
+      "type": "method",
+      "label": "Pair.first",
+      "data": {
+        "lineStart": 261,
+        "lineEnd": 263,
+        "codeSnippet": "A first(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Pair.second",
+      "type": "method",
+      "label": "Pair.second",
+      "data": {
+        "lineStart": 265,
+        "lineEnd": 267,
+        "codeSnippet": "B second(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Pair.toString",
+      "type": "method",
+      "label": "Pair.toString",
+      "data": {
+        "lineStart": 270,
+        "lineEnd": 272,
+        "codeSnippet": "String toString(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "InvalidRecordException.lineNumber",
+      "type": "method",
+      "label": "InvalidRecordException.lineNumber",
+      "data": {
+        "lineStart": 285,
+        "lineEnd": 287,
+        "codeSnippet": "int lineNumber(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Warehouse.audit",
+      "type": "method",
+      "label": "Warehouse.audit",
+      "data": {
+        "lineStart": 347,
+        "lineEnd": 350,
+        "codeSnippet": "void audit(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Warehouse.printAudit",
+      "type": "method",
+      "label": "Warehouse.printAudit",
+      "data": {
+        "lineStart": 352,
+        "lineEnd": 363,
+        "codeSnippet": "void printAudit(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.load",
+      "type": "method",
+      "label": "Warehouse.load",
+      "data": {
+        "lineStart": 367,
+        "lineEnd": 395,
+        "codeSnippet": "void load(...)",
+        "bigO": "O(n²)"
+      }
+    },
+    {
+      "id": "Warehouse.addProduct",
+      "type": "method",
+      "label": "Warehouse.addProduct",
+      "data": {
+        "lineStart": 397,
+        "lineEnd": 406,
+        "codeSnippet": "void addProduct(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Warehouse.parseFields",
+      "type": "method",
+      "label": "Warehouse.parseFields",
+      "data": {
+        "lineStart": 410,
+        "lineEnd": 419,
+        "codeSnippet": "String[] parseFields(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.parseMoney",
+      "type": "method",
+      "label": "Warehouse.parseMoney",
+      "data": {
+        "lineStart": 421,
+        "lineEnd": 431,
+        "codeSnippet": "double parseMoney(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Warehouse.parseCount",
+      "type": "method",
+      "label": "Warehouse.parseCount",
+      "data": {
+        "lineStart": 433,
+        "lineEnd": 443,
+        "codeSnippet": "int parseCount(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Warehouse.parseProduct",
+      "type": "method",
+      "label": "Warehouse.parseProduct",
+      "data": {
+        "lineStart": 445,
+        "lineEnd": 454,
+        "codeSnippet": "Product parseProduct(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.parseCustomer",
+      "type": "method",
+      "label": "Warehouse.parseCustomer",
+      "data": {
+        "lineStart": 456,
+        "lineEnd": 460,
+        "codeSnippet": "Customer parseCustomer(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.parseOrder",
+      "type": "method",
+      "label": "Warehouse.parseOrder",
+      "data": {
+        "lineStart": 462,
+        "lineEnd": 479,
+        "codeSnippet": "Order parseOrder(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.readInput",
+      "type": "method",
+      "label": "Warehouse.readInput",
+      "data": {
+        "lineStart": 481,
+        "lineEnd": 502,
+        "codeSnippet": "List<String> readInput(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.validateOrders",
+      "type": "method",
+      "label": "Warehouse.validateOrders",
+      "data": {
+        "lineStart": 506,
+        "lineEnd": 521,
+        "codeSnippet": "List<String> validateOrders(...)",
+        "bigO": "O(n²)"
+      }
+    },
+    {
+      "id": "Warehouse.isValidSku",
+      "type": "method",
+      "label": "Warehouse.isValidSku",
+      "data": {
+        "lineStart": 523,
+        "lineEnd": 537,
+        "codeSnippet": "boolean isValidSku(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.orderTotal",
+      "type": "method",
+      "label": "Warehouse.orderTotal",
+      "data": {
+        "lineStart": 541,
+        "lineEnd": 555,
+        "codeSnippet": "double orderTotal(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.applyDiscount",
+      "type": "method",
+      "label": "Warehouse.applyDiscount",
+      "data": {
+        "lineStart": 557,
+        "lineEnd": 562,
+        "codeSnippet": "double applyDiscount(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Warehouse.round2",
+      "type": "method",
+      "label": "Warehouse.round2",
+      "data": {
+        "lineStart": 564,
+        "lineEnd": 566,
+        "codeSnippet": "double round2(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Warehouse.ship",
+      "type": "method",
+      "label": "Warehouse.ship",
+      "data": {
+        "lineStart": 568,
+        "lineEnd": 581,
+        "codeSnippet": "void ship(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.shipPaidOrders",
+      "type": "method",
+      "label": "Warehouse.shipPaidOrders",
+      "data": {
+        "lineStart": 583,
+        "lineEnd": 604,
+        "codeSnippet": "Map<Status, Integer> shipPaidOrders(...)",
+        "bigO": "O(n²)"
+      }
+    },
+    {
+      "id": "Warehouse.totalStockValue",
+      "type": "method",
+      "label": "Warehouse.totalStockValue",
+      "data": {
+        "lineStart": 608,
+        "lineEnd": 614,
+        "codeSnippet": "double totalStockValue(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.findLowStock",
+      "type": "method",
+      "label": "Warehouse.findLowStock",
+      "data": {
+        "lineStart": 616,
+        "lineEnd": 625,
+        "codeSnippet": "List<Product> findLowStock(...)",
+        "bigO": "O(n log n)"
+      }
+    },
+    {
+      "id": "Warehouse.valueByCategory",
+      "type": "method",
+      "label": "Warehouse.valueByCategory",
+      "data": {
+        "lineStart": 627,
+        "lineEnd": 633,
+        "codeSnippet": "Map<Category, Double> valueByCategory(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.findDuplicateNames",
+      "type": "method",
+      "label": "Warehouse.findDuplicateNames",
+      "data": {
+        "lineStart": 636,
+        "lineEnd": 646,
+        "codeSnippet": "List<Pair<String, String>> findDuplicateNames(...)",
+        "bigO": "O(n²)"
+      }
+    },
+    {
+      "id": "Warehouse.findSharedPurchases",
+      "type": "method",
+      "label": "Warehouse.findSharedPurchases",
+      "data": {
+        "lineStart": 649,
+        "lineEnd": 672,
+        "codeSnippet": "List<String> findSharedPurchases(...)",
+        "bigO": "O(n⁵)"
+      }
+    },
+    {
+      "id": "Warehouse.countOrdersByCity",
+      "type": "method",
+      "label": "Warehouse.countOrdersByCity",
+      "data": {
+        "lineStart": 674,
+        "lineEnd": 679,
+        "codeSnippet": "Map<String, Long> countOrdersByCity(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.findBestCustomer",
+      "type": "method",
+      "label": "Warehouse.findBestCustomer",
+      "data": {
+        "lineStart": 681,
+        "lineEnd": 693,
+        "codeSnippet": "Optional<Customer> findBestCustomer(...)",
+        "bigO": "O(n²)"
+      }
+    },
+    {
+      "id": "Warehouse.maxOf",
+      "type": "method",
+      "label": "Warehouse.maxOf",
+      "data": {
+        "lineStart": 695,
+        "lineEnd": 708,
+        "codeSnippet": "T maxOf(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.sizeOf",
+      "type": "method",
+      "label": "Warehouse.sizeOf",
+      "data": {
+        "lineStart": 710,
+        "lineEnd": 716,
+        "codeSnippet": "int sizeOf(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.kindOf",
+      "type": "method",
+      "label": "Warehouse.kindOf",
+      "data": {
+        "lineStart": 718,
+        "lineEnd": 727,
+        "codeSnippet": "String kindOf(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Warehouse.countMatching",
+      "type": "method",
+      "label": "Warehouse.countMatching",
+      "data": {
+        "lineStart": 729,
+        "lineEnd": 737,
+        "codeSnippet": "int countMatching(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.average",
+      "type": "method",
+      "label": "Warehouse.average",
+      "data": {
+        "lineStart": 739,
+        "lineEnd": 748,
+        "codeSnippet": "double average(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.histogram",
+      "type": "method",
+      "label": "Warehouse.histogram",
+      "data": {
+        "lineStart": 750,
+        "lineEnd": 758,
+        "codeSnippet": "int[] histogram(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.planRestock",
+      "type": "method",
+      "label": "Warehouse.planRestock",
+      "data": {
+        "lineStart": 763,
+        "lineEnd": 772,
+        "codeSnippet": "Map<String, Integer> planRestock(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.topByValue",
+      "type": "method",
+      "label": "Warehouse.topByValue",
+      "data": {
+        "lineStart": 775,
+        "lineEnd": 780,
+        "codeSnippet": "List<Product> topByValue(...)",
+        "bigO": "O(n log n)"
+      }
+    },
+    {
+      "id": "Warehouse.repriceScarce",
+      "type": "method",
+      "label": "Warehouse.repriceScarce",
+      "data": {
+        "lineStart": 783,
+        "lineEnd": 793,
+        "codeSnippet": "int repriceScarce(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.categoriesWithGaps",
+      "type": "method",
+      "label": "Warehouse.categoriesWithGaps",
+      "data": {
+        "lineStart": 796,
+        "lineEnd": 804,
+        "codeSnippet": "Set<Category> categoriesWithGaps(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.checksum",
+      "type": "method",
+      "label": "Warehouse.checksum",
+      "data": {
+        "lineStart": 806,
+        "lineEnd": 813,
+        "codeSnippet": "long checksum(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.formatMoney",
+      "type": "method",
+      "label": "Warehouse.formatMoney",
+      "data": {
+        "lineStart": 817,
+        "lineEnd": 819,
+        "codeSnippet": "String formatMoney(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Warehouse.formatRow",
+      "type": "method",
+      "label": "Warehouse.formatRow",
+      "data": {
+        "lineStart": 821,
+        "lineEnd": 830,
+        "codeSnippet": "String formatRow(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.formatBar",
+      "type": "method",
+      "label": "Warehouse.formatBar",
+      "data": {
+        "lineStart": 832,
+        "lineEnd": 838,
+        "codeSnippet": "String formatBar(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.printHeader",
+      "type": "method",
+      "label": "Warehouse.printHeader",
+      "data": {
+        "lineStart": 840,
+        "lineEnd": 843,
+        "codeSnippet": "void printHeader(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Warehouse.printProducts",
+      "type": "method",
+      "label": "Warehouse.printProducts",
+      "data": {
+        "lineStart": 845,
+        "lineEnd": 851,
+        "codeSnippet": "void printProducts(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.printOrders",
+      "type": "method",
+      "label": "Warehouse.printOrders",
+      "data": {
+        "lineStart": 853,
+        "lineEnd": 861,
+        "codeSnippet": "void printOrders(...)",
+        "bigO": "O(n²)"
+      }
+    },
+    {
+      "id": "Warehouse.printAnalysis",
+      "type": "method",
+      "label": "Warehouse.printAnalysis",
+      "data": {
+        "lineStart": 863,
+        "lineEnd": 888,
+        "codeSnippet": "void printAnalysis(...)",
+        "bigO": "O(n⁵)"
+      }
+    },
+    {
+      "id": "Warehouse.printHistogram",
+      "type": "method",
+      "label": "Warehouse.printHistogram",
+      "data": {
+        "lineStart": 890,
+        "lineEnd": 898,
+        "codeSnippet": "void printHistogram(...)",
+        "bigO": "O(n²)"
+      }
+    },
+    {
+      "id": "Warehouse.printPlan",
+      "type": "method",
+      "label": "Warehouse.printPlan",
+      "data": {
+        "lineStart": 900,
+        "lineEnd": 913,
+        "codeSnippet": "void printPlan(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.warn",
+      "type": "method",
+      "label": "Warehouse.warn",
+      "data": {
+        "lineStart": 915,
+        "lineEnd": 918,
+        "codeSnippet": "void warn(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Warehouse.renderTemplate",
+      "type": "method",
+      "label": "Warehouse.renderTemplate",
+      "data": {
+        "lineStart": 922,
+        "lineEnd": 944,
+        "codeSnippet": "String renderTemplate(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Warehouse.describeLevel",
+      "type": "method",
+      "label": "Warehouse.describeLevel",
+      "data": {
+        "lineStart": 946,
+        "lineEnd": 963,
+        "codeSnippet": "String describeLevel(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Warehouse.stockLevel",
+      "type": "method",
+      "label": "Warehouse.stockLevel",
+      "data": {
+        "lineStart": 965,
+        "lineEnd": 967,
+        "codeSnippet": "String stockLevel(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Warehouse.digitsSum",
+      "type": "method",
+      "label": "Warehouse.digitsSum",
+      "data": {
+        "lineStart": 969,
+        "lineEnd": 977,
+        "codeSnippet": "int digitsSum(...)",
+        "bigO": "O(log n)"
+      }
+    },
+    {
+      "id": "Warehouse.main",
+      "type": "method",
+      "label": "Warehouse.main",
+      "data": {
+        "lineStart": 981,
+        "lineEnd": 1065,
+        "codeSnippet": "void main(...)",
+        "bigO": "O(n⁵)"
+      }
+    },
+    {
+      "id": "Category.title",
+      "type": "method",
+      "label": "Category.title",
+      "data": {
+        "lineStart": 96,
+        "lineEnd": 98,
+        "codeSnippet": "String title(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Category.withVat",
+      "type": "method",
+      "label": "Category.withVat",
+      "data": {
+        "lineStart": 100,
+        "lineEnd": 102,
+        "codeSnippet": "double withVat(...)",
+        "bigO": "O(1)"
+      }
+    },
+    {
+      "id": "Category.fromCode",
+      "type": "method",
+      "label": "Category.fromCode",
+      "data": {
+        "lineStart": 104,
+        "lineEnd": 111,
+        "codeSnippet": "Category fromCode(...)",
+        "bigO": "O(n)"
+      }
+    },
+    {
+      "id": "Status.isFinal",
+      "type": "method",
+      "label": "Status.isFinal",
+      "data": {
+        "lineStart": 117,
+        "lineEnd": 119,
+        "codeSnippet": "boolean isFinal(...)",
+        "bigO": "O(1)"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "c0",
+      "source": "Warehouse.addProduct",
+      "target": "Warehouse.audit",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c1",
+      "source": "Warehouse.findBestCustomer",
+      "target": "Warehouse.orderTotal",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c2",
+      "source": "Warehouse.load",
+      "target": "Warehouse.addProduct",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c3",
+      "source": "Warehouse.load",
+      "target": "Warehouse.audit",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c4",
+      "source": "Warehouse.load",
+      "target": "Warehouse.parseCustomer",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c5",
+      "source": "Warehouse.load",
+      "target": "Warehouse.parseOrder",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c6",
+      "source": "Warehouse.load",
+      "target": "Warehouse.parseProduct",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c7",
+      "source": "Warehouse.load",
+      "target": "Warehouse.warn",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c8",
+      "source": "Warehouse.main",
+      "target": "Entity.createdCount",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c9",
+      "source": "Warehouse.main",
+      "target": "Warehouse.applyDiscount",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c10",
+      "source": "Warehouse.main",
+      "target": "Warehouse.checksum",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c11",
+      "source": "Warehouse.main",
+      "target": "Warehouse.describeLevel",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c12",
+      "source": "Warehouse.main",
+      "target": "Warehouse.digitsSum",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c13",
+      "source": "Warehouse.main",
+      "target": "Warehouse.formatMoney",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c14",
+      "source": "Warehouse.main",
+      "target": "Warehouse.isValidSku",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c15",
+      "source": "Warehouse.main",
+      "target": "Warehouse.kindOf",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c16",
+      "source": "Warehouse.main",
+      "target": "Warehouse.printHeader",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c17",
+      "source": "Warehouse.main",
+      "target": "Warehouse.readInput",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c18",
+      "source": "Warehouse.main",
+      "target": "Warehouse.renderTemplate",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c19",
+      "source": "Warehouse.main",
+      "target": "Warehouse.sizeOf",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c20",
+      "source": "Warehouse.main",
+      "target": "Warehouse.stockLevel",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c21",
+      "source": "Warehouse.main",
+      "target": "Warehouse.warn",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c22",
+      "source": "Warehouse.orderTotal",
+      "target": "Warehouse.applyDiscount",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c23",
+      "source": "Warehouse.orderTotal",
+      "target": "Warehouse.round2",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c24",
+      "source": "Warehouse.parseCustomer",
+      "target": "Warehouse.parseFields",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c25",
+      "source": "Warehouse.parseOrder",
+      "target": "Warehouse.parseCount",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c26",
+      "source": "Warehouse.parseOrder",
+      "target": "Warehouse.parseFields",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c27",
+      "source": "Warehouse.parseProduct",
+      "target": "Category.fromCode",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c28",
+      "source": "Warehouse.parseProduct",
+      "target": "Warehouse.parseCount",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c29",
+      "source": "Warehouse.parseProduct",
+      "target": "Warehouse.parseFields",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c30",
+      "source": "Warehouse.parseProduct",
+      "target": "Warehouse.parseMoney",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c31",
+      "source": "Warehouse.printAnalysis",
+      "target": "Warehouse.average",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c32",
+      "source": "Warehouse.printAnalysis",
+      "target": "Warehouse.categoriesWithGaps",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c33",
+      "source": "Warehouse.printAnalysis",
+      "target": "Warehouse.countMatching",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c34",
+      "source": "Warehouse.printAnalysis",
+      "target": "Warehouse.countOrdersByCity",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c35",
+      "source": "Warehouse.printAnalysis",
+      "target": "Warehouse.findBestCustomer",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c36",
+      "source": "Warehouse.printAnalysis",
+      "target": "Warehouse.findDuplicateNames",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c37",
+      "source": "Warehouse.printAnalysis",
+      "target": "Warehouse.findLowStock",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c38",
+      "source": "Warehouse.printAnalysis",
+      "target": "Warehouse.findSharedPurchases",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c39",
+      "source": "Warehouse.printAnalysis",
+      "target": "Warehouse.formatMoney",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c40",
+      "source": "Warehouse.printAnalysis",
+      "target": "Warehouse.maxOf",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c41",
+      "source": "Warehouse.printAnalysis",
+      "target": "Warehouse.printHeader",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c42",
+      "source": "Warehouse.printAnalysis",
+      "target": "Warehouse.totalStockValue",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c43",
+      "source": "Warehouse.printHistogram",
+      "target": "Warehouse.formatBar",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c44",
+      "source": "Warehouse.printHistogram",
+      "target": "Warehouse.histogram",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c45",
+      "source": "Warehouse.printHistogram",
+      "target": "Warehouse.printHeader",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c46",
+      "source": "Warehouse.printOrders",
+      "target": "Warehouse.formatMoney",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c47",
+      "source": "Warehouse.printOrders",
+      "target": "Warehouse.formatRow",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c48",
+      "source": "Warehouse.printOrders",
+      "target": "Warehouse.orderTotal",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c49",
+      "source": "Warehouse.printOrders",
+      "target": "Warehouse.printHeader",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c50",
+      "source": "Warehouse.printPlan",
+      "target": "Warehouse.printHeader",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c51",
+      "source": "Warehouse.printProducts",
+      "target": "Warehouse.formatMoney",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c52",
+      "source": "Warehouse.printProducts",
+      "target": "Warehouse.printHeader",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c53",
+      "source": "Warehouse.readInput",
+      "target": "Warehouse.warn",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c54",
+      "source": "Warehouse.repriceScarce",
+      "target": "Warehouse.audit",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c55",
+      "source": "Warehouse.repriceScarce",
+      "target": "Warehouse.formatMoney",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c56",
+      "source": "Warehouse.repriceScarce",
+      "target": "Warehouse.round2",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c57",
+      "source": "Warehouse.ship",
+      "target": "Warehouse.audit",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c58",
+      "source": "Warehouse.shipPaidOrders",
+      "target": "Warehouse.audit",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c59",
+      "source": "Warehouse.shipPaidOrders",
+      "target": "Warehouse.ship",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c60",
+      "source": "Warehouse.shipPaidOrders",
+      "target": "Warehouse.warn",
+      "type": "normal",
+      "label": "calls"
+    },
+    {
+      "id": "c61",
+      "source": "Warehouse.totalStockValue",
+      "target": "Warehouse.round2",
+      "type": "normal",
+      "label": "calls"
+    }
+  ]
+}

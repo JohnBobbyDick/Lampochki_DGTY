@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "details": {
+    "compiled": true,
+    "behaviorPreserved": true,
+    "compileErrors": [],
+    "diff": "",
+    "stderr": "WARN: пропущена строка 14: не число: abc\nWARN: заказ R5: Недостаточно T200: нужно 10, есть 5\n"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "files": [
+    {
+      "name": "Warehouse.java",
+      "lines": 758
+    },
+    {
+      "name": "Parser.java",
+      "lines": 108
+    },
+    {
+      "name": "Analyzer.java",
+      "lines": 79
+    },
+    {
+      "name": "Printer.java",
+      "lines": 57
+    },
+    {
+      "name": "Helpers.java",
+      "lines": 78
+    },
+    {
+      "name": "AuditLog.java",
+      "lines": 26
+    }
+  ],
+  "warnings": [
+    "Остались в Warehouse (работают с общим состоянием объекта): load, addProduct, validateOrders, orderTotal, ship, shipPaidOrders, totalStockValue, findLowStock, valueByCategory, findSharedPurchases, countOrdersByCity, findBestCustomer, planRestock, topByValue, repriceScarce, categoriesWithGaps, printProducts, printOrders, printAnalysis, printHistogram, printPlan"
+  ]
+}

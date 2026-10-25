@@ -108,7 +108,7 @@ const CodeEditor: React.FC = () => {
       if (!st) { hide(); return; }
       tip.textContent = st.state === 'miss' ? 'Не выполнялась'
         : st.state === 'hit' ? `Выполнений: ${st.count}`
-        : `Выполнений: ${st.count} · не пройдено: ${st.missing.join('; ')}`;
+        : `Выполнений: ${st.count} · ни разу не случилось: ${st.missing.join('; ')}`;
       const box = ed.container.getBoundingClientRect();
       tip.style.display = 'block';
       tip.style.left = `${e.clientX - box.left + 12}px`;

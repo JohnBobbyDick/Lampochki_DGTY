@@ -87,11 +87,11 @@ const CoveragePanel: React.FC = () => {
         </section>
         <section className="check-card">
           <header>
-            <span className="cov-title">Не пройдено</span>
+            <span className="cov-title" title="Исходы ветвлений и условий, которые за запуски ни разу не случились">Не проверенные случаи</span>
             <span className="count">{sum.missing.length}</span>
           </header>
           {sum.missing.length === 0 ? (
-            <div className="cov-all"><FiCheckCircle aria-hidden="true" /> Всё пройдено</div>
+            <div className="cov-all"><FiCheckCircle aria-hidden="true" /> Все случаи проверены</div>
           ) : (
             <ul className="cov-missing">
               {sum.missing.map((m, i) => (
@@ -99,7 +99,7 @@ const CoveragePanel: React.FC = () => {
                   <button className="cov-miss-row" onClick={() => jumpToLine(m.line)}>
                     <span className="cov-line">строка {m.line}<span aria-hidden="true"> ·</span></span>
                     <span className="sr-only">, </span>
-                    <span>{m.label} → {m.outcome}</span>
+                    <span>{m.label} — ни разу не случилось: «{m.outcome}»</span>
                   </button>
                 </li>
               ))}

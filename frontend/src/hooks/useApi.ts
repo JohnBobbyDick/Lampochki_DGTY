@@ -6,6 +6,7 @@ import { downloadFile } from '../utils/download';
 import { getSessionId } from '../utils/sessionId';
 import { installSessionRecovery } from '../utils/sessionRecovery';
 import { methodAfterParse } from '../utils/graphEmpty';
+import type { Probe } from '../utils/coverage';
 import { GraphEdge, GraphNode, GraphType, QualityGateResult } from '../types';
 
 const api = axios.create({
@@ -231,6 +232,16 @@ export function useApi() {
       }
     };
 
+    /** Background run without input: line counters for the speedup estimate; silent, null on any failure. */
+    const measureRun = async (code: string): Promise<{ probes: Probe[]; hits: number[] } | null> => {
+      try {
+        const { data } = await api.post('/run/measure', { code, language: S().language });
+        return data?.probes && data?.hits ? data : null;
+      } catch {
+        return null;
+      }
+    };
+
     const aiStatus = async () => {
       try {
         const { data } = await api.get('/ai/status');
@@ -242,7 +253,7 @@ export function useApi() {
 
     return {
       aiApply, aiStatus, bigoCombined, aiExplain, aiFix, aiDecompose,
-      parseCode, getGraph, analyzeCode, generateCode, runCode, compareCode,
+      parseCode, getGraph, analyzeCode, generateCode, runCode, compareCode, measureRun,
       decomposeCode, verifyDecomposition, downloadDecomposition, downloadChanged, qualityGate,
     };
   }, [call]);

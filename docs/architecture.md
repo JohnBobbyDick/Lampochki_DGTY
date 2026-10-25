@@ -29,7 +29,7 @@ AI-правки: `ai/ai_analyzer.py` (запросы, повторы с `repair.
 «не добавляет новых ошибок»). Эндпоинты: `POST /api/ai/fix` (правка одной ошибки javac), `POST /api/analyze`
 (поле `compileErrors`), `POST /api/files/zip` (zip изменённых файлов проекта, `api/files.py`).
 Big O «было → станет»: `ai/bigo_diff.py` (поля `bigoBefore/bigoAfter` патча), `POST /api/ai/bigo-combined` (несколько
-советов вместе, без LLM). Фронтенд: `utils/speedup.ts` (ускорение при n из последнего запуска, иначе диапазон n = 10…1000), `utils/bigoAfter.ts`,
+советов вместе, без LLM). Фронтенд: `utils/speedup.ts` (ускорение при n из запуска пользователя или фонового замера `POST /api/run/measure`, `hooks/useAutoMeasure.ts`), `utils/bigoAfter.ts`,
 `hooks/useBigoAfter.ts` → `useStore.bigoAfterAi`, бейдж `components/BigoChange` в `DiagnosticsPanel` и `PatchView`.
 Фронтенд: история запусков по файлам — `useProject.runs` / `utils/runs.ts`; тесты — `npx vitest run`.
 

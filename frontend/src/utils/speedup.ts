@@ -6,10 +6,6 @@ export interface Speedup {
   hint: string;
 }
 
-/** Data sizes of the range shown before the program has been run. */
-export const N_LOW = 10;
-export const N_HIGH = 1000;
-
 const SUP: Record<string, number> = { '²': 2, '³': 3, '⁴': 4, '⁵': 5 };
 
 const exp = (sup?: string, caret?: string): number =>
@@ -19,13 +15,13 @@ const SHAPE = /^(?:(n)(?:([²³⁴⁵])|\^(\d+))?)?\s*(?:(log)(?:([²³⁴⁵])|
 
 const isExp = (bigo: string): boolean => /^O\(\s*2\^n\s*\)$/.test(bigo.trim());
 
-/** f(n) for a Big O label of bigo_analyzer; Infinity for O(2^n); null when unknown. */
+/** f(n) for a Big O label of bigo_analyzer; null when unknown. */
 export const growth = (bigo: string, n = 1000): number | null => {
   const m = /^O\((.*)\)$/.exec(bigo.trim());
   if (!m) return null;
   const body = m[1].trim();
   if (body === '1') return 1;
-  if (body === '2^n') return Infinity;
+  if (body === '2^n') return 2 ** n;
   const g = SHAPE.exec(body);
   if (!body || !g || (!g[1] && !g[4])) return null;
   const p = g[1] ? exp(g[2], g[3]) : 0;
@@ -68,36 +64,14 @@ const ratio = (before: string, after: string, n: number): { r: number; worse: bo
 };
 
 /**
- * Expected speedup from `before` to `after`. With `n` (the data size of the last run) it is one number for
- * that size; without it — the range for n from N_LOW to N_HIGH, since the ratio of two growth classes depends
- * on n only (O(n²) → O(n) is «n times»).
+ * Speedup from `before` to `after` at the data size `n` measured by a run; the ratio of two growth classes depends
+ * on n only (O(n²) → O(n) is «n times»), so without n there is no number.
  */
 export const speedup = (before: string, after: string, n?: number | null): Speedup => {
   const none: Speedup = { factor: null, label: '', worse: false, hint: '' };
-  const word = (worse: boolean) => (worse ? 'медленнее' : 'быстрее');
-
-  if (n) {
-    const hint = `при n ≈ ${n} — размер данных в последнем запуске`;
-    const same: Speedup = { factor: 1, label: '≈ без разницы', worse: false, hint };
-    if (growth(before, n) === null || growth(after, n) === null || before === after) return none;
-    const at = ratio(before, after, n);
-    if (!at || at.r < 1.5) return same;
-    return { factor: at.r, label: `~${formatFactor(at.r)}× ${word(at.worse)}`, worse: at.worse, hint };
-  }
-
-  const hint = `при n от ${N_LOW} до ${N_HIGH}; запустите программу, чтобы оценить на своих данных`;
-  if (isExp(before) !== isExp(after)) {
-    // 2^n against a polynomial: the gap explodes with n, only the lower bound is meaningful
-    const worse = isExp(after);
-    const poly = growth(worse ? before : after, N_LOW);
-    if (poly === null) return none;
-    const at = 2 ** N_LOW / poly;
-    return { factor: at, label: `≥${formatFactor(at)}× ${word(worse)}`, worse, hint };
-  }
-  const low = ratio(before, after, N_LOW);
-  const high = ratio(before, after, N_HIGH);
-  if (!low || !high) return none;
-  const [a, b] = [formatFactor(Math.min(low.r, high.r)), formatFactor(Math.max(low.r, high.r))];
-  const label = a === b ? `~${a}× ${word(high.worse)}` : `~${a}–${b}× ${word(high.worse)}`;
-  return { factor: high.r, label, worse: high.worse, hint };
+  if (!n || growth(before, n) === null || growth(after, n) === null || before === after) return none;
+  const hint = `при n ≈ ${n} — размер данных при запуске программы`;
+  const at = ratio(before, after, n);
+  if (!at || at.r < 1.5) return { factor: 1, label: '≈ без разницы', worse: false, hint };
+  return { factor: at.r, label: `~${formatFactor(at.r)}× ${at.worse ? 'медленнее' : 'быстрее'}`, worse: at.worse, hint };
 };

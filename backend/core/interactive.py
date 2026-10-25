@@ -362,3 +362,27 @@ def close_stdin(proc: InteractiveProcess) -> None:
 def cleanup(tmp: Path | None) -> None:
     if tmp:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+async def _discard(_msg: dict) -> None:
+    return None
+
+
+async def measure(code: str, language: str | None = None) -> dict:
+    """Background run for the speedup estimate: no stdin, output dropped, same limits as the console.
+
+    Returns the ``coverage`` message (``probes`` + ``hits``, or ``error``); a compile error is an error too.
+    """
+    res = await start_session(code, None, _discard, language=language)
+    if res is None:
+        return {"type": "coverage", "error": "Программа не запустилась"}
+    proc, tmp, plan = res
+    try:
+        proc.close_stdin()
+        exit_code = await pump(proc, _discard)
+        return await asyncio.to_thread(final_coverage, exit_code, plan, tmp) or {
+            "type": "coverage", "error": "Программа не запустилась"}
+    finally:
+        if proc.returncode is None:
+            proc.kill()
+        cleanup(tmp)

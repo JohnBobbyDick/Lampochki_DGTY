@@ -3,29 +3,17 @@ import { estimateN, formatFactor, growth, speedup } from './speedup';
 
 describe('speedup', () => {
   const NB = '\u00a0';
-  const range: [string, string, string, boolean][] = [
-    ['O(n²)', 'O(n)', '~10–1000× быстрее', false],
-    ['O(n)', 'O(log n)', '~3–100× быстрее', false],
-    ['O(n²)', 'O(n log n)', '~3–100× быстрее', false],
-    ['O(n log n)', 'O(n)', '~3,3–10× быстрее', false],
-    ['O(n)', 'O(1)', '~10–1000× быстрее', false],
-    ['O(n)', 'O(n²)', '~10–1000× медленнее', true],
-    ['O(n)', 'O(n)', '', false],
-    ['O(?) рекурсия', 'O(n)', '', false],
-    ['O(n)', 'O(?)', '', false],
-    ['', 'O(n)', '', false],
-    ['O(2^n)', 'O(n)', '≥100× быстрее', false],
-    ['O(n)', 'O(2^n)', '≥100× медленнее', true],
-    ['O(n³)', 'O(n)', `~100–1${NB}000${NB}000× быстрее`, false],
-    ['O(n^6)', 'O(n^5)', '~10–1000× быстрее', false],
-    ['O(n² log n)', 'O(n²)', '~3,3–10× быстрее', false],
-  ];
-  it.each(range)('without a run: %s -> %s = %s', (b: string, a: string, label: string, worse: boolean) => {
-    const s = speedup(b, a);
-    expect(s.label).toBe(label);
-    expect(s.worse).toBe(worse);
-    expect(s.factor === null).toBe(label === '');
-    if (label) expect(s.hint).toContain('при n от 10 до 1000');
+  it('gives no number without the data size', () => {
+    for (const [b, a] of [['O(n²)', 'O(n)'], ['O(n)', 'O(1)'], ['O(2^n)', 'O(n)']]) {
+      expect(speedup(b, a)).toMatchObject({ factor: null, label: '' });
+      expect(speedup(b, a, null).label).toBe('');
+    }
+  });
+
+  it.each([
+    ['O(n)', 'O(n)'], ['O(?) рекурсия', 'O(n)'], ['O(n)', 'O(?)'], ['', 'O(n)'],
+  ])('nothing to compare: %s -> %s', (b, a) => {
+    expect(speedup(b, a, 50).label).toBe('');
   });
 
   it('uses the data size of the run', () => {
@@ -37,6 +25,8 @@ describe('speedup', () => {
     expect(speedup('O(n²)', 'O(n)', 11).hint).toContain('n ≈ 11');
     expect(speedup('O(n²)', 'O(n)', 1).label).toBe('≈ без разницы');
     expect(speedup('O(n)', 'O(n²)', 7)).toMatchObject({ label: '~7× медленнее', worse: true });
+    expect(speedup('O(2^n)', 'O(n)', 20).label).toBe(`~52${NB}000× быстрее`);
+    expect(speedup('O(n)', 'O(2^n)', 10)).toMatchObject({ label: '~100× медленнее', worse: true });
   });
 
   it('estimates n from the work of the busiest line', () => {
@@ -68,7 +58,7 @@ describe('speedup', () => {
     expect(growth('O(n, 10)')).toBeNull();
     expect(growth('O(?)')).toBeNull();
     expect(growth('O(?) рекурсия')).toBeNull();
-    expect(growth('O(2^n)')).toBe(Infinity);
+    expect(growth('O(2^n)', 10)).toBe(1024);
     expect(growth('O(n)', 10)).toBe(10);
   });
 

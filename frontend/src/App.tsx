@@ -19,6 +19,7 @@ import { useApi } from './hooks/useApi';
 import { useSync } from './hooks/useSync';
 import { useAutoReview } from './hooks/useAutoReview';
 import { useBigoAfter } from './hooks/useBigoAfter';
+import { useAutoMeasure } from './hooks/useAutoMeasure';
 import { useTheme, toggleTheme } from './hooks/useTheme';
 import { useColumns, COL_LIMITS } from './hooks/useColumns';
 
@@ -36,6 +37,7 @@ const App: React.FC = () => {
   useSync();
   useAutoReview();
   useBigoAfter();
+  useAutoMeasure();
   const api = useApi();
   const theme = useTheme();
   const [side, setSide] = useState<Side>('diagnostics');

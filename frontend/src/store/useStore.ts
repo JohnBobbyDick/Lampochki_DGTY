@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import { Node, Edge } from 'reactflow';
 import { fragmentPresent } from '../utils/fragment';
 import { CompileError, Defect, RunResult, CompareResult, DecomposedFile, GraphType, QualityGateResult } from '../types';
+import type { Coverage } from '../utils/coverage';
+
+export interface Measure {
+  code: string;
+  status: 'pending' | 'done' | 'error';
+  coverage?: Coverage;
+}
 
 export interface AiPatch {
   oldCode: string;
@@ -134,6 +141,9 @@ interface AppState {
   setBigo: (bigo: Record<string, string>) => void;
   bigoAfterAi: Record<string, string>;
   setBigoAfterAi: (b: Record<string, string>) => void;
+  /** background run of `code` that measures the data size n for the speedup estimate (useAutoMeasure) */
+  measure: Measure | null;
+  setMeasure: (m: Measure | null) => void;
   setHoveredLine: (line: number | null) => void;
   setHoveredNode: (nodeId: string | null) => void;
   setRunResult: (result: RunResult | null) => void;
@@ -174,6 +184,7 @@ export const useStore = create<AppState>((set, get) => ({
   defects: [],
   bigo: {},
   bigoAfterAi: {},
+  measure: null,
   hoveredLine: null,
   hoveredNode: null,
   runResult: null,
@@ -308,6 +319,7 @@ export const useStore = create<AppState>((set, get) => ({
   setDefects: (defects) => set({ defects }),
   setBigo: (bigo) => set({ bigo }),
   setBigoAfterAi: (bigoAfterAi) => set({ bigoAfterAi }),
+  setMeasure: (measure) => set({ measure }),
   setHoveredLine: (line) => set({ hoveredLine: line }),
   setHoveredNode: (nodeId) => set({ hoveredNode: nodeId }),
   setRunResult: (result) => set({ runResult: result }),

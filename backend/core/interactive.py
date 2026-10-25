@@ -40,14 +40,13 @@ def _prepare_docker(tmp: Path, fname: str, code: str) -> tuple[bool, CovPlan]:
     cov_dir = tmp / "cov"
     (cov_dir / fname).write_text(inst.code, encoding="utf-8")
     (cov_dir / f"{instrument.COV_CLASS}.java").write_text(inst.cov_source, encoding="utf-8")
-    os.chmod(cov_dir, 0o777)   # the container user (65534) must be able to leave the "compiled" marker
     return True, plan
 
 
 def coverage_message(plan: CovPlan, marker: Path | None = None) -> dict:
-    """The ``coverage`` WS message.  *marker* (docker mode): file the container creates once the instrumented code compiled."""
-    if marker is not None and plan.error is None and not marker.exists():
-        plan.error = build.UNAVAILABLE
+    """The ``coverage`` WS message.  *marker*: file the program writes into once the instrumented code compiled / ran."""
+    if marker is not None and plan.error is None and not build.marker_set(marker):
+        plan.error = build.unavailable(plan)
     if plan.error:
         return {"type": "coverage", "error": plan.error}
     hits = build.read_hits(plan)
@@ -57,12 +56,15 @@ def coverage_message(plan: CovPlan, marker: Path | None = None) -> dict:
 
 
 def final_coverage(exit_code: int, plan: CovPlan, tmp: Path) -> dict | None:
-    """The coverage message to send before ``exit``; None after a docker compile error (exit 98)."""
+    """The coverage message to send before ``exit``; None after a docker compile error (exit 98).
+
+    The marker is checked in docker mode and for every Python run (the child may fail to instrument).
+    """
     docker = runner.SANDBOX_MODE == "docker"
-    python = (tmp / "_jb_run.py").exists()   # no compile step in the container: exit 98 is the program's own
+    python = plan.language == "python"   # no compile step in the container: exit 98 is the program's own
     if docker and exit_code == runner.DOCKER_COMPILE_EXIT and not python:
         return None
-    marker = tmp / "cov" / "compiled" if docker and plan.data_file else None
+    marker = tmp / "cov" / build.MARKER if plan.data_file and (docker or python) else None
     return coverage_message(plan, marker)
 
 
@@ -274,8 +276,6 @@ async def _start_python(code: str, emit: Emit) -> tuple[InteractiveProcess, Path
     docker = runner.SANDBOX_MODE == "docker"
     if docker:
         os.chmod(tmp, 0o755)
-        if plan.data_file is not None:
-            os.chmod(tmp / "cov", 0o777)   # the container user (65534) must be able to leave the "compiled" marker
         cmd, env = runner.python_command(tmp, "_jb_run.py", cov=plan.data_file is not None, slots=plan.slots)
     else:
         cmd, env = build.PY_RUN_CMD, build.python_cov_env(plan)

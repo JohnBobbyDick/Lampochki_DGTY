@@ -331,8 +331,13 @@ def _compile_cov(src: str, filename: str):
             return None
         code = compile(tree, filename, "exec")
         setattr(builtins, _RT, _Cov(path, slots))
-        with open(os.path.join(os.path.dirname(path), "compiled"), "w"):
-            pass
+        # write into the pre-created marker (never create or follow one): the host treats it as set when non-empty
+        fd = os.open(os.path.join(os.path.dirname(path), "compiled"),
+                     os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0))
+        try:
+            os.write(fd, b"1")
+        finally:
+            os.close(fd)
         return code
     except Exception:  # noqa: BLE001 — any failure: run the original without coverage
         return None

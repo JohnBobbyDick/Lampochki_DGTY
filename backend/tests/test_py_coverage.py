@@ -40,7 +40,7 @@ def test_if_branch_true(tmp_path):
     assert out.returncode == 0, out.stderr
     assert out.stdout == "pos\n"
     assert hits_of(plan, hits, "branch", 2) == [[1, 0]]
-    assert (tmp_path / "cov" / "compiled").exists()
+    assert build.marker_set(tmp_path / "cov" / "compiled")
 
 
 def test_for_empty_list(tmp_path):
@@ -247,6 +247,9 @@ def test_cov_files_and_env(tmp_path):
     assert plan.data_file == tmp_path / "cov" / "hits.bin"
     assert plan.data_file.stat().st_size == plan.slots * 4
     assert oct(os.stat(tmp_path / "cov").st_mode & 0o777) == "0o755"
+    marker = tmp_path / "cov" / "compiled"      # pre-created empty: the child only writes into it
+    assert marker.is_file() and marker.stat().st_size == 0 and oct(marker.stat().st_mode & 0o777) == "0o666"
+    assert plan.language == "python" and not build.marker_set(marker)
     assert (tmp_path / "py_cov.py").exists() and (tmp_path / "_jb_run.py").exists()
     env = python_cov_env(plan)
     assert env["JB_COV"] == str(plan.data_file) and env["JB_COV_SLOTS"] == str(plan.slots)
@@ -265,5 +268,5 @@ def test_run_without_cov_env(tmp_path):
     out = subprocess.run([sys.executable, "-u", "_jb_run.py"], cwd=tmp_path, capture_output=True, text=True,
                          env=runner.python_env(), timeout=30)
     assert out.returncode == 0 and out.stdout == "hi\n"
-    assert not (tmp_path / "cov" / "compiled").exists()
+    assert not build.marker_set(tmp_path / "cov" / "compiled")
     assert read_hits(plan) == [0] * plan.slots

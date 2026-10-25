@@ -23,6 +23,8 @@ from core import runner
 from core.runner import parse_compile_errors
 
 UNAVAILABLE = "инструментированный код не скомпилировался"
+PY_UNAVAILABLE = "инструментирование не выполнилось"
+MARKER = "compiled"     # pre-created empty in cov/; the program writes into it once instrumented code runs
 USER_ERROR = "Программа не скомпилировалась"
 PY_RUN_CMD = [sys.executable, "-u", "_jb_run.py"]
 _PY_LOADER = 'import py_cov\npy_cov.run("main.py")\n'
@@ -34,6 +36,7 @@ class CovPlan:
     slots: int = 0
     data_file: Path | None = None
     error: str | None = None
+    language: str = "java"
 
 
 def _javac(tmp: Path, names: list[str]) -> subprocess.CompletedProcess:
@@ -76,7 +79,24 @@ def _data_file(tmp: Path, name: str, slots: int) -> Path:
     data = cov_dir / name
     data.write_bytes(bytes(slots * 4))
     os.chmod(data, 0o666)                 # the docker runner maps it read-write as another user
+    marker = cov_dir / MARKER
+    marker.write_bytes(b"")
+    os.chmod(marker, 0o666)               # likewise: docker mounts only these two files, never the directory
     return data
+
+
+def marker_set(path: Path) -> bool:
+    """True once the program wrote into the marker: a regular file (never a symlink) with content."""
+    try:
+        st = os.lstat(path)
+    except OSError:
+        return False
+    return stat.S_ISREG(st.st_mode) and st.st_size > 0
+
+
+def unavailable(plan: CovPlan) -> str:
+    """Reason when the marker was not set: the instrumented code did not compile (Java) / run (Python)."""
+    return PY_UNAVAILABLE if plan.language == "python" else UNAVAILABLE
 
 
 def _success(tmp: Path, inst: instrument.Instrumented):
@@ -130,12 +150,12 @@ def prepare_python(tmp: Path, code: str) -> CovPlan:
         tree, raw = py_cov.instrument(code)
         compile(tree, "main.py", "exec")
     except SyntaxError as exc:
-        return CovPlan(error=f"синтаксическая ошибка в строке {exc.lineno or 1}")
+        return CovPlan(error=f"синтаксическая ошибка в строке {exc.lineno or 1}", language="python")
     except Exception:  # noqa: BLE001 — e.g. RecursionError on deeply nested code
-        return CovPlan(error="не удалось инструментировать код")
+        return CovPlan(error="не удалось инструментировать код", language="python")
     probes = [Probe(**p) for p in raw]
     slots = sum(len(p.outcomes) for p in probes)
-    return CovPlan(probes, slots, _data_file(tmp, "hits.bin", slots), None)
+    return CovPlan(probes, slots, _data_file(tmp, "hits.bin", slots), None, "python")
 
 
 def python_cov_env(plan: CovPlan) -> dict[str, str]:

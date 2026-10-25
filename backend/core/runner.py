@@ -244,10 +244,16 @@ def python_preexec():
     return _limit
 
 
+def _cov_mounts(tmp: Path, counter: str) -> list[str]:
+    """Bind-mount only the pre-created counter and marker files rw (never the cov/ directory: no new files, no symlinks)."""
+    cov = tmp / "cov"
+    return ["-v", f"{cov / counter}:/cov/{counter}:rw", "-v", f"{cov / 'compiled'}:/cov/compiled:rw"]
+
+
 def python_command(tmp: Path, entry: str = "main.py", cov: bool = False, slots: int = 0) -> tuple[list[str], dict | None]:
     """(argv, env) to run *entry* from *tmp*: docker sandbox in docker mode, else the host interpreter.
 
-    *cov* (docker only): mount ``tmp/cov`` rw at ``/cov`` and point ``JB_COV`` at the container path.
+    *cov* (docker only): mount the counter and marker files of ``tmp/cov`` and point ``JB_COV`` at the container path.
     """
     if SANDBOX_MODE == "docker":
         cmd = [
@@ -257,8 +263,8 @@ def python_command(tmp: Path, entry: str = "main.py", cov: bool = False, slots: 
             "-e", "PYTHONUNBUFFERED=1", "-e", "PYTHONIOENCODING=utf-8", "-e", "PYTHONDONTWRITEBYTECODE=1",
         ]
         if cov:
-            # the container can write into the host-mounted /cov: cap file size to the counter file
-            cmd += ["-v", f"{tmp / 'cov'}:/cov:rw", "-e", "JB_COV=/cov/hits.bin", "-e", f"JB_COV_SLOTS={slots}",
+            # the container writes into the host-mounted counter file: cap file size to it
+            cmd += [*_cov_mounts(tmp, "hits.bin"), "-e", "JB_COV=/cov/hits.bin", "-e", f"JB_COV_SLOTS={slots}",
                     "--ulimit", f"fsize={(-(-slots * 4 // 512) + 8) * 512}"]
         cmd += ["--tmpfs", "/tmp:rw,exec", SANDBOX_IMAGE, "python3", "-u", entry]
         return cmd, None     # the docker CLI itself needs the normal env (HOME, DOCKER_HOST…); the container gets none of it
@@ -402,11 +408,11 @@ def _run_local(tmp: Path, names: list[str], main_class: str, stdin_input: str, t
 
 def docker_command(tmp: Path, names: list[str], main_class: str, cov: bool = False, slots: int = 0) -> list[str]:
     if cov:
-        # the container can write into the host-mounted /cov: cap file size to the counter file (512-byte blocks)
+        # the container writes into the host-mounted counter file: cap file size to it (512-byte blocks)
         fsize = -(-slots * 4 // 512) + 8
         # cov/ holds the instrumented code + __Cov and is the (rw) data dir; the original is in orig/
         script = (
-            "javac -encoding UTF-8 -d /tmp/out cov/*.java 2> /dev/null && touch /cov/compiled || "
+            "javac -encoding UTF-8 -d /tmp/out cov/*.java 2> /dev/null && printf 1 > /cov/compiled || "
             f"{{ rm -rf /tmp/out/*; javac -encoding UTF-8 -d /tmp/out {' '.join('orig/' + n for n in names)} 2> /tmp/javac.err || "
             "{ cat /tmp/javac.err >&2; exit 98; }; }; "
             f"ulimit -f {fsize}; java -Xmx256m -Djb.cov=/cov/cov.bin -cp /tmp/out {main_class}"
@@ -423,7 +429,7 @@ def docker_command(tmp: Path, names: list[str], main_class: str, cov: bool = Fal
         "--security-opt=no-new-privileges", "--user", "65534", "-v", f"{tmp}:/workspace:ro", "-w", "/workspace",
     ]
     if cov:
-        cmd += ["-v", f"{tmp / 'cov'}:/cov:rw"]
+        cmd += _cov_mounts(tmp, "cov.bin")
     cmd += ["--tmpfs", "/tmp:rw,exec", SANDBOX_IMAGE, "sh", "-c", script]
     return cmd
 

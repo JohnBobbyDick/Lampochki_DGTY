@@ -32,12 +32,14 @@ Big O «было → станет»: `ai/bigo_diff.py` (поля `bigoBefore/big
 Python: запросы несут `language`; `cfg_builder`, `bigo_analyzer`, `defect_detector` (`_python_defects`: `in list` в цикле,
 вложенный цикл по одной коллекции, конкатенация строки в цикле, `range(len(x))`, проглоченный `except`, изменяемый
 аргумент по умолчанию) и `decomposer` (`_decompose_python`: функции/классы → модули, `main.py` — фасад) ветвятся по
-`language == "python"`. Запуск — `runner.python_command` (окружение `python_env()`, `RLIMIT_AS` 512 МБ; docker без отката на хост).
+`language == "python"`. Запуск — `runner.python_command` (окружение `python_env()`, `RLIMIT_AS` 100 МБ; docker без отката на хост).
 
 Покрытие: интерактивный запуск (`core/interactive.py`, `/api/ws/run`) компилирует инструментированную копию и после
 вывода, перед `exit`, шлёт `{type:"coverage", probes, hits}` (или `{type:"coverage", error}`). Python: `build.prepare_python` кладёт
 `main.py`, `py_cov.py`, `_jb_run.py`; ребёнок сам инструментирует код и пишет счётчики в `$JB_COV` (`cov/hits.bin`,
-в docker — `/cov/hits.bin` + маркер `/cov/compiled`). Фронтенд накапливает
+в docker — `/cov/hits.bin`). Маркер `cov/compiled` создаётся сервером пустым; программа пишет в него, когда
+инструментированный код запущен, и сервер верит только непустому обычному файлу. В docker монтируются только
+эти два файла (`rw`), не каталог. Фронтенд накапливает
 hits по файлу (`useProject.coverage`, `utils/coverage.ts`), рисует полосы в gutter `AceEditor` и вкладку «Покрытие».
 
 Стримы: парсер ставит оператору поле `stream` (`core/streams.py`), `cfg_builder` разворачивает его в цепочку узлов, `code_generator` правит шаги и собирает цепочку через `compose`, `bigo_analyzer._stream_cost` считает Big O по шагам, `defect_detector._stream_defects` + `ai/static_tips.py` дают 6 правил. Фронтенд: семейство узлов `stream` (`kinds.ts`, `CFGView.tsx`, `index.css`).

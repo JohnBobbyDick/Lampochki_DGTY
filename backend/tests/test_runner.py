@@ -51,8 +51,11 @@ def test_docker_command_with_coverage(tmp_path):
     plain = " ".join(docker_command(tmp_path, ["A.java"], "A"))
     assert "/cov" not in plain and "-Djb.cov" not in plain
     cmd = " ".join(docker_command(tmp_path, ["A.java"], "A", cov=True))
-    assert f"{tmp_path / 'cov'}:/cov:rw" in cmd
-    assert "-Djb.cov=/cov/cov.bin" in cmd and "touch /cov/compiled" in cmd
+    argv = docker_command(tmp_path, ["A.java"], "A", cov=True)
+    rw = [argv[i + 1] for i, a in enumerate(argv) if a == "-v" and argv[i + 1].endswith(":rw")]
+    # only the two pre-created files are writable: no rw directory for untrusted code
+    assert rw == [f"{tmp_path / 'cov' / 'cov.bin'}:/cov/cov.bin:rw", f"{tmp_path / 'cov' / 'compiled'}:/cov/compiled:rw"]
+    assert "-Djb.cov=/cov/cov.bin" in cmd and "printf 1 > /cov/compiled" in cmd and "touch" not in cmd
     assert "-Xmx256m" in cmd
     assert "ulimit -f" in cmd and cmd.index("ulimit -f") < cmd.index("java -Xmx256m")
     assert "ulimit -f 9;" in " ".join(docker_command(tmp_path, ["A.java"], "A", cov=True, slots=100))

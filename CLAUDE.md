@@ -46,7 +46,7 @@ There is no linter config. Optional hardened runner image: `docker build -t lamp
   (`defect_detector`); node `data` keys are camelCased for the frontend in `api/graph.py`.
 - `core/decomposer.py` groups static methods by name prefix + call graph; `/decompose/verify` and
   `/quality-gate` compile and compare stdout of original vs. new code (`core/comparator.py` masks timestamps).
-- Execution: `core/runner.py` (batch run, `JAVA_SANDBOX_MODE=subprocess|docker`, 10 s timeout, `-Xmx256m`) and
+- Execution: `core/runner.py` (batch run, `JAVA_SANDBOX_MODE=subprocess|docker`, 10 s timeout, `-Xmx256m`; console `-Xmx100m`) and
   `core/interactive.py` + `api/ws.py` (`/api/ws/run` streams stdout and accepts stdin for `Scanner`).
   Subprocess mode is not a sandbox.
 - `config.py` loads `backend/.env` itself (no python-dotenv; real env vars win) and enforces `ALLOWED_ORIGINS`
@@ -60,8 +60,11 @@ There is no linter config. Optional hardened runner image: `docker build -t lamp
   survives Stop/timeout/kill. `build.py` compiles with degradation (strip decision probes → strip all probes on
   failing lines → run the original without coverage) and reads hits (`CovPlan`, `read_hits`). Only the interactive
   run (`core/interactive.py`, `/api/ws/run`) is instrumented: it sends `{type:"coverage", probes, hits}` or
-  `{type:"coverage", error}` after all output and before `exit`, never after a compile error (docker mode uses a
-  `/cov` mount and a `compiled` marker). Batch runs (Quality Gate, decompose verify) are not instrumented.
+  `{type:"coverage", error}` after all output and before `exit`, never after a compile error. `cov/` holds the counter
+  file and a pre-created empty `compiled` marker (0o666); the program writes into the marker once instrumented code
+  runs, and the host counts it only as a non-empty regular file (`build.marker_set`, no symlinks). Docker mode
+  bind-mounts just these two files rw (never the directory); the marker is checked in docker mode and for every
+  Python run (`CovPlan.language`). Batch runs (Quality Gate, decompose verify) are not instrumented.
 - Streams (`core/streams.py`): `stream_of` recognises `src.stream().op(…).terminal(…)` and the parser's
   `_stmt_to_dict` sets `stmt["stream"]` (`prefix`, `source`, `ops`, `terminal`; `compose` must reproduce the statement
   text, otherwise no field). Only whole initializers / expression statements / assignment values / returns are
@@ -80,11 +83,11 @@ There is no linter config. Optional hardened runner image: `docker build -t lamp
   `defect_detector._python_defects`: `in list` in a loop, nested loop over one collection, `s +=` string in a loop,
   `range(len(x))`, swallowed `except: pass`, mutable default argument. `decomposer._decompose_python` moves
   top-level functions / whole classes into modules, `main.py` stays the facade. Run: `runner.python_command`
-  (`python3 -u`, env = `runner.python_env()` allowlist, `RLIMIT_AS` 512 MB via `python_preexec`; docker mode
+  (`python3 -u`, env = `runner.python_env()` allowlist, `RLIMIT_AS` 100 MB (`PY_MEMORY_LIMIT`) via `python_preexec`; docker mode
   never falls back to the host). Coverage: `core/coverage/py_cov.py` (stdlib-only `ast.NodeTransformer`,
   builtin `_jb_cov`, same `Probe`/`hits` format) is copied next to `main.py` with the loader `_jb_run.py`
   (`build.prepare_python`); the child instruments `main.py` itself and counts into `$JB_COV` (`cov/hits.bin`,
-  `/cov/hits.bin` in docker) with `$JB_COV_SLOTS`; instrumentation failure → original runs, bare reason in `error`.
+  `/cov/hits.bin` in docker) with `$JB_COV_SLOTS`; instrumentation failure (server or child) → original runs, bare reason in `error`.
 - `models/schemas.py` — all Pydantic request/response models.
 
 **AI layer (`backend/ai/`).** `llm_client.generate` is the single entry point: retries with a different random

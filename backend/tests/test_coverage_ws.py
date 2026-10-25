@@ -205,16 +205,59 @@ def test_python_docker_command_mounts_cov(monkeypatch):
         proc.popen.wait()
         cmd = seen["cmd"]
         assert cmd[:2] == ["docker", "run"] and cmd[cmd.index("--network") + 1] == "none"
-        assert f"{tmp / 'cov'}:/cov:rw" in cmd and f"{tmp}:/workspace:ro" in cmd
+        assert f"{tmp}:/workspace:ro" in cmd and "--ulimit" in cmd
+        rw = [cmd[i + 1] for i, a in enumerate(cmd) if a == "-v" and cmd[i + 1].endswith(":rw")]
+        cov = tmp / "cov"
+        # only the two pre-created files are writable: no rw directory for untrusted code
+        assert rw == [f"{cov / 'hits.bin'}:/cov/hits.bin:rw", f"{cov / 'compiled'}:/cov/compiled:rw"]
+        assert (cov.stat().st_mode & 0o777) == 0o755
         assert "JB_COV=/cov/hits.bin" in cmd and f"JB_COV_SLOTS={plan.slots}" in cmd
         assert cmd[-3:] == ["python3", "-u", "_jb_run.py"]
-        assert not any(str(tmp / "cov" / "hits.bin") in c for c in cmd)
+        assert not any(c == str(cov / "hits.bin") or c.startswith("JB_COV=" + str(tmp)) for c in cmd)
         assert seen["kw"].get("env") is None and seen["kw"].get("preexec_fn") is None
-        # no marker from the container → coverage is unavailable, not read from the host file
-        assert interactive.final_coverage(0, dataclasses.replace(plan), tmp)["error"] == build.UNAVAILABLE
-        (tmp / "cov" / "compiled").touch()
-        assert "hits" in interactive.final_coverage(0, plan, tmp)
+        # the marker is empty until the container writes into it → coverage is unavailable
+        assert interactive.final_coverage(0, dataclasses.replace(plan), tmp)["error"] == build.PY_UNAVAILABLE
+        (cov / "compiled").write_text("1")
+        assert "hits" in interactive.final_coverage(0, dataclasses.replace(plan), tmp)
         # a Python run has no compile step in the container: exit 98 is the program's own
-        assert interactive.final_coverage(98, plan, tmp) is not None
+        assert interactive.final_coverage(98, dataclasses.replace(plan), tmp) is not None
+        # a symlinked marker never counts
+        target = tmp / "elsewhere"
+        target.write_text("1")
+        (cov / "compiled").unlink()
+        try:
+            (cov / "compiled").symlink_to(target)
+        except OSError:
+            return
+        assert "error" in interactive.final_coverage(0, dataclasses.replace(plan), tmp)
     finally:
         interactive.cleanup(tmp)
+
+
+def test_java_docker_prepare_keeps_cov_dir_private(tmp_path):
+    from core import interactive
+
+    ok, plan = interactive._prepare_docker(tmp_path, "Echo.java", ECHO)
+    assert ok and plan.language == "java"
+    cov = tmp_path / "cov"
+    assert (cov.stat().st_mode & 0o777) == 0o755
+    marker = cov / "compiled"
+    assert marker.is_file() and marker.stat().st_size == 0 and (marker.stat().st_mode & 0o777) == 0o666
+
+
+def test_python_child_instrumentation_failure_is_reported(monkeypatch):
+    """The child cannot instrument (slot count mismatch) → no marker → an error, not 0 %."""
+    from core.coverage import build
+
+    real = build.prepare_python
+
+    def mismatched(tmp, code):
+        plan = real(tmp, code)
+        plan.slots += 1
+        plan.data_file.write_bytes(bytes(plan.slots * 4))
+        return plan
+
+    monkeypatch.setattr(build, "prepare_python", mismatched)
+    msgs = _run_py("print('ok')\n")
+    assert _stdout(msgs).strip() == "ok" and msgs[-1]["code"] == 0
+    assert msgs[-2] == {"type": "coverage", "error": build.PY_UNAVAILABLE}

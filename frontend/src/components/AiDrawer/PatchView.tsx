@@ -4,6 +4,7 @@ import { useStore, AiPatch } from '../../store/useStore';
 import { useApi } from '../../hooks/useApi';
 import BigoChange from '../BigoChange/BigoChange';
 import { changedMethods } from '../../utils/bigoChange';
+import { useMeasuredN } from '../../hooks/useMeasuredN';
 import { FiXOctagon, FiInfo, FiCheckCircle, FiCheck } from 'react-icons/fi';
 
 /** Diff preview of an AI-suggested edit with an "apply" button; the server re-validates on apply. */
@@ -24,6 +25,7 @@ const PatchView: React.FC<{ patch: AiPatch }> = ({ patch }) => {
     [patch],
   );
 
+  const measuredN = useMeasuredN();
   const changes = useMemo(
     () => changedMethods(patch.bigoBefore ?? {}, patch.bigoAfter ?? {}),
     [patch],
@@ -65,7 +67,7 @@ const PatchView: React.FC<{ patch: AiPatch }> = ({ patch }) => {
       {changes.map(([m, b, a]) => (
         <div key={m} className="patch-bigo">
           <span className="patch-bigo-name" title={m}>{m}</span>
-          <BigoChange before={b} after={a} />
+          <BigoChange before={b} after={a} n={measuredN(b, m)} />
         </div>
       ))}
       <pre className="diff-view">

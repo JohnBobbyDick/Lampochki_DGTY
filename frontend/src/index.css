@@ -265,7 +265,7 @@ html[data-lang='python'] .logo-mark { background-image: url('./assets/logo-pytho
 .bigo-row .bigo-change { grid-area: chg; }
 .bigo-change { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; font-size: 0.75rem; }
 .bigo-arrow { flex: none; color: var(--muted); }
-.bigo-speed { font-weight: 600; white-space: nowrap; } .bigo-speed.better { color: var(--ok); } .bigo-speed.worse { color: var(--err); }
+.bigo-speed { font-weight: 600; white-space: nowrap; } .bigo-n { font-weight: 400; color: var(--muted); } .bigo-speed.better { color: var(--ok); } .bigo-speed.worse { color: var(--err); }
 .patch-bigo { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 6px; }
 .patch-bigo-name { font: 0.75rem var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
 .bigo-chip.unknown { color: var(--muted); background: var(--surface-elevated); }

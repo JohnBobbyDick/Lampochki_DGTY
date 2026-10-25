@@ -5,6 +5,7 @@ import { useApi } from '../../hooks/useApi';
 import { classifyBigO } from '../../utils/bigo';
 import BigoChange from '../BigoChange/BigoChange';
 import { staticBigoAfter } from '../../utils/bigoAfter';
+import { useMeasuredN } from '../../hooks/useMeasuredN';
 import { LuSparkles } from 'react-icons/lu';
 
 const SEVERITY = {
@@ -32,6 +33,7 @@ const DiagnosticsPanel: React.FC = () => {
   const setGraphType = useStore((s) => s.setGraphType);
 
   const ruleAfter = staticBigoAfter(bigo, defects);
+  const measuredN = useMeasuredN();
   const methodRows = Object.entries(bigo).filter(([k]) => k.includes('.') && !k.endsWith('.' + k.split('.')[0]));
 
   const open = (d: (typeof defects)[number]) => {
@@ -99,7 +101,7 @@ const DiagnosticsPanel: React.FC = () => {
                 </button>
                 {d.recommendation && <div className="reco"><FiZap aria-hidden="true" /> {d.recommendation}</div>}
                 {d.bigO && d.bigOAfter && (
-                  <div className="reco-effect"><span className="muted">Ожидаемый эффект:</span> <BigoChange before={d.bigO} after={d.bigOAfter} /></div>
+                  <div className="reco-effect"><span className="muted">Ожидаемый эффект:</span> <BigoChange before={d.bigO} after={d.bigOAfter} n={measuredN(d.bigO, d.method, d.lineStart, d.lineEnd)} /></div>
                 )}
                 <button className="btn small ai-btn" onClick={(e) => { e.stopPropagation(); api.aiExplain(d); }}><LuSparkles /> Объяснить с ИИ</button>
               </div>
@@ -121,8 +123,8 @@ const DiagnosticsPanel: React.FC = () => {
                 <span className="bigo-hint">{c.name}</span>
                 <span className={`bigo-chip ${c.grade}`}>{v}</span>
                 {bigoAfterAi[m]
-                  ? <BigoChange before={v} after={bigoAfterAi[m]} title="После правок ИИ" />
-                  : <BigoChange before={v} after={ruleAfter[m]} title="Оценка после рекомендаций диагностики" />}
+                  ? <BigoChange before={v} after={bigoAfterAi[m]} title="После правок ИИ" n={measuredN(v, m)} />
+                  : <BigoChange before={v} after={ruleAfter[m]} title="Оценка после рекомендаций диагностики" n={measuredN(v, m)} />}
               </button>
             );
           })}

@@ -72,6 +72,23 @@ export const summarize = (c: Coverage): CoverageSummary => {
   };
 };
 
+/**
+ * Work per call of `method` in the run: hits of its most executed line (within [from, to] when given) divided by
+ * the number of calls. null if the method never ran. Recursive calls count as calls too.
+ */
+export const workPerCall = (c: Coverage, method: string, from?: number, to?: number): number | null => {
+  let calls = 0;
+  let work = 0;
+  for (const p of c.probes) {
+    if (p.method !== method) continue;
+    if (p.kind === 'method') calls += count(c, p, 0);
+    else if (p.kind === 'line' && (from === undefined || (p.line >= from && p.line <= (to ?? from)))) {
+      work = Math.max(work, count(c, p, 0));
+    }
+  }
+  return calls > 0 && work > 0 ? work / calls : null;
+};
+
 export const lineStates = (c: Coverage): Map<number, LineState> => {
   const maxCount = new Map<number, number>();
   for (const p of c.probes) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lineStates, mergeCoverage, percent, Probe, summarize } from './coverage';
+import { lineStates, mergeCoverage, percent, Probe, summarize, workPerCall } from './coverage';
 
 const probes: Probe[] = [
   { id: 0, kind: 'method', line: 2, method: 'Demo.f', label: 'Demo.f', outcomes: ['выполнено'], slot: 0 },
@@ -74,5 +74,14 @@ describe('coverage', () => {
     expect(s.perMethod).toHaveLength(1);
     expect(s.perMethod[0].called).toBe(true);
     expect(s.methods).toEqual({ covered: 1, total: 1 });
+  });
+  it('measures work per call from the busiest line', () => {
+    //               m0 l3 l4  l5 br        m1 l9
+    const run = [2, 2, 40, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    const c = mergeCoverage(undefined, 'A', probes, run);
+    expect(workPerCall(c, 'Demo.f')).toBe(20);
+    expect(workPerCall(c, 'Demo.f', 5, 5)).toBe(3);
+    expect(workPerCall(c, 'Demo.g')).toBeNull();
+    expect(workPerCall(c, 'Demo.nope')).toBeNull();
   });
 });

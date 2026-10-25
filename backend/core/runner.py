@@ -244,16 +244,24 @@ def python_preexec():
     return _limit
 
 
-def python_command(tmp: Path, entry: str = "main.py") -> tuple[list[str], dict | None]:
-    """(argv, env) to run *entry* from *tmp*: docker sandbox in docker mode, else the host interpreter."""
+def python_command(tmp: Path, entry: str = "main.py", cov: bool = False, slots: int = 0) -> tuple[list[str], dict | None]:
+    """(argv, env) to run *entry* from *tmp*: docker sandbox in docker mode, else the host interpreter.
+
+    *cov* (docker only): mount ``tmp/cov`` rw at ``/cov`` and point ``JB_COV`` at the container path.
+    """
     if SANDBOX_MODE == "docker":
-        return [
+        cmd = [
             "docker", "run", "--rm", "-i", "--network", "none", "-m", "256m", "--cpus", "1",
             "--pids-limit", "128", "--read-only", "--cap-drop=ALL",
             "--security-opt=no-new-privileges", "--user", "65534", "-v", f"{tmp}:/workspace:ro", "-w", "/workspace",
             "-e", "PYTHONUNBUFFERED=1", "-e", "PYTHONIOENCODING=utf-8", "-e", "PYTHONDONTWRITEBYTECODE=1",
-            "--tmpfs", "/tmp:rw,exec", SANDBOX_IMAGE, "python3", "-u", entry,
-        ], None     # the docker CLI itself needs the normal env (HOME, DOCKER_HOST…); the container gets none of it
+        ]
+        if cov:
+            # the container can write into the host-mounted /cov: cap file size to the counter file
+            cmd += ["-v", f"{tmp / 'cov'}:/cov:rw", "-e", "JB_COV=/cov/hits.bin", "-e", f"JB_COV_SLOTS={slots}",
+                    "--ulimit", f"fsize={(-(-slots * 4 // 512) + 8) * 512}"]
+        cmd += ["--tmpfs", "/tmp:rw,exec", SANDBOX_IMAGE, "python3", "-u", entry]
+        return cmd, None     # the docker CLI itself needs the normal env (HOME, DOCKER_HOST…); the container gets none of it
     return [sys.executable, "-u", entry], python_env()
 
 

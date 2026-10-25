@@ -28,7 +28,6 @@ const CoveragePanel: React.FC = () => {
   const error = useProject((s) => s.coverageError[s.activeId]);
   const reset = useProject((s) => !!s.coverageReset[s.activeId]);
   const resetCoverage = useProject((s) => s.resetCoverage);
-  const language = useStore((s) => s.language);
 
   const valid = cov && cov.code === code ? cov : undefined;
   const sum = useMemo(() => (valid ? summarize(valid) : null), [valid]);
@@ -39,10 +38,9 @@ const CoveragePanel: React.FC = () => {
         <FiPercent className="state-icon" aria-hidden="true" />
         <div>
           <div className="state-title">
-            {language === 'python' ? 'Покрытие для Python пока не поддерживается.'
-              : reset ? 'Код изменён — покрытие сброшено, запустите снова.' : 'Запустите программу, чтобы увидеть покрытие.'}
+            {reset ? 'Код изменён — покрытие сброшено, запустите снова.' : 'Запустите программу, чтобы увидеть покрытие.'}
           </div>
-          {error && language !== 'python' && <div className="muted">Покрытие недоступно: {error}</div>}
+          {error && <div className="muted">Покрытие недоступно: {error}</div>}
         </div>
       </div>
     );

@@ -139,7 +139,10 @@ def prepare_python(tmp: Path, code: str) -> CovPlan:
 
 
 def python_cov_env(plan: CovPlan) -> dict[str, str]:
-    """``runner.python_env()`` plus ``JB_COV`` / ``JB_COV_SLOTS`` when *plan* has a counter file."""
+    """``runner.python_env()`` plus ``JB_COV`` / ``JB_COV_SLOTS`` (host path) when *plan* has a counter file.
+
+    Local mode only: in docker mode ``runner.python_command(cov=True)`` passes the container path ``/cov/hits.bin``.
+    """
     env = runner.python_env()
     if plan.data_file is not None:
         env.update(JB_COV=str(plan.data_file), JB_COV_SLOTS=str(plan.slots))

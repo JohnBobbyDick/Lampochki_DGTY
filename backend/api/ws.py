@@ -4,7 +4,7 @@ Client → server: {type: "start", code, mainClass?, language?} | {type: "stdin"
 Server → client: {type: "stdout"|"stderr", data} | {type: "compile_error", text, errors}
     | {type: "coverage", probes, hits} | {type: "coverage", error}   (after all output, before exit; never after compile_error)
     | {type: "exit", code, durationMs}
-Coverage is Java-only: a Python run ends with {type: "coverage", error: "Покрытие для Python пока не поддерживается"}.
+Both Java and Python runs are instrumented (Python: ``build.prepare_python`` + the ``_jb_run.py`` loader).
 """
 
 import asyncio

@@ -69,6 +69,22 @@ There is no linter config. Optional hardened runner image: `docker build -t lamp
   `code_generator` edits a step by replacing its `text` (empty op label deletes it) and renders via `compose`;
   `bigo_analyzer._stream_cost` gives structural Big O; `defect_detector._stream_defects` has 6 rules (tips in
   `ai/static_tips.py`). Demo: `test_monoliths/Streams.java` (+ `frontend/src/examples/`).
+- Python (stage 7): requests carry `language` (`state.SESSION.language`); `core/lang/` is the registry
+  (`LANGS`, `Language`: parse / check / regenerate / decompose per language). `core/py_parser.py` maps the stdlib `ast`
+  onto the Java statement types (`IfStatement`, `TryStatement`…, elif = nested if) with source text, `span` and
+  `header`; free functions go to the pseudo-class `Module` (`Module.f`), top-level code to `Module.main`
+  (`Module.__main__` if there is a `def main`). `cfg_builder` gives Python methods Python labels (`if x > 0`,
+  `for x in xs`, `except E as e`) and flow (loop/try `else`, `with` nodes, `match` without fall-through).
+  `core/py_codegen.py` edits by replacing only the node's `span`/`header` (keyword kept, rest byte-identical).
+  `bigo_analyzer` parses statement texts with `ast` (comprehensions, builtins, `in` by collection type);
+  `defect_detector._python_defects`: `in list` in a loop, nested loop over one collection, `s +=` string in a loop,
+  `range(len(x))`, swallowed `except: pass`, mutable default argument. `decomposer._decompose_python` moves
+  top-level functions / whole classes into modules, `main.py` stays the facade. Run: `runner.python_command`
+  (`python3 -u`, env = `runner.python_env()` allowlist, `RLIMIT_AS` 512 MB via `python_preexec`; docker mode
+  never falls back to the host). Coverage: `core/coverage/py_cov.py` (stdlib-only `ast.NodeTransformer`,
+  builtin `_jb_cov`, same `Probe`/`hits` format) is copied next to `main.py` with the loader `_jb_run.py`
+  (`build.prepare_python`); the child instruments `main.py` itself and counts into `$JB_COV` (`cov/hits.bin`,
+  `/cov/hits.bin` in docker) with `$JB_COV_SLOTS`; instrumentation failure → original runs, bare reason in `error`.
 - `models/schemas.py` — all Pydantic request/response models.
 
 **AI layer (`backend/ai/`).** `llm_client.generate` is the single entry point: retries with a different random

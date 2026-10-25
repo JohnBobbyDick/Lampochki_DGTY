@@ -12,7 +12,10 @@ Browser SPA (React, Ace, React Flow, Zustand) → REST `/api` → FastAPI.
 | `core/decomposer.py` | группировка static-методов по префиксам имён + графу вызовов |
 | `core/runner.py`, `comparator.py` | javac/java (subprocess или docker), diff stdout (маскирует timestamps) |
 | `core/streams.py` | распознавание цепочек Stream API в операторе: поле `stream` (`prefix`, `source`, `ops`, `terminal`), `compose` собирает цепочку обратно; узлы CFG `stream-source`/`stream-op`/`stream-terminal` |
-| `core/coverage/` | покрытие: инструментирование исходника по токенам (`instrument.py`, `conditions.py`), счётчик `Cov.java` (mmap-файл), сборка с деградацией и чтение hits (`build.py`) |
+| `core/coverage/` | покрытие: инструментирование исходника по токенам (`instrument.py`, `conditions.py`), счётчик `Cov.java` (mmap-файл), сборка с деградацией и чтение hits (`build.py`); Python — `py_cov.py` (AST-трансформация, рантайм `_jb_cov`) + загрузчик `_jb_run.py` |
+| `core/lang/` | реестр языков `LANGS` (`java`, `python`): parse / check / regenerate / decompose |
+| `core/py_parser.py` | Python `ast` → тот же нормализованный AST, что у Java (+ `span`, `header`); функции модуля — псевдокласс `Module` |
+| `core/py_codegen.py` | правка узлов Python заменой только `span`/`header` оператора в исходнике |
 
 Поток: правка кода → debounce 500 мс → `/parse` → `/analyze` + `/graph`. Правка узла → `/generate`
 (сервер сравнивает присланные label с собственным CFG, применяет изменённые) → новый код → снова `/parse`.
@@ -26,8 +29,15 @@ Big O «было → станет»: `ai/bigo_diff.py` (поля `bigoBefore/big
 `hooks/useBigoAfter.ts` → `useStore.bigoAfterAi`, бейдж `components/BigoChange` в `DiagnosticsPanel` и `PatchView`.
 Фронтенд: история запусков по файлам — `useProject.runs` / `utils/runs.ts`; тесты — `npx vitest run`.
 
+Python: запросы несут `language`; `cfg_builder`, `bigo_analyzer`, `defect_detector` (`_python_defects`: `in list` в цикле,
+вложенный цикл по одной коллекции, конкатенация строки в цикле, `range(len(x))`, проглоченный `except`, изменяемый
+аргумент по умолчанию) и `decomposer` (`_decompose_python`: функции/классы → модули, `main.py` — фасад) ветвятся по
+`language == "python"`. Запуск — `runner.python_command` (окружение `python_env()`, `RLIMIT_AS` 512 МБ; docker без отката на хост).
+
 Покрытие: интерактивный запуск (`core/interactive.py`, `/api/ws/run`) компилирует инструментированную копию и после
-вывода, перед `exit`, шлёт `{type:"coverage", probes, hits}` (или `{type:"coverage", error}`). Фронтенд накапливает
+вывода, перед `exit`, шлёт `{type:"coverage", probes, hits}` (или `{type:"coverage", error}`). Python: `build.prepare_python` кладёт
+`main.py`, `py_cov.py`, `_jb_run.py`; ребёнок сам инструментирует код и пишет счётчики в `$JB_COV` (`cov/hits.bin`,
+в docker — `/cov/hits.bin` + маркер `/cov/compiled`). Фронтенд накапливает
 hits по файлу (`useProject.coverage`, `utils/coverage.ts`), рисует полосы в gutter `AceEditor` и вкладку «Покрытие».
 
 Стримы: парсер ставит оператору поле `stream` (`core/streams.py`), `cfg_builder` разворачивает его в цепочку узлов, `code_generator` правит шаги и собирает цепочку через `compose`, `bigo_analyzer._stream_cost` считает Big O по шагам, `defect_detector._stream_defects` + `ai/static_tips.py` дают 6 правил. Фронтенд: семейство узлов `stream` (`kinds.ts`, `CFGView.tsx`, `index.css`).

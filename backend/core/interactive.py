@@ -59,7 +59,8 @@ def coverage_message(plan: CovPlan, marker: Path | None = None) -> dict:
 def final_coverage(exit_code: int, plan: CovPlan, tmp: Path) -> dict | None:
     """The coverage message to send before ``exit``; None after a docker compile error (exit 98)."""
     docker = runner.SANDBOX_MODE == "docker"
-    if docker and exit_code == runner.DOCKER_COMPILE_EXIT:
+    python = (tmp / "_jb_run.py").exists()   # no compile step in the container: exit 98 is the program's own
+    if docker and exit_code == runner.DOCKER_COMPILE_EXIT and not python:
         return None
     marker = tmp / "cov" / "compiled" if docker and plan.data_file else None
     return coverage_message(plan, marker)
@@ -196,16 +197,10 @@ class InteractiveProcess:
                 pass
 
 
-PY_COVERAGE_UNSUPPORTED = "Покрытие для Python пока не поддерживается"
-
-
 async def start_session(
     code: str, main_class: str | None, emit: Emit, language: str | None = None,
 ) -> tuple[InteractiveProcess, Path, CovPlan] | None:
-    """Compile/check *code* and launch it.  Returns (process, tmpdir, coverage plan) or None on compile error.
-
-    Coverage is Java-only: a Python run gets a plan whose ``error`` says so.
-    """
+    """Compile/check *code* and launch it.  Returns (process, tmpdir, coverage plan) or None on compile error."""
     if runner.is_python_code(code, language):
         return await _start_python(code, emit)
     main_class = main_class or runner.detect_main_class(code) or runner._public_class(code) or "Main"
@@ -274,11 +269,16 @@ async def _start_python(code: str, emit: Emit) -> tuple[InteractiveProcess, Path
         await emit({"type": "exit", "code": 1, "durationMs": 0})
         return None
     tmp = Path(tempfile.mkdtemp(prefix="jb_ws_py_"))
-    (tmp / "main.py").write_text(code, encoding="utf-8")
+    # main.py + py_cov.py + the loader _jb_run.py; without a counter file the loader runs the original
+    plan = await asyncio.to_thread(build.prepare_python, tmp, code)
     docker = runner.SANDBOX_MODE == "docker"
     if docker:
         os.chmod(tmp, 0o755)
-    cmd, env = runner.python_command(tmp, "main.py")
+        if plan.data_file is not None:
+            os.chmod(tmp / "cov", 0o777)   # the container user (65534) must be able to leave the "compiled" marker
+        cmd, env = runner.python_command(tmp, "_jb_run.py", cov=plan.data_file is not None, slots=plan.slots)
+    else:
+        cmd, env = build.PY_RUN_CMD, build.python_cov_env(plan)
     try:
         popen = subprocess.Popen(
             cmd, cwd=None if docker else tmp, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -290,7 +290,7 @@ async def _start_python(code: str, emit: Emit) -> tuple[InteractiveProcess, Path
         await emit({"type": "exit", "code": 127, "durationMs": 0})
         return None
     job_handle = _apply_windows_memory_limit(popen, MAX_MEMORY_BYTES)
-    return InteractiveProcess(popen, tmp, job_handle=job_handle), tmp, CovPlan(error=PY_COVERAGE_UNSUPPORTED)
+    return InteractiveProcess(popen, tmp, job_handle=job_handle), tmp, plan
 
 
 async def pump(proc: InteractiveProcess, emit: Emit) -> int:

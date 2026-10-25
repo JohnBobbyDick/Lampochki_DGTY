@@ -47,14 +47,14 @@ def test_batch_java_does_not_see_secrets(secrets):
     assert r.exit_code == 0 and r.stdout.split() == ["null", "null"]
 
 
-def test_interactive_python_does_not_see_secrets_and_reports_no_coverage(secrets):
+def test_interactive_python_does_not_see_secrets_and_reports_coverage(secrets):
     with TestClient(app).websocket_connect("/api/ws/run") as ws:
         ws.send_text(json.dumps({"type": "start", "code": PY_ENV, "language": "python"}))
         msgs = _collect(ws)
     out = "".join(m.get("data", "") for m in msgs if m["type"] == "stdout")
     assert out.split() == ["None", "None"]
     cov = [m for m in msgs if m["type"] == "coverage"]
-    assert cov == [{"type": "coverage", "error": interactive.PY_COVERAGE_UNSUPPORTED}]
+    assert len(cov) == 1 and "error" not in cov[0] and cov[0]["probes"]
     assert msgs[-1] == {**msgs[-1], "type": "exit", "code": 0}
     assert msgs.index(cov[0]) == len(msgs) - 2     # after all output, right before exit
 

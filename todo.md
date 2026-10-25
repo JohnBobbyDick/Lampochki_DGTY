@@ -139,10 +139,12 @@ CoverageRun = { codeHash: str, probes: [Probe], hits: { "<probeId>:<outcome>": c
 
 ## Этап 7 — Python
 
-**Статус: частично.** Поддержка Python влита из ветки `backend` (коммит `18d386f`, слияние `89c8967`): парсер,
-запуск и консоль, язык в запросах, промпты ИИ под Python, примеры `.py`. План этапа выполнен не полностью — что
-осталось сделать, см. `docs/superpowers/plans/2026-10-24-stage7-python.md` (правка через граф без порчи кода,
-полный парсер и CFG, Big O и дефекты Python, декомпозиция с Quality Gate, покрытие Python, демо-примеры, документация).
+**Статус: выполнен (25.10).** Python поддерживается так же, как Java: графы, дефекты, Big O, правка через граф,
+запуск, сравнение, покрытие, декомпозиция с Quality Gate, ИИ. План — `docs/superpowers/plans/2026-10-24-stage7-python.md`.
+Покрытие (7.7) сделано не через `sys.settrace`, а AST-трансформацией (`core/coverage/py_cov.py` + загрузчик `_jb_run.py`).
+
+**Отложено:** пробы ветвей для `async for`, `if` внутри comprehension и `assert`; инструкции тела класса
+считаются в `Module.main`; проба `elif` подписана `if …`; трейсбек показывает `File "main.py"`, а не абсолютный путь.
 
 **Цель.** `.py`-файлы работают как Java: графы, дефекты, Big O, правка через граф, запуск, сравнение, покрытие,
 декомпозиция, ИИ. Дизайн: разделы 7–8.
@@ -167,32 +169,32 @@ LANGS = {"java": Java(), "python": Python(), "cpp": Cpp()}; def by_filename(name
 Свободные функции модуля → псевдокласс с именем модуля (`demo.main`).
 
 **Задачи.**
-- [ ] **7.1 Слой языков + Java как первый адаптер.** Вынести Java-специфику (`parse_java`, `runner`, `code_generator`,
+- [x] **7.1 Слой языков + Java как первый адаптер.** Вынести Java-специфику (`parse_java`, `runner`, `code_generator`,
   `decomposer`, `check_compiles`) за интерфейс `Language`, не меняя поведение. Поле `language` во всех запросах с кодом
   (по умолчанию `"java"`), `state.SESSION.language`. Все существующие тесты проходят.
-- [ ] **7.2 Фронтенд: язык по расширению.** `utils/language.ts`: `languageOf(name) -> 'java'|'python'|'cpp'`; `useProject`
+- [x] **7.2 Фронтенд: язык по расширению.** `utils/language.ts`: `languageOf(name) -> 'java'|'python'|'cpp'`; `useProject`
   хранит язык файла; все вызовы API передают `language`; Ace-режим (`mode-python`, `mode-c_cpp`); загрузка `.py`/`.cpp` в `FileUpload`;
   название `"Java Blueprints"` оставить.
-- [ ] **7.3 Парсер Python.** `core/lang/python/parser.py` на `ast`: классы, методы, функции модуля (псевдокласс), поля
+- [x] **7.3 Парсер Python.** `core/lang/python/parser.py` на `ast`: классы, методы, функции модуля (псевдокласс), поля
   (присваивания `self.x` в `__init__`), параметры, спаны (`lineno`/`end_lineno`), операторы → нормализованные типы:
   `if/elif/else` → `IfStatement` (elif = вложенный if в else), `for`/`while` (+`else` — отдельная ветка), `break`/`continue`,
   `return`, `try/except/else/finally` → `TryStatement`, `raise` → `ThrowStatement`, `with` → блок, `match` → `SwitchStatement`;
   прочее → `StatementExpression` с исходным текстом (`ast.get_source_segment`). Синтаксические ошибки — с номером строки.
-- [ ] **7.4 Big O и дефекты Python.** Big O: comprehensions/генераторы — цикл; `sorted`/`.sort()` O(n log n); `in list` O(n);
+- [x] **7.4 Big O и дефекты Python.** Big O: comprehensions/генераторы — цикл; `sorted`/`.sort()` O(n log n); `in list` O(n);
   `sum/any/all/map/filter/min/max` O(n). Дефекты: конкатенация строк в цикле (`s += ...`), `x in list` в цикле,
   вложенный цикл по одной коллекции, пустой `except:`/`except Exception: pass`, изменяемый аргумент по умолчанию, `range(len(x))`.
-- [ ] **7.5 Перегенерация кода Python.** `render_method`: операторы → текст с отступами 4 пробела, правка меток узлов,
+- [x] **7.5 Перегенерация кода Python.** `render_method`: операторы → текст с отступами 4 пробела, правка меток узлов,
   вставка по спану функции. Тест roundtrip как у Java.
-- [ ] **7.6 Запуск Python.** `python3 -u main.py` (subprocess, таймаут 10 с, лимит памяти через `resource.setrlimit`
+- [x] **7.6 Запуск Python.** `python3 -u main.py` (subprocess, таймаут 10 с, лимит памяти через `resource.setrlimit`
   в `preexec_fn`); docker — образ sandbox с `python3`. Интерактивная консоль (`interactive.py` через `Language.run_cmd`),
   `check` = `py_compile` (ошибки с номерами строк), сравнение и история запусков без изменений.
-- [ ] **7.7 Покрытие Python.** `sys.settrace`/`sys.monitoring` для строк и функций + AST-трансформация условий и сравнений
+- [x] **7.7 Покрытие Python.** `sys.settrace`/`sys.monitoring` для строк и функций + AST-трансформация условий и сравнений
   (`__cov.c(id, expr)`, `__cov.r(id, a, b, op)`), запись в файл; тот же формат `Probe`/`hits`.
-- [ ] **7.8 Декомпозиция Python.** Группировка функций/классов как у Java → модули `.py` с `from x import ...`;
+- [x] **7.8 Декомпозиция Python.** Группировка функций/классов как у Java → модули `.py` с `from x import ...`;
   исходный файл — фасад с `main`. Quality Gate запускает набор файлов и сравнивает вывод.
-- [ ] **7.9 ИИ под Python.** Промпты с параметром языка (`{language}`, блок ```python```, `imports` → `import` строки);
+- [x] **7.9 ИИ под Python.** Промпты с параметром языка (`{language}`, блок ```python```, `imports` → `import` строки);
   `patcher.add_imports`/`validate` через `Language.check`.
-- [ ] **7.10 Демо-примеры** `test_monoliths/*.py` (аналоги Calculator/Store/Analyzer/Logger с теми же дефектами), на экране
+- [x] **7.10 Демо-примеры** `test_monoliths/*.py` (аналоги Calculator/Store/Analyzer/Logger с теми же дефектами), на экране
   приветствия; `python3` в `backend/Dockerfile` (уже есть) и `sandbox/Dockerfile`; документация.
 
 ---

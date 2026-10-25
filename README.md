@@ -1,3 +1,5 @@
+**Для организаторов: сайт проекта — https://javablueprints.mooo.com**
+
 # Java & Python Blueprints
 
 Визуализатор и анализатор кода (**Java** и **Python 3.11+**): редактор ↔ граф (CFG / Call Graph / Class Diagram), диагностика

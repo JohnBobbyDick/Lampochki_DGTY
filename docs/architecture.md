@@ -38,7 +38,7 @@ Python: запросы несут `language`; `cfg_builder`, `bigo_analyzer`, `d
 аргумент по умолчанию) и `decomposer` (`_decompose_python`: функции/классы → модули, `main.py` — фасад) ветвятся по
 `language == "python"`. Запуск — `runner.python_command` (окружение `python_env()`, `RLIMIT_AS` 100 МБ; docker без отката на хост).
 
-Консоль (`core/interactive.py`): сессия не дольше `MAX_SESSION_SEC` = 10 с, включая ожидание ввода. Память: локально
+Консоль (`core/interactive.py`): 10 с процессорного времени (`runner.CPU_LIMIT_SEC`, ожидание ввода не считается), вся сессия — не дольше `MAX_SESSION_SEC` = 60 с. Память: локально
 Java `-Xmx100m` (`MAX_MEMORY_MB`), Python `RLIMIT_AS` 100 МБ; в docker — контейнер 256 МБ, Java там по-прежнему
 `-Xmx256m` (`runner.docker_command`). В docker при покрытии `--ulimit fsize` ограничивает и файлы, которые пишет сама программа.
 

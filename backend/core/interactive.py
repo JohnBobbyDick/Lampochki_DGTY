@@ -19,7 +19,8 @@ from core.coverage import build, instrument
 from core.coverage.build import CovPlan
 
 Emit = Callable[[dict], Awaitable[None]]
-MAX_SESSION_SEC = 10
+MAX_SESSION_SEC = 60      # wall time incl. waiting for input; the program's own work is capped by runner.CPU_LIMIT_SEC
+MEASURE_SEC = 10          # background measuring run: no input, so wall time is all work
 MAX_MEMORY_MB = 100
 MAX_MEMORY_BYTES = MAX_MEMORY_MB * 1024 * 1024
 MAX_OUT_BYTES = 1_000_000
@@ -219,7 +220,7 @@ async def start_session(
 
     if runner.SANDBOX_MODE == "docker":
         cov, plan = await asyncio.to_thread(_prepare_docker, tmp, fname, code)
-        cmd = runner.docker_command(tmp, [fname], main_class, cov=cov, slots=plan.slots)
+        cmd = runner.docker_command(tmp, [fname], main_class, cov=cov, slots=plan.slots, cpu=runner.CPU_LIMIT_SEC)
         cwd = None
     else:
         proc, plan = await asyncio.to_thread(build.compile_local, tmp, fname, code)
@@ -244,6 +245,7 @@ async def start_session(
             stderr=subprocess.PIPE,
             bufsize=0,
             env=None if runner.SANDBOX_MODE == "docker" else runner.child_env(),
+            preexec_fn=None if runner.SANDBOX_MODE == "docker" else runner.cpu_preexec(),
         )
         return InteractiveProcess(popen, tmp), tmp, plan
     except FileNotFoundError as exc:
@@ -276,13 +278,15 @@ async def _start_python(code: str, emit: Emit) -> tuple[InteractiveProcess, Path
     docker = runner.SANDBOX_MODE == "docker"
     if docker:
         os.chmod(tmp, 0o755)
-        cmd, env = runner.python_command(tmp, "_jb_run.py", cov=plan.data_file is not None, slots=plan.slots)
+        cmd, env = runner.python_command(tmp, "_jb_run.py", cov=plan.data_file is not None, slots=plan.slots,
+                                         cpu=runner.CPU_LIMIT_SEC)
     else:
         cmd, env = build.PY_RUN_CMD, build.python_cov_env(plan)
     try:
         popen = subprocess.Popen(
             cmd, cwd=None if docker else tmp, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, bufsize=0, env=env, preexec_fn=None if docker else runner.python_preexec(),
+            stderr=subprocess.PIPE, bufsize=0, env=env,
+            preexec_fn=None if docker else runner.python_preexec(cpu=runner.CPU_LIMIT_SEC),
         )
     except Exception as exc:  # noqa: BLE001
         shutil.rmtree(tmp, ignore_errors=True)
@@ -293,8 +297,11 @@ async def _start_python(code: str, emit: Emit) -> tuple[InteractiveProcess, Path
     return InteractiveProcess(popen, tmp, job_handle=job_handle), tmp, plan
 
 
-async def pump(proc: InteractiveProcess, emit: Emit) -> int:
-    """Forward output until the process exits (or limits are hit); returns exit code."""
+async def pump(proc: InteractiveProcess, emit: Emit, max_sec: float | None = None) -> int:
+    """Forward output until the process exits (or limits are hit); returns exit code.
+
+    *max_sec*: wall-time cap, MAX_SESSION_SEC by default."""
+    max_sec = max_sec or MAX_SESSION_SEC
     loop = asyncio.get_running_loop()
     q: asyncio.Queue[tuple[str, bytes | None]] = asyncio.Queue()
     sent = 0
@@ -321,12 +328,12 @@ async def pump(proc: InteractiveProcess, emit: Emit) -> int:
 
     while active_streams > 0:
         elapsed = time.monotonic() - started
-        remaining = max(0.1, MAX_SESSION_SEC - elapsed)
+        remaining = max(0.1, max_sec - elapsed)
         try:
             kind, chunk = await asyncio.wait_for(q.get(), timeout=remaining)
         except asyncio.TimeoutError:
             proc.kill()
-            await emit({"type": "stderr", "data": f"\nTimeout: сессия дольше {MAX_SESSION_SEC} с\n"})
+            await emit({"type": "stderr", "data": f"\nTimeout: сессия дольше {max_sec:g} с\n"})
             break
 
         if chunk is None:
@@ -347,7 +354,10 @@ async def pump(proc: InteractiveProcess, emit: Emit) -> int:
         proc.kill()
 
     proc.close_stdin()   # run is over: release the stdin writer thread
-    return proc.popen.returncode if proc.popen.returncode is not None else -1
+    code = proc.popen.returncode if proc.popen.returncode is not None else -1
+    if code in runner.CPU_LIMIT_EXITS:
+        await emit({"type": "stderr", "data": runner.CPU_LIMIT_MSG})
+    return code
 
 
 async def feed(proc: InteractiveProcess, data: str) -> bool:
@@ -379,7 +389,7 @@ async def measure(code: str, language: str | None = None) -> dict:
     proc, tmp, plan = res
     try:
         proc.close_stdin()
-        exit_code = await pump(proc, _discard)
+        exit_code = await pump(proc, _discard, MEASURE_SEC)
         return await asyncio.to_thread(final_coverage, exit_code, plan, tmp) or {
             "type": "coverage", "error": "Программа не запустилась"}
     finally:

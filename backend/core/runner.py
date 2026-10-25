@@ -249,8 +249,14 @@ def python_env() -> dict[str, str]:
     return child_env(PYTHONIOENCODING="utf-8", PYTHONUNBUFFERED="1", PYTHONUTF8="1", PYTHONDONTWRITEBYTECODE="1")
 
 
-def python_preexec():
-    """``preexec_fn`` limiting the Python child's address space (POSIX only; None elsewhere)."""
+# CPU seconds a console run may burn (RLIMIT_CPU): waiting for input costs none, an endless loop is stopped
+CPU_LIMIT_SEC = 10
+CPU_LIMIT_MSG = f"\nПрограмма израсходовала лимит процессорного времени ({CPU_LIMIT_SEC} с) и остановлена\n"
+CPU_LIMIT_EXITS = (-24, 128 + 24)   # SIGXCPU: the process itself / reported by the docker shell
+
+
+def python_preexec(cpu: int | None = None):
+    """``preexec_fn`` limiting the Python child's address space and, with *cpu*, its CPU seconds (POSIX only)."""
     if os.name != "posix":
         return None
 
@@ -260,6 +266,27 @@ def python_preexec():
             resource.setrlimit(resource.RLIMIT_AS, (PY_MEMORY_LIMIT, PY_MEMORY_LIMIT))
         except (ValueError, OSError):   # e.g. macOS refuses to lower RLIMIT_AS below the current usage
             pass
+        if cpu:
+            _set_cpu(resource, cpu)
+    return _limit
+
+
+def _set_cpu(resource, cpu: int) -> None:
+    try:
+        resource.setrlimit(resource.RLIMIT_CPU, (cpu, cpu + 1))   # SIGXCPU at *cpu*, SIGKILL a second later
+    except (ValueError, OSError):
+        pass
+
+
+def cpu_preexec(cpu: int | None = None):
+    """``preexec_fn`` limiting only the CPU seconds of the child (default CPU_LIMIT_SEC; POSIX only, else None)."""
+    if os.name != "posix":
+        return None
+    cpu = cpu or CPU_LIMIT_SEC
+
+    def _limit() -> None:
+        import resource
+        _set_cpu(resource, cpu)
     return _limit
 
 
@@ -269,7 +296,13 @@ def _cov_mounts(tmp: Path, counter: str) -> list[str]:
     return ["-v", f"{cov / counter}:/cov/{counter}:rw", "-v", f"{cov / 'compiled'}:/cov/compiled:rw"]
 
 
-def python_command(tmp: Path, entry: str = "main.py", cov: bool = False, slots: int = 0) -> tuple[list[str], dict | None]:
+def _ulimit_cpu(cpu: int | None) -> str:
+    """Shell prefix capping the CPU seconds of the program (set after javac, so compiling does not count)."""
+    return f"ulimit -t {cpu}; " if cpu else ""
+
+
+def python_command(tmp: Path, entry: str = "main.py", cov: bool = False, slots: int = 0,
+                   cpu: int | None = None) -> tuple[list[str], dict | None]:
     """(argv, env) to run *entry* from *tmp*: docker sandbox in docker mode, else the host interpreter.
 
     *cov* (docker only): mount the counter and marker files of ``tmp/cov`` and point ``JB_COV`` at the container path.
@@ -285,6 +318,8 @@ def python_command(tmp: Path, entry: str = "main.py", cov: bool = False, slots: 
             # the container writes into the host-mounted counter file: cap file size to it
             cmd += [*_cov_mounts(tmp, "hits.bin"), "-e", "JB_COV=/cov/hits.bin", "-e", f"JB_COV_SLOTS={slots}",
                     "--ulimit", f"fsize={(-(-slots * 4 // 512) + 8) * 512}"]
+        if cpu:
+            cmd += ["--ulimit", f"cpu={cpu}"]
         cmd += ["--tmpfs", "/tmp:rw,exec", SANDBOX_IMAGE, "python3", "-u", entry]
         return cmd, None     # the docker CLI itself needs the normal env (HOME, DOCKER_HOST…); the container gets none of it
     return [sys.executable, "-u", entry], python_env()
@@ -425,7 +460,8 @@ def _run_local(tmp: Path, names: list[str], main_class: str, stdin_input: str, t
         )
 
 
-def docker_command(tmp: Path, names: list[str], main_class: str, cov: bool = False, slots: int = 0) -> list[str]:
+def docker_command(tmp: Path, names: list[str], main_class: str, cov: bool = False, slots: int = 0,
+                   cpu: int | None = None) -> list[str]:
     if cov:
         # the container writes into the host-mounted counter file: cap file size to it (512-byte blocks)
         fsize = -(-slots * 4 // 512) + 8
@@ -434,13 +470,13 @@ def docker_command(tmp: Path, names: list[str], main_class: str, cov: bool = Fal
             "javac -encoding UTF-8 -d /tmp/out cov/*.java 2> /dev/null && printf 1 > /cov/compiled || "
             f"{{ rm -rf /tmp/out/*; javac -encoding UTF-8 -d /tmp/out {' '.join('orig/' + n for n in names)} 2> /tmp/javac.err || "
             "{ cat /tmp/javac.err >&2; exit 98; }; }; "
-            f"ulimit -f {fsize}; java -Xmx256m -Djb.cov=/cov/cov.bin -cp /tmp/out {main_class}"
+            f"ulimit -f {fsize}; {_ulimit_cpu(cpu)}java -Xmx256m -Djb.cov=/cov/cov.bin -cp /tmp/out {main_class}"
         )
     else:
         script = (
             f"javac -encoding UTF-8 -d /tmp/out {' '.join(names)} 2> /tmp/javac.err || "
             f"{{ cat /tmp/javac.err >&2; exit 98; }}; "
-            f"java -Xmx256m -cp /tmp/out {main_class}"
+            f"{_ulimit_cpu(cpu)}java -Xmx256m -cp /tmp/out {main_class}"
         )
     cmd = [
         "docker", "run", "--rm", "-i", "--network", "none", "-m", "256m", "--cpus", "1",

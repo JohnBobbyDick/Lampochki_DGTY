@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 
 import pytest
 from fastapi.testclient import TestClient
@@ -137,6 +138,37 @@ def test_interactive_timeout_limit(monkeypatch):
         stderr = "".join(m.get("data", "") for m in msgs if m["type"] == "stderr")
         assert "Timeout: сессия дольше 1 с" in stderr
         assert msgs[-1]["code"] != 0
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="RLIMIT_CPU is POSIX only")
+@pytest.mark.parametrize("lang,code", [
+    ("java", "public class Inf { public static void main(String[] a){ long x = 0; while(true){ x++; } } }"),
+    ("python", "x = 0\nwhile True:\n    x += 1\n"),
+])
+def test_interactive_cpu_limit_stops_endless_loop(monkeypatch, lang, code):
+    from core import runner
+    monkeypatch.setattr(runner, "CPU_LIMIT_SEC", 1)
+    with TestClient(app).websocket_connect("/api/ws/run") as ws:
+        ws.send_text(json.dumps({"type": "start", "code": code, "language": lang}))
+        msgs = collect(ws)
+    stderr = "".join(m.get("data", "") for m in msgs if m["type"] == "stderr")
+    assert "лимит процессорного времени" in stderr
+    assert "Timeout" not in stderr
+    assert msgs[-1]["code"] != 0
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="RLIMIT_CPU is POSIX only")
+def test_interactive_waiting_for_input_costs_no_cpu(monkeypatch):
+    """Answering later than the CPU limit is fine: waiting for input does not count."""
+    from core import runner
+    monkeypatch.setattr(runner, "CPU_LIMIT_SEC", 1)
+    with TestClient(app).websocket_connect("/api/ws/run") as ws:
+        ws.send_text(json.dumps({"type": "start", "code": ECHO}))
+        time.sleep(2.5)
+        ws.send_text(json.dumps({"type": "stdin", "data": "Ann\n"}))
+        msgs = collect(ws)
+    out = "".join(m.get("data", "") for m in msgs if m["type"] == "stdout")
+    assert "hello Ann" in out and msgs[-1]["code"] == 0
 
 
 def test_interactive_java_memory_limit():

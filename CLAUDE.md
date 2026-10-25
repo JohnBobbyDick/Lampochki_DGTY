@@ -36,7 +36,7 @@ There is no linter config. Optional hardened runner image: `docker build -t lamp
 - `state.py` keeps one `Session` (last parsed code, AST, line map) per browser tab: `SessionStore` (thread-safe LRU,
   max 200 sessions, dropped after 1 h idle). `main.py` middleware selects it into a `ContextVar` from the
   `X-Session-Id` header (non-UUID → 400; no header → shared default session, never evicted, used by curl/old tests);
-  `state.current()` returns it. An unknown id is not stored by reads: it gets a fresh session that `state.load` registers (max 30 new sessions per IP per 10 min, else 429), so random ids cannot evict real sessions; the frontend re-sends `/parse` and retries once on 409 (`utils/sessionRecovery.ts`). Most endpoints call `state.require()` and operate on that, so `/api/parse` must be
+  `state.current()` returns it. An unknown id is not stored by reads: it gets a fresh session that `state.load` registers (max 30 new sessions per IP per 10 min, else 429; the IP is `request.client.host`, so behind nginx uvicorn needs `--proxy-headers` and `FORWARDED_ALLOW_IPS` = trusted proxy IPs/CIDRs — set in the Dockerfile/compose, nginx sends `X-Forwarded-For`), so random ids cannot evict real sessions; the frontend re-sends `/parse` and retries once on 409 (`utils/sessionRecovery.ts`). Most endpoints call `state.require()` and operate on that, so `/api/parse` must be
   called first (else 409). The WebSocket `/api/ws/run` takes code in its message and does not use the session.
   The frontend id comes from `utils/sessionId.ts` (`sessionStorage` `jb.sid`) via an axios interceptor in
   `hooks/useApi.ts`. `state.find_method` resolves `"Class.method"` refs used across endpoints.

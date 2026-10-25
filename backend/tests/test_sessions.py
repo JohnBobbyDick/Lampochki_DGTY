@@ -152,3 +152,21 @@ def test_limit_window_expires():
     store.register(str(uuid.uuid4()), state.Session(), ip="2.2.2.2")
     now[0] += state.NEW_SESSIONS_WINDOW + 1
     store.register(str(uuid.uuid4()), state.Session(), ip="1.1.1.1")
+
+
+def test_forwarded_for_only_from_trusted_proxy():
+    from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+    from fastapi import FastAPI, Request
+
+    def build(trusted):
+        a = FastAPI()
+
+        @a.get("/ip")
+        def ip(request: Request):
+            return {"ip": request.client.host}
+
+        return TestClient(ProxyHeadersMiddleware(a, trusted_hosts=trusted))
+
+    h = {"X-Forwarded-For": "203.0.113.7"}
+    assert build("testclient").get("/ip", headers=h).json() == {"ip": "203.0.113.7"}
+    assert build("10.0.0.0/8").get("/ip", headers=h).json() == {"ip": "testclient"}

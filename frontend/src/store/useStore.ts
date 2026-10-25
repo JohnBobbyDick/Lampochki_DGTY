@@ -87,6 +87,7 @@ interface AppState {
   reviewSkip: string;
   isLoading: boolean;
   error: string | null;
+  storageWarning: string | null;
 
   /* ── actions ── */
   setLanguage: (lang: 'java' | 'python') => void;
@@ -135,6 +136,7 @@ interface AppState {
   setDecomposition: (decomposition: DecomposedFile[] | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setStorageWarning: (warning: string | null) => void;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -294,4 +296,6 @@ export const useStore = create<AppState>((set, get) => ({
   setDecomposition: (decomposition) => set({ decomposition }),
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
+  storageWarning: null,
+  setStorageWarning: (storageWarning) => set({ storageWarning }),
 }));

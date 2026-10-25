@@ -4,18 +4,29 @@ import { DEMO, DEMO_PY, EXAMPLES } from '../project/examples';
 import { pushRun, RunRecord } from '../utils/runs';
 import { languageOf } from '../utils/language';
 import { Coverage, Probe, mergeCoverage } from '../utils/coverage';
+import {
+  saveProject,
+  loadProject,
+  isValidProjectData,
+  mergeWithBuiltinExamples,
+  ProjectStorageData,
+} from '../utils/projectStorage';
 
 export interface ProjectFile {
   id: string; // "folder/Name.ext"
   name: string;
   folder: string;
+  path: string;
   code: string; // last saved editor content (the active file's live text is in useStore.code)
   original: string; // content as loaded, used for the "modified" marker and Reset
   language: 'java' | 'python';
+  isExample?: boolean;
 }
 
 interface ProjectState {
   files: ProjectFile[];
+  folders: string[];
+  deletedExampleIds: string[];
   activeJavaId: string;
   activePythonId: string;
   openJavaIds: string[];
@@ -40,22 +51,28 @@ interface ProjectState {
   switchLanguage: (lang: 'java' | 'python') => void;
   addFile: (name: string, text: string) => void;
   resetFile: (id: string) => void;
-  init: () => void;
+  restoreExamples: () => void;
+  init: () => Promise<void>;
 }
 
-const mk = (folder: string, name: string, code: string): ProjectFile => ({
-  id: `${folder}/${name}`,
-  name,
-  folder,
-  code,
-  original: code,
-  language: languageOf(name),
-});
+const mk = (folder: string, name: string, code: string, isExample = true): ProjectFile => {
+  const path = folder ? `${folder}/${name}` : name;
+  return {
+    id: path,
+    name,
+    folder,
+    path,
+    code,
+    original: code,
+    language: languageOf(name),
+    isExample,
+  };
+};
 
-const DEMO_JAVA_ID = 'src/Demo.java';
-const DEMO_PY_ID = 'src/Demo.py';
+export const DEMO_JAVA_ID = 'src/Demo.java';
+export const DEMO_PY_ID = 'src/Demo.py';
 
-const INITIAL: ProjectFile[] = [
+export const INITIAL: ProjectFile[] = [
   mk('src', 'Demo.java', DEMO),
   mk('src', 'Demo.py', DEMO_PY),
   ...EXAMPLES.map((e) => mk('examples', e.name, e.code)),
@@ -67,8 +84,78 @@ const saved = (files: ProjectFile[], activeId: string) => {
   return files.map((f) => (f.id === activeId ? { ...f, code: live } : f));
 };
 
+let isInitialized = false;
+let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+let storageWarned = false;
+
+export function setInitializedForTests(val: boolean) {
+  isInitialized = val;
+}
+
+export function resetStorageWarningState() {
+  storageWarned = false;
+}
+
+export function cancelScheduledSave() {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+}
+
+export function scheduleProjectSave() {
+  if (!isInitialized) return;
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
+  saveTimeout = setTimeout(async () => {
+    await flushProjectSave();
+  }, 500);
+}
+
+export async function flushProjectSave(): Promise<void> {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+  try {
+    const proj = useProject.getState();
+    const liveCode = useStore.getState().code;
+    const files = proj.files.map((f) =>
+      f.id === proj.activeId ? { ...f, code: liveCode } : f
+    );
+    const data: ProjectStorageData = {
+      version: 1,
+      files: files.map((f) => ({
+        id: f.id,
+        name: f.name,
+        folder: f.folder,
+        path: f.path || f.id,
+        code: f.code,
+        original: f.original,
+        language: f.language,
+        isExample: f.isExample,
+      })),
+      folders: proj.folders,
+      deletedExampleIds: proj.deletedExampleIds,
+      activeJavaId: proj.activeJavaId,
+      activePythonId: proj.activePythonId,
+      openJavaIds: proj.openJavaIds,
+      openPythonIds: proj.openPythonIds,
+    };
+    await saveProject(data);
+  } catch {
+    if (!storageWarned) {
+      storageWarned = true;
+      useStore.getState().setStorageWarning('Изменения не сохранятся после перезагрузки');
+    }
+  }
+}
+
 export const useProject = create<ProjectState>((set, get) => ({
   files: INITIAL,
+  folders: ['src', 'examples'],
+  deletedExampleIds: [],
   activeJavaId: DEMO_JAVA_ID,
   activePythonId: DEMO_PY_ID,
   openJavaIds: [DEMO_JAVA_ID],
@@ -129,6 +216,7 @@ export const useProject = create<ProjectState>((set, get) => ({
     });
 
     useStore.getState().loadDocument(target.code, target.original, lang);
+    scheduleProjectSave();
   },
 
   close: (id) => {
@@ -172,6 +260,7 @@ export const useProject = create<ProjectState>((set, get) => ({
         useStore.getState().loadDocument(target.code, target.original, curLang);
       }
     }
+    scheduleProjectSave();
   },
 
   switchLanguage: (lang) => {
@@ -194,6 +283,7 @@ export const useProject = create<ProjectState>((set, get) => ({
     });
 
     useStore.getState().loadDocument(target.code, target.original, lang);
+    scheduleProjectSave();
   },
 
   addFile: (name, text) => {
@@ -216,7 +306,7 @@ export const useProject = create<ProjectState>((set, get) => ({
       unique = `${base} (${n})${ext}`;
     }
 
-    const file = mk('src', unique, text);
+    const file = mk('src', unique, text, false);
     const updatedFiles = [...files, file];
 
     const openJavaIds = !isPy ? [...s.openJavaIds, file.id] : s.openJavaIds;
@@ -235,6 +325,7 @@ export const useProject = create<ProjectState>((set, get) => ({
     });
 
     useStore.getState().loadDocument(text, text, lang);
+    scheduleProjectSave();
   },
 
   resetFile: (id: string) => {
@@ -246,23 +337,114 @@ export const useProject = create<ProjectState>((set, get) => ({
     if (id === s.activeId) {
       useStore.getState().replaceCode(f.original);
     }
+    scheduleProjectSave();
   },
 
-  init: () => {
+  restoreExamples: () => {
     const s = get();
-    if (useStore.getState().code) return;
-    const lang = useStore.getState().language;
-    const targetId = lang === 'python' ? s.activePythonId : s.activeJavaId;
-    const f = s.files.find((x) => x.id === targetId);
-    if (f) {
-      useStore.getState().loadDocument(f.code, f.original, lang);
+    const userFiles = s.files.filter((f) => !INITIAL.some((init) => init.id === f.id));
+    const nextFiles = [...INITIAL, ...userFiles];
+    set({
+      files: nextFiles,
+      deletedExampleIds: [],
+    });
+    const active = nextFiles.find((f) => f.id === s.activeId);
+    if (active) {
+      useStore.getState().loadDocument(active.code, active.original, active.language);
+    }
+    scheduleProjectSave();
+  },
+
+  init: async () => {
+    isInitialized = false;
+    try {
+      const savedData = await loadProject();
+      if (savedData && isValidProjectData(savedData)) {
+        const mergedFiles = mergeWithBuiltinExamples(
+          savedData.files,
+          INITIAL,
+          savedData.deletedExampleIds || []
+        );
+        const folders = Array.from(
+          new Set(['src', 'examples', ...(savedData.folders || []), ...mergedFiles.map((f) => f.folder)])
+        ).filter(Boolean);
+
+        const javaFiles = mergedFiles.filter((f) => f.language === 'java');
+        const pyFiles = mergedFiles.filter((f) => f.language === 'python');
+
+        const activeJavaId =
+          savedData.activeJavaId && javaFiles.some((f) => f.id === savedData.activeJavaId)
+            ? savedData.activeJavaId
+            : javaFiles[0]?.id || DEMO_JAVA_ID;
+
+        const activePythonId =
+          savedData.activePythonId && pyFiles.some((f) => f.id === savedData.activePythonId)
+            ? savedData.activePythonId
+            : pyFiles[0]?.id || DEMO_PY_ID;
+
+        const openJavaIds = (savedData.openJavaIds || [activeJavaId]).filter((id) =>
+          javaFiles.some((f) => f.id === id)
+        );
+        if (openJavaIds.length === 0 && activeJavaId) openJavaIds.push(activeJavaId);
+
+        const openPythonIds = (savedData.openPythonIds || [activePythonId]).filter((id) =>
+          pyFiles.some((f) => f.id === id)
+        );
+        if (openPythonIds.length === 0 && activePythonId) openPythonIds.push(activePythonId);
+
+        const lang = useStore.getState().language;
+        const isPy = lang === 'python';
+        const activeId = isPy ? activePythonId : activeJavaId;
+        const openIds = isPy ? openPythonIds : openJavaIds;
+
+        set({
+          files: mergedFiles,
+          folders,
+          deletedExampleIds: savedData.deletedExampleIds || [],
+          activeJavaId,
+          activePythonId,
+          openJavaIds,
+          openPythonIds,
+          activeId,
+          openIds,
+        });
+
+        const activeFile = mergedFiles.find((f) => f.id === activeId);
+        if (activeFile) {
+          useStore.getState().loadDocument(activeFile.code, activeFile.original, lang);
+        }
+      } else {
+        const s = get();
+        const lang = useStore.getState().language;
+        const targetId = lang === 'python' ? s.activePythonId : s.activeJavaId;
+        const f = s.files.find((x) => x.id === targetId);
+        if (f) {
+          useStore.getState().loadDocument(f.code, f.original, lang);
+        }
+      }
+    } catch {
+      if (!storageWarned) {
+        storageWarned = true;
+        useStore.getState().setStorageWarning('Изменения не сохранятся после перезагрузки');
+      }
+      const s = get();
+      const lang = useStore.getState().language;
+      const targetId = lang === 'python' ? s.activePythonId : s.activeJavaId;
+      const f = s.files.find((x) => x.id === targetId);
+      if (f) {
+        useStore.getState().loadDocument(f.code, f.original, lang);
+      }
+    } finally {
+      isInitialized = true;
     }
   },
 }));
 
-/* editing the active file invalidates its coverage (line numbers and probes no longer match) */
+/* editing the active file invalidates its coverage and schedules saving to IndexedDB */
 useStore.subscribe((st, prev) => {
   if (st.code === prev.code) return;
+  scheduleProjectSave();
+
   const { activeId, coverage } = useProject.getState();
   const c = coverage[activeId];
   if (!c || c.code === st.code) return;

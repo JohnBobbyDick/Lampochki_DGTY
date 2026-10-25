@@ -14,7 +14,7 @@ import AiDrawer from './components/AiDrawer/AiDrawer';
 import { useStore } from './store/useStore';
 import { useProject } from './store/useProject';
 import { LuSparkles } from 'react-icons/lu';
-import { FiAlertCircle, FiX } from 'react-icons/fi';
+import { FiAlertCircle, FiX, FiAlertTriangle } from 'react-icons/fi';
 import { useApi } from './hooks/useApi';
 import { useSync } from './hooks/useSync';
 import { useAutoReview } from './hooks/useAutoReview';
@@ -58,6 +58,8 @@ const App: React.FC = () => {
   const isLoading = useStore((s) => s.isLoading);
   const error = useStore((s) => s.error);
   const setError = useStore((s) => s.setError);
+  const storageWarning = useStore((s) => s.storageWarning);
+  const setStorageWarning = useStore((s) => s.setStorageWarning);
   const canUndo = useStore((s) => s.past.length > 0);
   const canRedo = useStore((s) => s.future.length > 0);
   const aiEnabled = useStore((s) => s.aiEnabled);
@@ -183,6 +185,13 @@ const App: React.FC = () => {
           <FiAlertCircle className="toast-icon" aria-hidden="true" />
           <span className="toast-text">{error}</span>
           <button className="btn small icon ghost" onClick={() => setError(null)} aria-label="Закрыть сообщение"><FiX /></button>
+        </div>
+      )}
+      {storageWarning && (
+        <div className="toast toast-warn" role="status">
+          <FiAlertTriangle className="toast-icon warn" aria-hidden="true" />
+          <span className="toast-text">{storageWarning}</span>
+          <button className="btn small icon ghost" onClick={() => setStorageWarning(null)} aria-label="Закрыть сообщение"><FiX /></button>
         </div>
       )}
 

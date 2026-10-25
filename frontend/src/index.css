@@ -710,3 +710,6 @@ dialog.modal[open] { animation: pop-in .2s var(--ease); }
 .tree-root svg {
   color: var(--accent-ink);
 }
+
+.toast.toast-warn { border-color: var(--warn); }
+.toast-icon.warn { color: var(--warn); }

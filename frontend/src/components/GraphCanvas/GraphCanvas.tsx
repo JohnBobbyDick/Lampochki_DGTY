@@ -20,15 +20,34 @@ const TABS: { id: GraphType; label: string }[] = [
 
 const SYNC_TEXT = { idle: 'Схема совпадает с кодом', syncing: 'Схема обновляется…', error: 'Не удалось обновить схему' } as const;
 
+const EXPORT_PAD = 24;
+const MAX_CANVAS_SIDE = 16000;
+
+/** Saves the whole graph, not just the visible part: renders the viewport over the bounds of all its elements at zoom 1. */
 async function exportPng() {
   const root = document.querySelector<HTMLElement>('.graph-body .react-flow');
-  if (!root) return;
-  const url = await toPng(root, {
+  const viewport = root?.querySelector<HTMLElement>('.react-flow__viewport');
+  if (!root || !viewport) return;
+  const zoom = new DOMMatrixReadOnly(getComputedStyle(viewport).transform).a || 1;
+  const origin = viewport.getBoundingClientRect();
+  let [minX, minY, maxX, maxY] = [Infinity, Infinity, -Infinity, -Infinity];
+  viewport.querySelectorAll('.react-flow__node, .react-flow__edge path, .react-flow__edgelabel-renderer > *').forEach((el) => {
+    const r = el.getBoundingClientRect();
+    if (!r.width && !r.height) return;
+    minX = Math.min(minX, (r.left - origin.left) / zoom);
+    minY = Math.min(minY, (r.top - origin.top) / zoom);
+    maxX = Math.max(maxX, (r.right - origin.left) / zoom);
+    maxY = Math.max(maxY, (r.bottom - origin.top) / zoom);
+  });
+  if (!Number.isFinite(minX)) return;
+  const width = Math.ceil(maxX - minX + 2 * EXPORT_PAD);
+  const height = Math.ceil(maxY - minY + 2 * EXPORT_PAD);
+  const url = await toPng(viewport, {
     backgroundColor: getComputedStyle(root).getPropertyValue('--graph-bg').trim() || '#0d0d0d',
-    filter: (n) => {
-      const cl = (n as HTMLElement).classList;
-      return !(cl?.contains('react-flow__minimap') || cl?.contains('react-flow__controls'));
-    },
+    width,
+    height,
+    pixelRatio: Math.min(2, MAX_CANVAS_SIDE / Math.max(width, height)),
+    style: { width: `${width}px`, height: `${height}px`, transform: `translate(${EXPORT_PAD - minX}px, ${EXPORT_PAD - minY}px) scale(1)` },
   });
   const a = document.createElement('a');
   a.href = url;

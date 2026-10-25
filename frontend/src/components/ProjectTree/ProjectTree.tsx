@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiChevronRight, FiDownload, FiFolder } from 'react-icons/fi';
+import { FiChevronRight, FiDownload, FiFolder, FiMoreVertical } from 'react-icons/fi';
 import { LuFileCode } from 'react-icons/lu';
 import { useStore } from '../../store/useStore';
 import { useProject } from '../../store/useProject';
@@ -23,6 +23,14 @@ const ProjectTree: React.FC = () => {
   // the zip holds changed files of both languages, so the button looks at all of them
   const hasChanged = allFiles.some((f) => (f.id === activeId ? live : f.code) !== f.original);
   const [closed, setClosed] = useState<Record<string, boolean>>({});
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!menuOpenId) return;
+    const onDocClick = () => setMenuOpenId(null);
+    window.addEventListener('click', onDocClick);
+    return () => window.removeEventListener('click', onDocClick);
+  }, [menuOpenId]);
 
   // Explicit separation: show only files belonging to the currently selected language
   const files = allFiles.filter((f) => (language === 'python' ? f.language === 'python' : f.language === 'java'));
@@ -62,27 +70,66 @@ const ProjectTree: React.FC = () => {
                 items.map((f) => {
                   const text = f.id === activeId ? live : f.code;
                   const dirty = text !== f.original;
+                  const isExample = f.folder === 'examples';
+                  const showReset = dirty && isExample;
                   return (
-                    <button
+                    <div
                       key={f.id}
                       className={`tree-item ${f.id === activeId ? 'active' : ''}`}
                       aria-current={f.id === activeId ? 'true' : undefined}
-                      onClick={() => open(f.id)}
                     >
-                      <LuFileCode className="file-ico" aria-hidden="true" />
-                      <span className="tree-name" title={f.name}>
-                        {f.name}
-                      </span>
-                      {dirty && (
-                        <i className="dirty" title="Файл изменён">
-                          <span className="sr-only">(изменён)</span>
-                        </i>
+                      <button
+                        type="button"
+                        className="tree-item-btn"
+                        onClick={() => open(f.id)}
+                      >
+                        <LuFileCode className="file-ico" aria-hidden="true" />
+                        <span className="tree-name" title={f.name}>
+                          {f.name}
+                        </span>
+                        {dirty && (
+                          <i className="dirty" title="Файл изменён">
+                            <span className="sr-only">(изменён)</span>
+                          </i>
+                        )}
+                        <span className="tree-meta" title="Строк в файле">
+                          {lines(text)}
+                          <span className="sr-only"> строк</span>
+                        </span>
+                      </button>
+                      {showReset && (
+                        <div className="tree-item-actions">
+                          <button
+                            type="button"
+                            className="tree-dots-btn"
+                            title="Действия с файлом"
+                            aria-label="Действия с файлом"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMenuOpenId((cur) => (cur === f.id ? null : f.id));
+                            }}
+                          >
+                            <FiMoreVertical aria-hidden="true" />
+                          </button>
+                          {menuOpenId === f.id && (
+                            <div className="tree-dropdown-menu" role="menu">
+                              <button
+                                type="button"
+                                className="tree-dropdown-item"
+                                role="menuitem"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  useProject.getState().resetFile(f.id);
+                                  setMenuOpenId(null);
+                                }}
+                              >
+                                Вернуть исходный вид
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
-                      <span className="tree-meta" title="Строк в файле">
-                        {lines(text)}
-                        <span className="sr-only"> строк</span>
-                      </span>
-                    </button>
+                    </div>
                   );
                 })}
             </div>

@@ -21,16 +21,17 @@ const DecomposePanel: React.FC = () => {
   const [open, setOpen] = useState<string | null>(null);
 
   if (!files) {
-    return (
-      <div className="panel-scroll">
-        <div className="state-card">
-          <FiLayers className="state-icon" />
-          <div className="state-title">Разбить код на файлы</div>
-          <div className="muted">Мы посмотрим, какие методы связаны между собой, и предложим, как разложить большой класс по файлам.</div>
-          <button className="btn primary" onClick={() => api.decomposeCode()}>Предложить разбиение <kbd>Ctrl+D</kbd></button>
+    if (isLoading) {
+      return (
+        <div className="panel-scroll">
+          <div className="state-card">
+            <span className="spinner" role="status" aria-label="Разбиение…" />
+            <div className="state-title">Разбиение кода…</div>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+    return null;
   }
 
   return (

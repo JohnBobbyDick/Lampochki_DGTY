@@ -39,6 +39,7 @@ interface ProjectState {
   close: (id: string) => void;
   switchLanguage: (lang: 'java' | 'python') => void;
   addFile: (name: string, text: string) => void;
+  resetFile: (id: string) => void;
   init: () => void;
 }
 
@@ -234,6 +235,17 @@ export const useProject = create<ProjectState>((set, get) => ({
     });
 
     useStore.getState().loadDocument(text, text, lang);
+  },
+
+  resetFile: (id: string) => {
+    const s = get();
+    const f = s.files.find((x) => x.id === id);
+    if (!f) return;
+    const nextFiles = s.files.map((x) => (x.id === id ? { ...x, code: f.original } : x));
+    set({ files: nextFiles });
+    if (id === s.activeId) {
+      useStore.getState().replaceCode(f.original);
+    }
   },
 
   init: () => {

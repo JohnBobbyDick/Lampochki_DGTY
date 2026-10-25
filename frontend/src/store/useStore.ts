@@ -45,6 +45,11 @@ interface AppState {
   /** null = javac did not run (parser errors are the only signal) */
   compileErrors: CompileError[] | null;
   lineMap: Record<string, number>;
+  showGraph: boolean;
+  setShowGraph: (show: boolean) => void;
+  toggleGraph: () => void;
+  hasBottom: boolean;
+  openBottom: () => void;
   graphType: GraphType;
   selectedMethod: string | null;
   /** why the last /graph request failed (shown in the empty graph), null if it succeeded */
@@ -141,6 +146,20 @@ export const useStore = create<AppState>((set, get) => ({
   syntaxErrors: [],
   compileErrors: null,
   lineMap: {},
+  showGraph: (() => {
+    try { return localStorage.getItem('jb.graph') !== '0'; } catch { return true; }
+  })(),
+  setShowGraph: (showGraph) => {
+    try { localStorage.setItem('jb.graph', showGraph ? '1' : '0'); } catch { /* private mode */ }
+    set({ showGraph });
+  },
+  toggleGraph: () => {
+    const next = !get().showGraph;
+    try { localStorage.setItem('jb.graph', next ? '1' : '0'); } catch { /* private mode */ }
+    set({ showGraph: next });
+  },
+  hasBottom: false,
+  openBottom: () => set({ hasBottom: true }),
   graphType: 'cfg',
   selectedMethod: null,
   graphError: null,
@@ -201,7 +220,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (nextAi !== ai || nextReview !== aiReview) set({ ai: nextAi, aiReview: nextReview });
   },
   setDecomposeWarnings: (decomposeWarnings) => set({ decomposeWarnings }),
-  setGateResult: (gateResult) => set({ gateResult }),
+  setGateResult: (gateResult) => set((st) => ({ gateResult, hasBottom: gateResult ? true : st.hasBottom })),
   replaceCode: (code) => {
     get().snapshot();
     set({ code });
@@ -257,7 +276,7 @@ export const useStore = create<AppState>((set, get) => ({
   },
   setAiReviewing: (aiReviewing) => set({ aiReviewing }),
   setAiReview: (aiReview) => set({ aiReview }),
-  requestRun: () => set((st) => ({ runNonce: st.runNonce + 1, compareResult: null })),
+  requestRun: () => set((st) => ({ runNonce: st.runNonce + 1, compareResult: null, hasBottom: true })),
   setLineMap: (lineMap) => set({ lineMap }),
   setGraphType: (graphType) => set({ graphType }),
   setSelectedMethod: (method) => set({ selectedMethod: method }),
@@ -270,8 +289,8 @@ export const useStore = create<AppState>((set, get) => ({
   setHoveredLine: (line) => set({ hoveredLine: line }),
   setHoveredNode: (nodeId) => set({ hoveredNode: nodeId }),
   setRunResult: (result) => set({ runResult: result }),
-  setCompareResult: (result) => set({ compareResult: result }),
-  openCompareTab: () => set((st) => ({ compareTabNonce: st.compareTabNonce + 1 })),
+  setCompareResult: (result) => set((st) => ({ compareResult: result, hasBottom: result ? true : st.hasBottom })),
+  openCompareTab: () => set((st) => ({ compareTabNonce: st.compareTabNonce + 1, hasBottom: true })),
   setDecomposition: (decomposition) => set({ decomposition }),
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),

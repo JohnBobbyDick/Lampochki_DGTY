@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FiPlay, FiGitMerge, FiRotateCcw, FiRotateCw, FiLayers, FiSun, FiMoon, FiSidebar, FiHelpCircle, FiCornerUpLeft } from 'react-icons/fi';
+import { FiPlay, FiGitMerge, FiRotateCcw, FiRotateCw, FiLayers, FiSun, FiMoon, FiSidebar, FiHelpCircle, FiShare2 } from 'react-icons/fi';
 import FileUpload from './components/FileUpload/FileUpload';
 import CodeEditor from './components/AceEditor/AceEditor';
 import GraphCanvas from './components/GraphCanvas/GraphCanvas';
@@ -64,7 +64,16 @@ const App: React.FC = () => {
   const aiAuto = useStore((s) => s.aiAuto);
   const aiReviewing = useStore((s) => s.aiReviewing);
   const aiReview = useStore((s) => s.aiReview);
-  const hasOriginal = useStore((s) => !!s.originalCode);
+  const showGraph = useStore((s) => s.showGraph);
+  const hasBottom = useStore((s) => s.hasBottom);
+  const decomposition = useStore((s) => s.decomposition);
+  const hasDecomposition = !!(decomposition && decomposition.length > 0);
+
+  useEffect(() => {
+    if (side === 'decompose' && !hasDecomposition && !isLoading) {
+      setSide('diagnostics');
+    }
+  }, [side, hasDecomposition, isLoading]);
 
   const run = () => useStore.getState().requestRun();
   const compare = () => useStore.getState().openCompareTab();
@@ -97,7 +106,7 @@ const App: React.FC = () => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="app" data-lang={language}>
+    <div className={`app ${!hasBottom ? 'no-bottom' : ''}`} data-lang={language}>
       <header className="header">
         <div className="header-group">
           <button className="btn icon ghost" onClick={toggleSidebar} aria-pressed={sidebar} aria-label="Файлы проекта" title="Файлы проекта"><FiSidebar /></button>
@@ -129,12 +138,15 @@ const App: React.FC = () => {
           <span className="sep" aria-hidden="true" />
           <button className="btn icon" onClick={() => useStore.getState().undo()} disabled={!canUndo} title="Отменить (Ctrl+Z)" aria-label="Отменить"><FiRotateCcw /></button>
           <button className="btn icon" onClick={() => useStore.getState().redo()} disabled={!canRedo} title="Повторить (Ctrl+Y)" aria-label="Повторить"><FiRotateCw /></button>
-          {hasOriginal && (
-            <button className="btn" title="Вернуть файл к исходному виду (Ctrl+Z — отменить)" aria-label="Сбросить изменения"
-                    onClick={() => useStore.getState().replaceCode(useStore.getState().originalCode)}>
-              <FiCornerUpLeft /><span className="lbl">Сбросить</span>
-            </button>
-          )}
+          <button
+            className={`btn ${showGraph ? 'active' : ''}`}
+            aria-pressed={showGraph}
+            onClick={() => useStore.getState().toggleGraph()}
+            title="Показать или скрыть граф"
+            aria-label="Граф"
+          >
+            <FiShare2 aria-hidden="true" /><span className="lbl">Граф</span>
+          </button>
         </div>
         <span className="spacer" />
         <div className="header-group ai-group">
@@ -175,7 +187,7 @@ const App: React.FC = () => {
       )}
 
       <main
-        className={`main ${sidebar ? 'with-sidebar' : ''}`}
+        className={`main ${sidebar ? 'with-sidebar' : ''} ${!showGraph ? 'no-graph' : ''}`}
         style={{ '--w-tree': `${cols.tree}px`, '--w-editor': `${cols.editor}px`, '--w-side': `${cols.side}px` } as React.CSSProperties}
       >
         {sidebar && (
@@ -188,16 +200,20 @@ const App: React.FC = () => {
         <section className="col editor-col">
           <FileTabs />
           <div className="editor-body"><CodeEditor /></div>
-          <Resizer label="Ширина редактора" side="right" dir={1} value={cols.editor}
+          {showGraph && (
+            <Resizer label="Ширина редактора" side="right" dir={1} value={cols.editor}
                      min={COL_LIMITS.editor[0]} max={COL_LIMITS.editor[1]} onChange={(v) => setCol('editor', v)} />
+          )}
         </section>
-        <section className="col graph-col"><GraphCanvas /></section>
+        {showGraph && <section className="col graph-col"><GraphCanvas /></section>}
         <section className="col side-col">
           <Resizer label="Ширина правой панели" side="left" dir={-1} value={cols.side}
                    min={COL_LIMITS.side[0]} max={COL_LIMITS.side[1]} onChange={(v) => setCol('side', v)} />
           <div className="tabs">
             <button className={`tab ${side === 'diagnostics' ? 'active' : ''}`} aria-pressed={side === 'diagnostics'} onClick={() => setSide('diagnostics')}>Диагностика</button>
-            <button className={`tab ${side === 'decompose' ? 'active' : ''}`} aria-pressed={side === 'decompose'} onClick={() => setSide('decompose')}>Декомпозиция</button>
+            {(hasDecomposition || (isLoading && side === 'decompose')) && (
+              <button className={`tab ${side === 'decompose' ? 'active' : ''}`} aria-pressed={side === 'decompose'} onClick={() => setSide('decompose')}>Декомпозиция</button>
+            )}
           </div>
           {side === 'diagnostics' ? <DiagnosticsPanel /> : <DecomposePanel />}
         </section>
@@ -210,7 +226,9 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <footer className="bottom"><BottomPanel /></footer>
+      {hasBottom && (
+        <footer className="bottom"><BottomPanel /></footer>
+      )}
       <Welcome open={welcome} onClose={closeWelcome} />
     </div>
   );

@@ -100,6 +100,7 @@ body {
 button, select, input, textarea { font: inherit; }
 
 .app { display: grid; grid-template-rows: var(--header-h) 1fr var(--bottom-h); height: 100%; }
+.app.no-bottom { grid-template-rows: var(--header-h) 1fr; }
 .header { display: flex; align-items: center; gap: 8px; padding: 0 16px; background: var(--canvas); border-bottom: 1px solid var(--hairline); }
 .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 0.9375rem; letter-spacing: -.3px; color: var(--ink); margin-right: 16px; white-space: nowrap; }
 .logo-mark { width: 18px; height: 18px; border-radius: 5px; background: var(--accent); box-shadow: inset 0 0 0 1px rgba(10, 10, 10, .12); position: relative; }
@@ -108,10 +109,12 @@ button, select, input, textarea { font: inherit; }
 .muted { color: var(--muted); }
 
 .main { display: grid; grid-template-columns: minmax(200px, var(--w-editor)) minmax(320px, 1fr) minmax(260px, var(--w-side)); min-height: 0; }
+.main.no-graph { grid-template-columns: minmax(200px, 1fr) minmax(260px, var(--w-side)); }
 .col { position: relative; min-width: 0; min-height: 0; border-right: 1px solid var(--hairline); display: flex; flex-direction: column; }
 .editor-col { background: var(--code-bg); }
 .editor-body { flex: 1; min-height: 0; position: relative; }
 .main.with-sidebar { grid-template-columns: minmax(160px, var(--w-tree)) minmax(200px, var(--w-editor)) minmax(320px, 1fr) minmax(260px, var(--w-side)); }
+.main.with-sidebar.no-graph { grid-template-columns: minmax(160px, var(--w-tree)) minmax(200px, 1fr) minmax(260px, var(--w-side)); }
 .tree-col { background: var(--canvas); }
 .bottom { border-top: 1px solid var(--hairline); background: var(--surface-soft); overflow: hidden; min-height: 0; display: flex; flex-direction: column; }
 .bottom > div { min-height: 0; }
@@ -210,7 +213,8 @@ button, select, input, textarea { font: inherit; }
 .graph-body .react-flow__controls-button:last-child { border-bottom: none; }
 @media (hover: hover) { .graph-body .react-flow__controls-button:hover { background: var(--surface-elevated); } }
 .graph-body .react-flow__controls-button svg { fill: currentColor; max-width: 12px; max-height: 12px; }
-.graph-body .react-flow__minimap { margin: 12px; border-radius: var(--r-md); overflow: hidden; background: var(--surface); box-shadow: var(--shadow-pop); }
+.graph-body .react-flow__minimap { margin: 12px; border-radius: var(--r-md); overflow: hidden; background: var(--surface); box-shadow: var(--shadow-pop); opacity: 0; pointer-events: none; transition: opacity .3s var(--ease); }
+.graph-body .react-flow__minimap.visible, .graph-minimap-wrap.visible .react-flow__minimap { opacity: 1; pointer-events: auto; }
 .graph-body .react-flow__minimap svg { display: block; width: 156px; height: 104px; }
 .graph-body .react-flow__minimap-node { fill: var(--hairline-strong); stroke: none; }
 .graph-body .react-flow__minimap-mask { fill: color-mix(in srgb, var(--canvas) 65%, transparent); }
@@ -408,14 +412,22 @@ kbd { font: 600 0.6875rem var(--font-mono); padding: 1px 6px; border-radius: 6px
 .tree-root { display: flex; align-items: center; gap: 8px; padding: 6px 8px; color: var(--ink); font-weight: 600; }
 .tree-root svg, .tree-folder svg:not(.chev) { color: var(--muted); flex: none; }
 .tree-group { margin-top: 2px; }
-.tree-folder, .tree-item { display: flex; align-items: center; gap: 8px; width: 100%; border: none; background: transparent; color: var(--body); text-align: left; cursor: pointer;
-  border-radius: var(--r-sm); padding: 6px 8px; transition: background-color .15s var(--ease), color .15s var(--ease); }
-.tree-folder { color: var(--muted); font-weight: 500; padding-left: 12px; }
-@media (hover: hover) { .tree-folder:hover, .tree-item:hover { background: var(--hover); color: var(--ink); } }
+.tree-folder { display: flex; align-items: center; gap: 8px; width: 100%; border: none; background: transparent; color: var(--muted); font-weight: 500; text-align: left; cursor: pointer;
+  border-radius: var(--r-sm); padding: 6px 8px 6px 12px; transition: background-color .15s var(--ease), color .15s var(--ease); }
+@media (hover: hover) { .tree-folder:hover { background: var(--hover); color: var(--ink); } }
 .chev { flex: none; transition: transform .2s var(--ease); width: 14px; height: 14px; }
 .chev.open { transform: rotate(90deg); }
-.tree-item { padding-left: 34px; }
+.tree-item { display: flex; align-items: center; width: 100%; border-radius: var(--r-sm); padding-left: 34px; padding-right: 4px; transition: background-color .15s var(--ease), color .15s var(--ease); position: relative; }
+@media (hover: hover) { .tree-item:hover { background: var(--hover); } }
 .tree-item.active { background: var(--accent-soft); color: var(--ink); box-shadow: inset 2px 0 0 var(--accent-ink); }
+.tree-item-btn { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; border: none; background: transparent; color: var(--body); text-align: left; cursor: pointer; padding: 6px 4px 6px 0; }
+.tree-item.active .tree-item-btn { color: var(--ink); }
+.tree-item-actions { position: relative; display: flex; align-items: center; flex: none; }
+.tree-dots-btn { display: grid; place-items: center; width: 22px; height: 22px; border-radius: var(--r-sm); background: transparent; border: none; color: var(--muted); cursor: pointer; opacity: 0.6; transition: opacity .15s var(--ease), color .15s var(--ease), background .15s var(--ease); }
+.tree-dots-btn:hover { opacity: 1; color: var(--ink); background: var(--hover); }
+.tree-dropdown-menu { position: absolute; right: 0; top: 100%; z-index: 100; min-width: 170px; background: var(--surface); border: 1px solid var(--hairline-strong); border-radius: var(--r-md); box-shadow: var(--shadow-pop); padding: 4px; }
+.tree-dropdown-item { width: 100%; text-align: left; background: transparent; border: none; color: var(--ink); font-size: 0.8125rem; padding: 6px 10px; border-radius: var(--r-sm); cursor: pointer; transition: background .15s var(--ease); }
+.tree-dropdown-item:hover { background: var(--hover); }
 .file-ico { flex: none; color: var(--accent-ink); width: 16px; height: 16px; }
 .tree-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-meta { font: 0.6875rem var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }

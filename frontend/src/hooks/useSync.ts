@@ -86,6 +86,7 @@ export function useSync() {
   const graphType = useStore((s) => s.graphType);
   const selectedMethod = useStore((s) => s.selectedMethod);
   const docNonce = useStore((s) => s.docNonce);
+  const showGraph = useStore((s) => s.showGraph);
   const setSyncStatus = useStore((s) => s.setSyncStatus);
   const api = useApi();
   const reqId = useRef(0);
@@ -94,6 +95,10 @@ export function useSync() {
 
   const refreshGraph = async (id: number) => {
     const st = useStore.getState();
+    if (!st.showGraph) {
+      setSyncStatus('idle');
+      return;
+    }
     const { data, error } = await api.getGraph(st.graphType, st.selectedMethod ?? undefined);
     if (id !== reqId.current) return; // a newer request superseded this one
     if (!data) {
@@ -154,4 +159,13 @@ export function useSync() {
     refreshGraph(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graphType, selectedMethod]);
+
+  /* when graph is shown again → rebuild the graph */
+  useEffect(() => {
+    if (!showGraph || !useStore.getState().code.trim() || !useStore.getState().ast) return;
+    const id = ++reqId.current;
+    setSyncStatus('syncing');
+    refreshGraph(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showGraph]);
 }

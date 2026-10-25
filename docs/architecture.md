@@ -34,6 +34,10 @@ Python: запросы несут `language`; `cfg_builder`, `bigo_analyzer`, `d
 аргумент по умолчанию) и `decomposer` (`_decompose_python`: функции/классы → модули, `main.py` — фасад) ветвятся по
 `language == "python"`. Запуск — `runner.python_command` (окружение `python_env()`, `RLIMIT_AS` 100 МБ; docker без отката на хост).
 
+Консоль (`core/interactive.py`): сессия не дольше `MAX_SESSION_SEC` = 10 с, включая ожидание ввода. Память: локально
+Java `-Xmx100m` (`MAX_MEMORY_MB`), Python `RLIMIT_AS` 100 МБ; в docker — контейнер 256 МБ, Java там по-прежнему
+`-Xmx256m` (`runner.docker_command`). В docker при покрытии `--ulimit fsize` ограничивает и файлы, которые пишет сама программа.
+
 Покрытие: интерактивный запуск (`core/interactive.py`, `/api/ws/run`) компилирует инструментированную копию и после
 вывода, перед `exit`, шлёт `{type:"coverage", probes, hits}` (или `{type:"coverage", error}`). Python: `build.prepare_python` кладёт
 `main.py`, `py_cov.py`, `_jb_run.py`; ребёнок сам инструментирует код и пишет счётчики в `$JB_COV` (`cov/hits.bin`,

@@ -46,9 +46,12 @@ There is no linter config. Optional hardened runner image: `docker build -t lamp
   (`defect_detector`); node `data` keys are camelCased for the frontend in `api/graph.py`.
 - `core/decomposer.py` groups static methods by name prefix + call graph; `/decompose/verify` and
   `/quality-gate` compile and compare stdout of original vs. new code (`core/comparator.py` masks timestamps).
-- Execution: `core/runner.py` (batch run, `JAVA_SANDBOX_MODE=subprocess|docker`, 10 s timeout, `-Xmx256m`; console `-Xmx100m`) and
-  `core/interactive.py` + `api/ws.py` (`/api/ws/run` streams stdout and accepts stdin for `Scanner`).
-  Subprocess mode is not a sandbox.
+- Execution: `core/runner.py` (batch run, `JAVA_SANDBOX_MODE=subprocess|docker`, 10 s timeout, `-Xmx256m`) and
+  `core/interactive.py` + `api/ws.py` (`/api/ws/run` streams stdout and accepts stdin for `Scanner`; the whole
+  session, including waiting for input, is capped by `interactive.MAX_SESSION_SEC` = 10 s). Console memory: local
+  Java `-Xmx100m` (`MAX_MEMORY_MB`), docker Java still `-Xmx256m` (`runner.docker_command`) in a 256 MB container;
+  Python — `RLIMIT_AS` 100 MB locally, the 256 MB container in docker. In docker coverage runs `--ulimit fsize` also
+  caps files the program itself writes. Subprocess mode is not a sandbox.
 - `config.py` loads `backend/.env` itself (no python-dotenv; real env vars win) and enforces `ALLOWED_ORIGINS`
   / same-host Origin checks for HTTP and WebSocket.
 - `/api/analyze` also returns `compileErrors` (javac, `{file, line, message}`) for the diagnostics panel.

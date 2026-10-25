@@ -56,6 +56,21 @@ def _removal_start(lines: list[str], start: int) -> int:
     return i - 1 if i > 1 and not lines[i - 2].strip() else i
 
 
+# string / char literals, text blocks and comments: renames must never touch them
+_NOT_CODE = re.compile(r'"""[\s\S]*?"""|"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])+\'|//[^\n]*|/\*[\s\S]*?\*/')
+
+
+def _sub_code(pattern: str, repl: str, text: str) -> str:
+    """``re.sub`` applied to Java code only, leaving literals and comments byte-identical."""
+    out, pos = [], 0
+    for m in _NOT_CODE.finditer(text):
+        out.append(re.sub(pattern, repl, text[pos:m.start()]))
+        out.append(m.group())
+        pos = m.end()
+    out.append(re.sub(pattern, repl, text[pos:]))
+    return "".join(out)
+
+
 def _uses(text: str, name: str) -> bool:
     return re.search(rf"(?<![\w.]){re.escape(name)}\b", text) is not None
 
@@ -652,15 +667,15 @@ def decompose(code: str, ast: dict) -> DecomposeResponse:
 
     def rewrite(text: str) -> str:
         for name, g in move_map.items():
-            text = re.sub(rf"\b{facade}\.{name}\s*\(", f"{g}.{name}(", text)
-            text = re.sub(rf"(?<![\w.]){name}\s*\(", f"{g}.{name}(", text)
+            text = _sub_code(rf"\b{facade}\.{name}\s*\(", f"{g}.{name}(", text)
+            text = _sub_code(rf"(?<![\w.]){name}\s*\(", f"{g}.{name}(", text)
         return text
 
     def qualify_facade(text: str, method_names: set[str]) -> str:
         for fn in field_names:
-            text = re.sub(rf"(?<![\w.]){fn}\b", f"{facade}.{fn}", text)
+            text = _sub_code(rf"(?<![\w.]){fn}\b", f"{facade}.{fn}", text)
         for mn in method_names:
-            text = re.sub(rf"(?<![\w.]){mn}\s*\(", f"{facade}.{mn}(", text)
+            text = _sub_code(rf"(?<![\w.]){mn}\s*\(", f"{facade}.{mn}(", text)
         return text
 
     def method_text(m: dict) -> tuple[str, str]:

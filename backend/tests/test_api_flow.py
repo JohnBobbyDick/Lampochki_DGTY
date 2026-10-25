@@ -86,6 +86,29 @@ def test_decompose_keeps_class_header_in_facade():
     assert v["passed"], v["details"]
 
 
+# names of moved methods also appear in strings, chars and comments: only real calls get qualified
+LITERALS = """public class Main {
+    static int lcm(int a, int b) { return a * b; }
+    static char tag() { return 'l'; }
+
+    public static void main(String[] args) {
+        // lcm(1, 2) in a comment
+        System.out.println("lcm(2, 3) = " + lcm(2, 3) + tag() + "\\"lcm(4, 5)\\"");
+    }
+}
+"""
+
+
+def test_decompose_does_not_rewrite_literals():
+    parse(LITERALS)
+    files = {f["name"]: f["code"] for f in client.post("/api/decompose").json()["files"]}
+    main = files["Main.java"]
+    assert re.search(r'"lcm\(2, 3\) = " \+ \w+\.lcm\(2, 3\)', main), main
+    assert '"\\"lcm(4, 5)\\""' in main and "// lcm(1, 2) in a comment" in main
+    v = client.post("/api/decompose/verify").json()
+    assert v["passed"], v["details"]
+
+
 def test_decompose_extracts_instance_state_into_component(read_java):
     parse(read_java("Store"))
     files = {f["name"]: f["code"] for f in client.post("/api/decompose").json()["files"]}

@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import axios, { AxiosError } from 'axios';
 import { useStore, AiPatch } from '../store/useStore';
-import { useProject } from '../store/useProject';
+import { useProject, INITIAL } from '../store/useProject';
 import { downloadFile } from '../utils/download';
 import { getSessionId } from '../utils/sessionId';
 import { installSessionRecovery } from '../utils/sessionRecovery';
@@ -138,11 +138,21 @@ export function useApi() {
     /** Zip of every project file whose current text differs from its original (server builds the archive). */
     const downloadChanged = () =>
       call(async () => {
-        const { files, activeId } = useProject.getState();
-        const changed = files
-          .map((f) => ({ path: f.id, code: f.id === activeId ? S().code : f.code, original: f.original }))
-          .filter((f) => f.code !== f.original)
-          .map(({ path, code }) => ({ path, code }));
+        const { files, activeId, deletedExampleIds } = useProject.getState();
+        const changed: { path: string; code: string }[] = [];
+        for (const f of files) {
+          const liveCode = f.id === activeId ? S().code : f.code;
+          const isInitial = INITIAL.some((init) => init.id === f.id);
+          if (liveCode !== f.original || !isInitial) {
+            changed.push({ path: f.id, code: liveCode });
+          }
+        }
+        if (deletedExampleIds.length > 0) {
+          changed.push({
+            path: 'DELETED.txt',
+            code: deletedExampleIds.map((id) => '- ' + id).join('\n') + '\n',
+          });
+        }
         if (!changed.length) return false;
         const { data } = await api.post('/files/zip', { files: changed }, { responseType: 'blob' });
         downloadFile('changed.zip', data);

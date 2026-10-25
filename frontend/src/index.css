@@ -713,3 +713,11 @@ dialog.modal[open] { animation: pop-in .2s var(--ease); }
 
 .toast.toast-warn { border-color: var(--warn); }
 .toast-icon.warn { color: var(--warn); }
+
+.tree-folder-row { display: flex; align-items: center; position: relative; width: 100%; }
+.tree-folder-row:hover .tree-dots-btn { opacity: 1; }
+.tree-folder-row .tree-folder { flex: 1; min-width: 0; }
+.tree-group-children { display: flex; flex-direction: column; }
+.tree-rename-input { background: var(--surface); border: 1px solid var(--accent); color: var(--ink); font: 0.8125rem var(--font-sans); padding: 2px 6px; border-radius: var(--r-sm); outline: none; width: 100%; }
+.tree-item.inline-create { padding: 2px 8px; }
+.tree-dropdown-item.danger { color: var(--err); }

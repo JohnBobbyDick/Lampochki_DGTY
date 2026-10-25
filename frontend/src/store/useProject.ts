@@ -11,6 +11,11 @@ import {
   mergeWithBuiltinExamples,
   ProjectStorageData,
 } from '../utils/projectStorage';
+import {
+  validateFileName,
+  validateFolderName,
+  ValidationResult,
+} from '../utils/fileValidation';
 
 export interface ProjectFile {
   id: string; // "folder/Name.ext"
@@ -50,6 +55,12 @@ interface ProjectState {
   close: (id: string) => void;
   switchLanguage: (lang: 'java' | 'python') => void;
   addFile: (name: string, text: string) => void;
+  createFile: (folder: string, name: string, code?: string) => ValidationResult;
+  createFolder: (parentFolder: string, name: string) => ValidationResult;
+  renameFile: (oldId: string, newName: string) => ValidationResult;
+  renameFolder: (oldFolder: string, newName: string) => ValidationResult;
+  deleteFile: (id: string) => void;
+  deleteFolder: (folder: string) => void;
   resetFile: (id: string) => void;
   restoreExamples: () => void;
   init: () => Promise<void>;
@@ -325,6 +336,336 @@ export const useProject = create<ProjectState>((set, get) => ({
     });
 
     useStore.getState().loadDocument(text, text, lang);
+    scheduleProjectSave();
+  },
+
+  createFile: (folder, name, code = '') => {
+    const s = get();
+    const existing = s.files.filter((f) => f.folder === folder).map((f) => f.name);
+    const v = validateFileName(name, existing);
+    if (v.error) return v;
+
+    const id = folder ? `${folder}/${name}` : name;
+    const lang = languageOf(name);
+    const newFile: ProjectFile = {
+      id,
+      name,
+      folder,
+      path: id,
+      code,
+      original: code,
+      language: lang,
+      isExample: false,
+    };
+
+    const isPy = lang === 'python';
+    const openJavaIds = !isPy ? [...s.openJavaIds, id] : s.openJavaIds;
+    const openPythonIds = isPy ? [...s.openPythonIds, id] : s.openPythonIds;
+    const activeJavaId = !isPy ? id : s.activeJavaId;
+    const activePythonId = isPy ? id : s.activePythonId;
+
+    const folders = s.folders.includes(folder) ? s.folders : [...s.folders, folder];
+
+    set({
+      files: [...s.files, newFile],
+      folders,
+      openJavaIds,
+      openPythonIds,
+      activeJavaId,
+      activePythonId,
+      activeId: id,
+      openIds: isPy ? openPythonIds : openJavaIds,
+    });
+
+    useStore.getState().setLanguage(lang);
+    useStore.getState().loadDocument(code, code, lang);
+    scheduleProjectSave();
+    return v;
+  },
+
+  createFolder: (parentFolder, name) => {
+    const s = get();
+    const targetPath = parentFolder ? `${parentFolder}/${name}` : name;
+    const existingInParent = s.folders
+      .filter((f) => {
+        const parent = f.includes('/') ? f.slice(0, f.lastIndexOf('/')) : '';
+        return parent === parentFolder;
+      })
+      .map((f) => (f.includes('/') ? f.slice(f.lastIndexOf('/') + 1) : f));
+
+    const v = validateFolderName(name, existingInParent);
+    if (v.error) return v;
+
+    set({
+      folders: Array.from(new Set([...s.folders, targetPath])),
+    });
+    scheduleProjectSave();
+    return v;
+  },
+
+  renameFile: (oldId, newName) => {
+    const s = get();
+    const file = s.files.find((f) => f.id === oldId);
+    if (!file) return { error: 'Файл не найден' };
+
+    if (file.name === newName) return {};
+
+    const existing = s.files
+      .filter((f) => f.folder === file.folder && f.id !== oldId)
+      .map((f) => f.name);
+    const v = validateFileName(newName, existing);
+    if (v.error) return v;
+
+    const newId = file.folder ? `${file.folder}/${newName}` : newName;
+    const newLang = languageOf(newName);
+    const oldLang = file.language;
+    const langChanged = oldLang !== newLang;
+
+    const updatedFiles = s.files.map((f) =>
+      f.id === oldId
+        ? { ...f, id: newId, name: newName, path: newId, language: newLang }
+        : f
+    );
+
+    // Migrate runs and coverage
+    const runs = { ...s.runs };
+    if (runs[oldId]) {
+      runs[newId] = runs[oldId];
+      delete runs[oldId];
+    }
+
+    const coverage = { ...s.coverage };
+    if (coverage[oldId]) {
+      coverage[newId] = coverage[oldId];
+      delete coverage[oldId];
+    }
+
+    const coverageError = { ...s.coverageError };
+    if (coverageError[oldId] !== undefined) {
+      coverageError[newId] = coverageError[oldId];
+      delete coverageError[oldId];
+    }
+
+    const coverageReset = { ...s.coverageReset };
+    if (coverageReset[oldId] !== undefined) {
+      coverageReset[newId] = coverageReset[oldId];
+      delete coverageReset[oldId];
+    }
+
+    // Migrate tabs and active file
+    let openJavaIds = [...s.openJavaIds];
+    let openPythonIds = [...s.openPythonIds];
+    let activeJavaId = s.activeJavaId;
+    let activePythonId = s.activePythonId;
+    let activeId = s.activeId;
+
+    if (langChanged) {
+      if (newLang === 'python') {
+        openJavaIds = openJavaIds.filter((x) => x !== oldId);
+        if (!openPythonIds.includes(newId)) openPythonIds.push(newId);
+        if (activeJavaId === oldId) {
+          activeJavaId = openJavaIds[0] || '';
+        }
+        activePythonId = newId;
+      } else {
+        openPythonIds = openPythonIds.filter((x) => x !== oldId);
+        if (!openJavaIds.includes(newId)) openJavaIds.push(newId);
+        if (activePythonId === oldId) {
+          activePythonId = openPythonIds[0] || '';
+        }
+        activeJavaId = newId;
+      }
+    } else {
+      openJavaIds = openJavaIds.map((x) => (x === oldId ? newId : x));
+      openPythonIds = openPythonIds.map((x) => (x === oldId ? newId : x));
+      if (activeJavaId === oldId) activeJavaId = newId;
+      if (activePythonId === oldId) activePythonId = newId;
+    }
+
+    if (activeId === oldId) {
+      activeId = newId;
+      if (langChanged) {
+        useStore.getState().setLanguage(newLang);
+      }
+    }
+
+    const curLang = useStore.getState().language;
+
+    set({
+      files: updatedFiles,
+      runs,
+      coverage,
+      coverageError,
+      coverageReset,
+      openJavaIds,
+      openPythonIds,
+      activeJavaId,
+      activePythonId,
+      activeId,
+      openIds: curLang === 'python' ? openPythonIds : openJavaIds,
+    });
+
+    scheduleProjectSave();
+    return v;
+  },
+
+  renameFolder: (oldFolder, newName) => {
+    const s = get();
+    if (!s.folders.includes(oldFolder)) return { error: 'Папка не найдена' };
+
+    const parent = oldFolder.includes('/') ? oldFolder.slice(0, oldFolder.lastIndexOf('/')) : '';
+    const existingInParent = s.folders
+      .filter((f) => {
+        const p = f.includes('/') ? f.slice(0, f.lastIndexOf('/')) : '';
+        return p === parent && f !== oldFolder;
+      })
+      .map((f) => (f.includes('/') ? f.slice(f.lastIndexOf('/') + 1) : f));
+
+    const v = validateFolderName(newName, existingInParent);
+    if (v.error) return v;
+
+    const newFolder = parent ? `${parent}/${newName}` : newName;
+    if (newFolder === oldFolder) return {};
+
+    const prefix = `${oldFolder}/`;
+
+    const updatedFolders = s.folders.map((f) => {
+      if (f === oldFolder) return newFolder;
+      if (f.startsWith(prefix)) return `${newFolder}/${f.slice(prefix.length)}`;
+      return f;
+    });
+
+    const runs = { ...s.runs };
+    const coverage = { ...s.coverage };
+    const coverageError = { ...s.coverageError };
+    const coverageReset = { ...s.coverageReset };
+
+    const remapId = (id: string) => {
+      if (id.startsWith(prefix)) {
+        return `${newFolder}/${id.slice(prefix.length)}`;
+      }
+      return id;
+    };
+
+    const updatedFiles = s.files.map((f) => {
+      if (f.folder === oldFolder) {
+        const nextId = `${newFolder}/${f.name}`;
+        if (runs[f.id]) { runs[nextId] = runs[f.id]; delete runs[f.id]; }
+        if (coverage[f.id]) { coverage[nextId] = coverage[f.id]; delete coverage[f.id]; }
+        if (coverageError[f.id] !== undefined) { coverageError[nextId] = coverageError[f.id]; delete coverageError[f.id]; }
+        if (coverageReset[f.id] !== undefined) { coverageReset[nextId] = coverageReset[f.id]; delete coverageReset[f.id]; }
+        return { ...f, folder: newFolder, id: nextId, path: nextId };
+      }
+      if (f.folder.startsWith(prefix)) {
+        const sub = f.folder.slice(prefix.length);
+        const nextFolder = `${newFolder}/${sub}`;
+        const nextId = `${nextFolder}/${f.name}`;
+        if (runs[f.id]) { runs[nextId] = runs[f.id]; delete runs[f.id]; }
+        if (coverage[f.id]) { coverage[nextId] = coverage[f.id]; delete coverage[f.id]; }
+        if (coverageError[f.id] !== undefined) { coverageError[nextId] = coverageError[f.id]; delete coverageError[f.id]; }
+        if (coverageReset[f.id] !== undefined) { coverageReset[nextId] = coverageReset[f.id]; delete coverageReset[f.id]; }
+        return { ...f, folder: nextFolder, id: nextId, path: nextId };
+      }
+      return f;
+    });
+
+    const openJavaIds = s.openJavaIds.map(remapId);
+    const openPythonIds = s.openPythonIds.map(remapId);
+    const activeJavaId = remapId(s.activeJavaId);
+    const activePythonId = remapId(s.activePythonId);
+    const activeId = remapId(s.activeId);
+
+    set({
+      folders: updatedFolders,
+      files: updatedFiles,
+      runs,
+      coverage,
+      coverageError,
+      coverageReset,
+      openJavaIds,
+      openPythonIds,
+      activeJavaId,
+      activePythonId,
+      activeId,
+      openIds: useStore.getState().language === 'python' ? openPythonIds : openJavaIds,
+    });
+
+    scheduleProjectSave();
+    return v;
+  },
+
+  deleteFile: (id) => {
+    const s = get();
+    const file = s.files.find((f) => f.id === id);
+    if (!file) return;
+
+    const isPy = file.language === 'python';
+    const curOpen = isPy ? s.openPythonIds : s.openJavaIds;
+    const nextOpen = curOpen.filter((x) => x !== id);
+
+    const deletedExampleIds = file.isExample || INITIAL.some((init) => init.id === id)
+      ? Array.from(new Set([...s.deletedExampleIds, id]))
+      : s.deletedExampleIds;
+
+    const nextFiles = s.files.filter((f) => f.id !== id);
+    const isActive = id === (isPy ? s.activePythonId : s.activeJavaId);
+
+    const idx = curOpen.indexOf(id);
+    const nextActiveId = isActive
+      ? nextOpen.length > 0
+        ? nextOpen[Math.min(idx, nextOpen.length - 1)]
+        : nextFiles.find((f) => (isPy ? f.language === 'python' : f.language === 'java'))?.id || ''
+      : isPy
+      ? s.activePythonId
+      : s.activeJavaId;
+
+    const openJavaIds = isPy ? s.openJavaIds : nextOpen;
+    const openPythonIds = isPy ? nextOpen : s.openPythonIds;
+    const activeJavaId = isPy ? s.activeJavaId : nextActiveId;
+    const activePythonId = isPy ? nextActiveId : s.activePythonId;
+
+    const curLang = useStore.getState().language;
+    const currentIsActiveLang = (curLang === 'python') === isPy;
+
+    set({
+      files: nextFiles,
+      deletedExampleIds,
+      openJavaIds,
+      openPythonIds,
+      activeJavaId,
+      activePythonId,
+      activeId: curLang === 'python' ? activePythonId : activeJavaId,
+      openIds: curLang === 'python' ? openPythonIds : openJavaIds,
+    });
+
+    if (isActive && currentIsActiveLang) {
+      if (nextActiveId) {
+        const target = nextFiles.find((f) => f.id === nextActiveId);
+        if (target) {
+          useStore.getState().loadDocument(target.code, target.original, curLang);
+        }
+      } else {
+        useStore.getState().loadDocument('', '', curLang);
+      }
+    }
+
+    scheduleProjectSave();
+  },
+
+  deleteFolder: (folderPath) => {
+    const s = get();
+    const prefix = `${folderPath}/`;
+    const isInside = (f: { folder: string }) => f.folder === folderPath || f.folder.startsWith(prefix);
+
+    const filesToDelete = s.files.filter(isInside);
+    for (const f of filesToDelete) {
+      get().deleteFile(f.id);
+    }
+
+    set((state) => ({
+      folders: state.folders.filter((fd) => fd !== folderPath && !fd.startsWith(prefix)),
+    }));
+
     scheduleProjectSave();
   },
 

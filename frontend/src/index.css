@@ -244,9 +244,9 @@ html[data-lang='python'] .logo-mark { background-image: url('./assets/logo-pytho
 .defect-main { min-width: 0; flex: 1; }
 .defect-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 0.75rem; margin-bottom: 4px; }
 .sev-label { color: var(--tone); font-weight: 600; }
-.defect-msg { color: var(--ink); line-height: 1.5; }
+.defect-msg { color: var(--ink); line-height: 1.5; overflow-wrap: anywhere; }
 .bigo-badge { background: var(--accent); color: var(--on-accent); border-radius: var(--r-pill); padding: 1px 9px; font-size: 0.6875rem; font-weight: 700; font-family: var(--font-mono); }
-.reco { display: flex; gap: 6px; align-items: flex-start; color: var(--ok); margin-top: 8px; font-size: 0.8125rem; }
+.reco { display: flex; gap: 6px; align-items: flex-start; color: var(--ok); margin-top: 8px; font-size: 0.8125rem; min-width: 0; overflow-wrap: anywhere; }
 .reco svg { flex: none; margin-top: 3px; }
 .reco-effect { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.8125rem; }
 .count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: var(--r-pill); background: var(--surface-elevated); color: var(--ink); font-size: 0.6875rem; line-height: 20px; text-align: center; letter-spacing: 0; }
@@ -377,10 +377,10 @@ kbd { font: 600 0.6875rem var(--font-mono); padding: 1px 6px; border-radius: 6px
 .ai-privacy { margin-top: 16px; font-size: 0.6875rem; }
 .ai-btn { margin-top: 6px; }
 
-.ai-banner { position: fixed; right: 16px; bottom: calc(var(--bottom-h) + 16px); z-index: 45; display: flex; align-items: center; gap: 10px;
+.ai-banner { position: fixed; left: 50%; bottom: 16px; z-index: 45; transform: translateX(-50%); max-width: calc(100vw - 32px); display: flex; align-items: center; gap: 10px;
   background: var(--surface-elevated); color: var(--ink); border: 1px solid var(--accent-line); border-radius: var(--r-lg); padding: 10px 16px;
   box-shadow: var(--shadow-pop); animation: ai-in .25s var(--ease); }
-@keyframes ai-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes ai-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translateX(-50%); } }
 .ai-banner-icon { color: var(--accent-ink); }
 .ai-chip { border-color: var(--accent-line); color: var(--accent-ink); background: var(--accent-soft); }
 @media (hover: hover) { .ai-chip:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent-ink); } }

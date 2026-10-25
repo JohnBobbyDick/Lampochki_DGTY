@@ -49,6 +49,8 @@ interface AppState {
   selectedMethod: string | null;
   /** why the last /graph request failed (shown in the empty graph), null if it succeeded */
   graphError: string | null;
+  /** bumped by every loadDocument, so a load re-parses even when the text is unchanged */
+  docNonce: number;
   nodes: Node[];
   edges: Edge[];
   defects: Defect[];
@@ -142,6 +144,7 @@ export const useStore = create<AppState>((set, get) => ({
   graphType: 'cfg',
   selectedMethod: null,
   graphError: null,
+  docNonce: 0,
   nodes: [],
   edges: [],
   defects: [],
@@ -212,14 +215,15 @@ export const useStore = create<AppState>((set, get) => ({
         detected = 'java';
       }
     }
-    set({
+    set((st) => ({
+      docNonce: st.docNonce + 1,
       code, originalCode: original, language: detected, past: [], future: [],
       runResult: null, compareResult: null, decomposition: null, gateResult: null,
       selectedMethod: null, ai: null, aiReview: null, stdin: '',
       compileErrors: null, syntaxErrors: [], defects: [], bigo: {},
       /* the previous file's AST, methods and graph must not be used for the new one until it is parsed */
       ast: null, methods: [], lineMap: {}, nodes: [], edges: [], graphError: null,
-    });
+    }));
   },
   /** remember the current code in the undo stack (skips duplicates) */
   snapshot: () => {

@@ -85,6 +85,7 @@ export function useSync() {
   const code = useStore((s) => s.code);
   const graphType = useStore((s) => s.graphType);
   const selectedMethod = useStore((s) => s.selectedMethod);
+  const docNonce = useStore((s) => s.docNonce);
   const setSyncStatus = useStore((s) => s.setSyncStatus);
   const api = useApi();
   const reqId = useRef(0);
@@ -118,23 +119,32 @@ export function useSync() {
     st.setCompileErrors(data.compileErrors ?? null);
   };
 
-  /* code changed → drop stale AI tips at once, then debounce 500 ms → parse, analyse, rebuild graph */
+  /* code changed or a document was loaded → drop stale AI tips at once, then debounce 500 ms → parse, analyse,
+     rebuild graph */
   useEffect(() => {
-    /* bump at once so an in-flight analyze for older code is ignored */
+    /* bump both at once so in-flight parse/analyze/graph responses for older code are ignored */
     const cid = ++codeReq.current;
-    if (!code.trim()) return;
+    ++reqId.current;
+    if (!code.trim()) return setSyncStatus('idle'); // a dropped in-flight request must not leave the spinner on
     useStore.getState().pruneStale(code);
     const timer = setTimeout(async () => {
       const id = ++reqId.current;
       setSyncStatus('syncing');
       const parsed = await api.parseCode(code, () => cid === codeReq.current);
       if (cid !== codeReq.current) return;
-      if (!parsed) return setSyncStatus('error');
+      if (!parsed) {
+        /* the shown graph (or its error) belongs to older code */
+        const st = useStore.getState();
+        st.setNodes([]);
+        st.setEdges([]);
+        st.setGraphError(st.error ?? 'Не удалось разобрать код');
+        return setSyncStatus('error');
+      }
       await Promise.all([refreshAnalysis(cid), refreshGraph(id)]);
     }, 500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code]);
+  }, [code, docNonce]);
 
   /* tab / method switch → only rebuild the graph */
   useEffect(() => {

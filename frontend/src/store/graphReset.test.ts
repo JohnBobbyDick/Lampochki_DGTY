@@ -40,3 +40,24 @@ describe('switching file or language resets the graph state', () => {
     expectFresh();
   });
 });
+
+describe('every document load triggers a re-parse', () => {
+  it('bumps docNonce even when the new text equals the current one', () => {
+    const code = useStore.getState().code;
+    const before = useStore.getState().docNonce;
+    useStore.getState().loadDocument(code, code);
+    expect(useStore.getState().code).toBe(code);
+    expect(useStore.getState().docNonce).toBe(before + 1);
+  });
+
+  it('opening another file with the same text bumps docNonce too', () => {
+    useProject.getState().switchLanguage('java');
+    useProject.getState().open('src/Demo.java');
+    const text = useStore.getState().code;
+    useProject.getState().addFile('Copy.java', text);
+    const before = useStore.getState().docNonce;
+    useProject.getState().open('src/Demo.java');
+    expect(useStore.getState().code).toBe(text);
+    expect(useStore.getState().docNonce).toBe(before + 1);
+  });
+});

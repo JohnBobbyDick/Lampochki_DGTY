@@ -5,7 +5,8 @@ import { useProject } from '../store/useProject';
 import { downloadFile } from '../utils/download';
 import { getSessionId } from '../utils/sessionId';
 import { installSessionRecovery } from '../utils/sessionRecovery';
-import { GraphType, QualityGateResult } from '../types';
+import { methodAfterParse } from '../utils/graphEmpty';
+import { GraphEdge, GraphNode, GraphType, QualityGateResult } from '../types';
 
 const api = axios.create({
   baseURL: '/api',
@@ -72,18 +73,21 @@ export function useApi() {
         if (data.language && data.language !== st.language) {
           st.setLanguage(data.language);
         }
-        if (!st.selectedMethod || !(data.methods ?? []).includes(st.selectedMethod)) {
-          st.setSelectedMethod(data.methods?.[0] ?? null);
-        }
+        const method = methodAfterParse(st.selectedMethod, data.methods ?? []);
+        if (method !== st.selectedMethod) st.setSelectedMethod(method);
         return data;
       }, true);
 
-    const getGraph = (type: GraphType, method?: string) =>
-      call(async () => {
-        const params: Record<string, string> = { type };
-        if (method) params.method = method;
-        return (await api.get('/graph', { params })).data;
-      }, true);
+    /** The graph or the reason it failed; the reason is shown in the graph panel, not as a toast. */
+    const getGraph = async (type: GraphType, method?: string): Promise<{ data?: { nodes?: GraphNode[]; edges?: GraphEdge[] }; error?: string }> => {
+      const params: Record<string, string> = { type };
+      if (method) params.method = method;
+      try {
+        return { data: (await api.get('/graph', { params })).data };
+      } catch (e) {
+        return { error: errorMessage(e) };
+      }
+    };
 
     const analyzeCode = () =>
       call(async () => {

@@ -93,14 +93,16 @@ export function useSync() {
 
   const refreshGraph = async (id: number) => {
     const st = useStore.getState();
-    const data = await api.getGraph(st.graphType, st.selectedMethod ?? undefined);
+    const { data, error } = await api.getGraph(st.graphType, st.selectedMethod ?? undefined);
     if (id !== reqId.current) return; // a newer request superseded this one
     if (!data) {
       st.setNodes([]);
       st.setEdges([]);
+      st.setGraphError(error ?? null);
       setSyncStatus('error');
       return;
     }
+    st.setGraphError(null);
     const { nodes, edges } = layoutGraph(data.nodes ?? [], data.edges ?? [], st.graphType === 'class' ? 'LR' : 'TB');
     st.setNodes(nodes);
     st.setEdges(edges);

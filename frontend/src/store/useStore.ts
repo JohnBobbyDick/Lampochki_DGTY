@@ -47,6 +47,8 @@ interface AppState {
   lineMap: Record<string, number>;
   graphType: GraphType;
   selectedMethod: string | null;
+  /** why the last /graph request failed (shown in the empty graph), null if it succeeded */
+  graphError: string | null;
   nodes: Node[];
   edges: Edge[];
   defects: Defect[];
@@ -112,6 +114,7 @@ interface AppState {
   setLineMap: (lineMap: Record<string, number>) => void;
   setGraphType: (graphType: GraphType) => void;
   setSelectedMethod: (method: string | null) => void;
+  setGraphError: (graphError: string | null) => void;
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
   setDefects: (defects: Defect[]) => void;
@@ -138,6 +141,7 @@ export const useStore = create<AppState>((set, get) => ({
   lineMap: {},
   graphType: 'cfg',
   selectedMethod: null,
+  graphError: null,
   nodes: [],
   edges: [],
   defects: [],
@@ -213,6 +217,8 @@ export const useStore = create<AppState>((set, get) => ({
       runResult: null, compareResult: null, decomposition: null, gateResult: null,
       selectedMethod: null, ai: null, aiReview: null, stdin: '',
       compileErrors: null, syntaxErrors: [], defects: [], bigo: {},
+      /* the previous file's AST, methods and graph must not be used for the new one until it is parsed */
+      ast: null, methods: [], lineMap: {}, nodes: [], edges: [], graphError: null,
     });
   },
   /** remember the current code in the undo stack (skips duplicates) */
@@ -251,6 +257,7 @@ export const useStore = create<AppState>((set, get) => ({
   setLineMap: (lineMap) => set({ lineMap }),
   setGraphType: (graphType) => set({ graphType }),
   setSelectedMethod: (method) => set({ selectedMethod: method }),
+  setGraphError: (graphError) => set({ graphError }),
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
   setDefects: (defects) => set({ defects }),

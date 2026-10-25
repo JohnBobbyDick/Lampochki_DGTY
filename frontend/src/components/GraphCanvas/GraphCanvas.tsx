@@ -9,6 +9,7 @@ import NodeEditor from './NodeEditor';
 import { useStore } from '../../store/useStore';
 import { GraphType } from '../../types';
 import { LEGEND } from './nodes/kinds';
+import { graphEmptyText } from '../../utils/graphEmpty';
 
 const TABS: { id: GraphType; label: string }[] = [
   { id: 'cfg', label: 'Блок-схема' },
@@ -43,6 +44,8 @@ const GraphCanvas: React.FC = () => {
   const setSelectedMethod = useStore((s) => s.setSelectedMethod);
   const hasNodes = useStore((s) => s.nodes.length > 0);
   const syncStatus = useStore((s) => s.syncStatus);
+  const language = useStore((s) => s.language);
+  const graphError = useStore((s) => s.graphError);
 
   return (
     <div className="graph-panel">
@@ -68,9 +71,9 @@ const GraphCanvas: React.FC = () => {
       <div className="graph-body">
         {!hasNodes ? (
           <div className="empty graph-empty">
-            <FiShare2 className="state-icon" />
+            {graphError ? <FiAlertCircle className="state-icon" /> : <FiShare2 className="state-icon" />}
             <div className="state-title">Здесь появится граф</div>
-            <div className="muted">Откройте файл слева или вставьте Java-код в редактор.</div>
+            <div className="muted" role={graphError ? 'alert' : undefined}>{graphEmptyText(language, graphError)}</div>
           </div>
         ) : (
           <ReactFlowProvider key={graphType}>

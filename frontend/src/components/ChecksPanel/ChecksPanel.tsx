@@ -52,7 +52,7 @@ const ChecksPanel: React.FC = () => {
               detail: cmp.after.compileErrors?.length ? `ошибок: ${cmp.after.compileErrors.length}` : undefined }} />
             <StepRow s={{ label: 'Запуск исходного кода', ok: cmp.before.exitCode === 0, detail: run(cmp.before) }} />
             <StepRow s={{ label: 'Запуск текущего кода', ok: cmp.after.exitCode === 0, detail: run(cmp.after) }} />
-            <StepRow s={{ label: 'Вывод программы совпадает', ok: cmp.behaviorPreserved }} />
+            <StepRow s={{ label: 'Вывод программы совпадает', ok: !cmp.diff || cmp.behaviorPreserved }} />
           </ul>
         </section>
         );

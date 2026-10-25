@@ -12,6 +12,7 @@ const PatchView: React.FC<{ patch: AiPatch }> = ({ patch }) => {
   const [state, setState] = useState<'idle' | 'busy' | 'applied'>('idle');
   const [errors, setErrors] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>(patch.warnings);
+  const [codeBefore, setCodeBefore] = useState<string | null>(null);
 
   const rows = useMemo(
     () =>
@@ -31,11 +32,13 @@ const PatchView: React.FC<{ patch: AiPatch }> = ({ patch }) => {
   const apply = async () => {
     setState('busy');
     setErrors([]);
+    const currentCode = useStore.getState().code;
     const res = await api.aiApply({
       oldCode: patch.oldCode, newCode: patch.newCode, imports: patch.imports, startLine: patch.startLine,
     });
     if (res?.ok) {
       const st = useStore.getState();
+      setCodeBefore(currentCode);
       st.replaceCode(res.code);            // snapshot first → Ctrl+Z restores the previous version
       useStore.setState({ reviewSkip: res.code, aiReview: null });   // don't re-review our own fix
       st.jumpToLine(res.startLine);
@@ -49,7 +52,8 @@ const PatchView: React.FC<{ patch: AiPatch }> = ({ patch }) => {
 
   const checkBehaviour = () => {
     const st = useStore.getState();
-    api.compareCode(st.originalCode || st.code, st.code);
+    const original = codeBefore || (st.past.length ? st.past[st.past.length - 1] : st.originalCode) || st.code;
+    api.compareCode(original, st.code);
   };
 
   return (

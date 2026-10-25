@@ -10,11 +10,20 @@ from models.schemas import CompareResponse, RunResponse
 
 
 _TS_RE = re.compile(r"\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?")
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*[a-zA-Z]")
 
 
 def normalize(text: str) -> str:
-    """Mask volatile parts (timestamps) so that equal behaviour compares equal."""
-    return _TS_RE.sub("<TIMESTAMP>", text)
+    """Mask volatile parts (timestamps, ANSI) and normalize line endings/whitespace."""
+    if not text:
+        return ""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = _ANSI_RE.sub("", text)
+    text = _TS_RE.sub("<TIMESTAMP>", text)
+    lines = [line.rstrip() for line in text.split("\n")]
+    while lines and not lines[-1]:
+        lines.pop()
+    return "\n".join(lines)
 
 
 def unified_diff(before: str, after: str) -> str:

@@ -100,14 +100,20 @@ export function useApi() {
 
     const runCode = (code: string) =>
       call(async () => {
-        const { data } = await api.post('/run', { code, stdinInput: S().stdin, language: S().language });
+        const activeId = useProject.getState().activeId;
+        const lastRun = useProject.getState().runs[activeId]?.slice(-1)[0];
+        const stdinInput = S().stdin || lastRun?.stdin || '';
+        const { data } = await api.post('/run', { code, stdinInput, language: S().language });
         S().setRunResult(data);
         return data;
       });
 
     const compareCode = (original: string, modified: string) =>
       call(async () => {
-        const { data } = await api.post('/run/compare', { original, modified, stdinInput: S().stdin, language: S().language });
+        const activeId = useProject.getState().activeId;
+        const lastRun = useProject.getState().runs[activeId]?.slice(-1)[0];
+        const stdinInput = S().stdin || lastRun?.stdin || '';
+        const { data } = await api.post('/run/compare', { original, modified, stdinInput, language: S().language });
         S().setCompareResult(data);
         return data;
       });
@@ -161,7 +167,10 @@ export function useApi() {
 
     const qualityGate = (original: string, modified: string) =>
       call(async () => {
-        const { data } = await api.post<QualityGateResult>('/quality-gate', { original, modified, stdinInput: S().stdin, language: S().language });
+        const activeId = useProject.getState().activeId;
+        const lastRun = useProject.getState().runs[activeId]?.slice(-1)[0];
+        const stdinInput = S().stdin || lastRun?.stdin || '';
+        const { data } = await api.post<QualityGateResult>('/quality-gate', { original, modified, stdinInput, language: S().language });
         S().setGateResult(data);
         return data;
       });

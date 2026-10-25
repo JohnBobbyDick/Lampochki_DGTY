@@ -235,3 +235,35 @@ def test_unappliable_nested_header_is_rejected(monkeypatch):
     nid = next(n.id for n in build_cfg_with_map(m)[0] if n.label == "def other(a)")
     with pytest.raises(UnsupportedConstruct, match="нельзя изменить"):
         py_codegen.apply_edits(code, m, {nid: "def inner(b)"})
+
+
+@pytest.mark.parametrize("prefix", ['"""', 'f"""', "'''", 'rb"""'])
+def test_multiline_string_continuation_not_reindented(prefix):
+    close = prefix[-3:]
+    code = (f"def f(x):\n"
+            f"    s = {prefix}line one\n"
+            f"second line\n"
+            f"  third {{x}}{close}\n"
+            f"    print(s)\n")
+    m = _method(code, "f")
+    nodes, _, _ = build_cfg_with_map(m)
+    label = next(n.label for n in nodes if n.label.startswith("s = "))
+    # the node text keeps the string content as is (nothing to dedent inside a string)
+    assert label == f"s = {prefix}line one\nsecond line\n  third {{x}}{close}"
+    new, changed = apply_edits(code, m, {_node(m, label): "t" + label[1:]})
+    assert changed
+    assert new == code.replace("    s = ", "    t = ")
+
+
+def test_multiline_string_inside_brackets_dedent_keeps_string():
+    code = ("def f():\n"
+            "    r = g(1,\n"
+            "          '''a\n"
+            "b''')\n"
+            "    return r\n")
+    m = _method(code, "f")
+    nodes, _, _ = build_cfg_with_map(m)
+    label = next(n.label for n in nodes if n.label.startswith("r = "))
+    assert label == "r = g(1,\n      '''a\nb''')"
+    new, _ = apply_edits(code, m, {_node(m, label): label.replace("g(1", "g(2")})
+    assert new == code.replace("g(1", "g(2")

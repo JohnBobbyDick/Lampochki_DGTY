@@ -12,6 +12,7 @@ import re
 
 from core.cfg_builder import build_cfg_with_map
 from core.code_generator import UnsupportedConstruct
+from core.py_parser import string_rows
 
 # header keywords whose text is editable; the alternatives a label may start with
 _HEADER_KW = {
@@ -74,8 +75,12 @@ def _wrapped(text: str) -> bool:
 
 
 def _indent_continuation(text: str, indent: str) -> str:
+    """Indent continuation lines of *text* by *indent*, except those that start inside a multi-line
+    string literal (their leading whitespace is string content)."""
+    inside = string_rows(text)
     first, *rest = text.split("\n")
-    return "\n".join([first, *[(indent + l) if l.strip() else l for l in rest]])
+    return "\n".join([first, *[(indent + l) if l.strip() and i not in inside else l
+                                for i, l in enumerate(rest, 2)]])
 
 
 def _replacement(lines: list[str], stmt: dict, label: str) -> tuple[tuple[int, int, int, int], str] | None:

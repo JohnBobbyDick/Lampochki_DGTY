@@ -14,14 +14,55 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import os
 import re
-import textwrap
 import tokenize
 from typing import Any
 
 _LINE_RE = re.compile(r"[^\r\n]*(?:\r\n|\r|\n)|[^\r\n]+$")
 _OPEN = "([{"
 _CLOSE = ")]}"
+
+
+def string_rows(code: str) -> set[int]:
+    """1-based numbers of the lines of *code* that start inside a multi-line string literal
+    (their leading whitespace is string content: never dedent or re-indent them).
+    Empty when *code* cannot be tokenized."""
+    rows: set[int] = set()
+    starts = {getattr(tokenize, n) for n in ("FSTRING_START", "TSTRING_START") if hasattr(tokenize, n)}
+    ends = {getattr(tokenize, n) for n in ("FSTRING_END", "TSTRING_END") if hasattr(tokenize, n)}
+    opened: list[int] = []  # start rows of the f-/t-strings being read (3.12+ splits them into tokens)
+    try:
+        for tok in tokenize.generate_tokens(iter(code.splitlines(keepends=True)).__next__):
+            if tok.type in starts:
+                opened.append(tok.start[0])
+            elif tok.type in ends and opened:
+                first = opened.pop()
+                if not opened:
+                    rows.update(range(first + 1, tok.end[0] + 1))
+            elif tok.type == tokenize.STRING and not opened:
+                rows.update(range(tok.start[0] + 1, tok.end[0] + 1))
+    except (tokenize.TokenError, SyntaxError, StopIteration):
+        pass
+    return rows
+
+
+def dedent_outside_strings(text: str, rows: set[int]) -> str:
+    """``textwrap.dedent`` that neither counts nor changes the lines in *rows* (1-based, see
+    ``string_rows``); whitespace-only lines elsewhere become empty, as in ``textwrap.dedent``."""
+    lines = text.split("\n")
+    own = [i for i, l in enumerate(lines, 1) if i not in rows and l.strip()]
+    margin = os.path.commonprefix([lines[i - 1][:len(lines[i - 1]) - len(lines[i - 1].lstrip())]
+                                   for i in own]) if own else ""
+    out = []
+    for i, l in enumerate(lines, 1):
+        if i in rows:
+            out.append(l)
+        elif not l.strip():
+            out.append("")
+        else:
+            out.append(l[len(margin):])
+    return "\n".join(out)
 
 
 def _make_id(prefix: str, name: str) -> str:
@@ -49,6 +90,7 @@ class _Extractor:
     def __init__(self, code: str) -> None:
         self.code = code
         self.lines = _LINE_RE.findall(code)
+        self.string_rows = string_rows(code)  # lines starting inside a multi-line string literal
         self.line_map: dict[str, int] = {}
         self._collect: list[list[dict[str, Any]]] = []  # nested-def methods of the current function
         self._names: list[str] = []  # qualified name of the current function
@@ -84,7 +126,8 @@ class _Extractor:
         parts += self.lines[line:end_line - 1]
         parts.append(self._line(end_line)[:end_col])
         raw = "".join(parts).replace("\r\n", "\n").replace("\r", "\n")
-        return textwrap.dedent(" " * col + raw).lstrip(" ")
+        rows = {r - line + 1 for r in self.string_rows if line < r <= end_line}
+        return dedent_outside_strings(" " * col + raw, rows).lstrip(" ")
 
     def seg(self, node: ast.AST | None) -> str:
         if node is None:

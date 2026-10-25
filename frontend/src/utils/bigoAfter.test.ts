@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { applicablePatches, bestSingle, bigoAfter } from './bigoAfter';
+import { applicablePatches, bestSingle, bigoAfter, staticBigoAfter } from './bigoAfter';
+import type { Defect } from '../types';
 import type { AiAnswer, AiPatch } from '../store/useStore';
 
 const patch = (old: string, nw: string, after: Record<string, string>, valid = true): AiPatch => ({
@@ -42,5 +43,22 @@ describe('bigoAfter', () => {
     const b = patch('c', 'd', { 'A.f': 'O(n²)' });
     expect(bestSingle([a, b])).toEqual({ 'A.f': 'O(n²)' });
     expect(bestSingle([b, a])).toEqual({ 'A.f': 'O(n²)' });
+  });
+});
+
+describe('staticBigoAfter', () => {
+  const d = (method: string, bigO: string, bigOAfter?: string): Defect =>
+    ({ lineStart: 1, lineEnd: 1, nodeId: '', severity: 'warning', message: '', recommendation: '', method, bigO, bigOAfter });
+
+  it('uses the expected effect of the defect that sets the method label', () => {
+    expect(staticBigoAfter({ 'A.f': 'O(n²)' }, [d('A.f', 'O(n²)', 'O(n)')])).toEqual({ 'A.f': 'O(n)' });
+  });
+  it('ignores defects below the method label and methods without a rule', () => {
+    expect(staticBigoAfter({ 'A.f': 'O(n³)', 'A.g': 'O(n)' }, [d('A.f', 'O(n²)', 'O(n)')])).toEqual({});
+  });
+  it('takes the worst estimate of several dominant defects, none if one is unknown', () => {
+    expect(staticBigoAfter({ 'A.f': 'O(n²)' }, [d('A.f', 'O(n²)', 'O(n)'), d('A.f', 'O(n²)', 'O(n log n)')]))
+      .toEqual({ 'A.f': 'O(n log n)' });
+    expect(staticBigoAfter({ 'A.f': 'O(n²)' }, [d('A.f', 'O(n²)', 'O(n)'), d('A.f', 'O(n²)')])).toEqual({});
   });
 });

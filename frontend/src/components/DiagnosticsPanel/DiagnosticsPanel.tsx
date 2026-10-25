@@ -4,6 +4,7 @@ import { useStore } from '../../store/useStore';
 import { useApi } from '../../hooks/useApi';
 import { classifyBigO } from '../../utils/bigo';
 import BigoChange from '../BigoChange/BigoChange';
+import { staticBigoAfter } from '../../utils/bigoAfter';
 import { LuSparkles } from 'react-icons/lu';
 
 const SEVERITY = {
@@ -30,6 +31,7 @@ const DiagnosticsPanel: React.FC = () => {
   const setSelectedMethod = useStore((s) => s.setSelectedMethod);
   const setGraphType = useStore((s) => s.setGraphType);
 
+  const ruleAfter = staticBigoAfter(bigo, defects);
   const methodRows = Object.entries(bigo).filter(([k]) => k.includes('.') && !k.endsWith('.' + k.split('.')[0]));
 
   const open = (d: (typeof defects)[number]) => {
@@ -96,6 +98,9 @@ const DiagnosticsPanel: React.FC = () => {
                   <span className="defect-msg">{d.message}</span>
                 </button>
                 {d.recommendation && <div className="reco"><FiZap aria-hidden="true" /> {d.recommendation}</div>}
+                {d.bigO && d.bigOAfter && (
+                  <div className="reco-effect"><span className="muted">Ожидаемый эффект:</span> <BigoChange before={d.bigO} after={d.bigOAfter} /></div>
+                )}
                 <button className="btn small ai-btn" onClick={(e) => { e.stopPropagation(); api.aiExplain(d); }}><LuSparkles /> Объяснить с ИИ</button>
               </div>
             </div>
@@ -115,7 +120,9 @@ const DiagnosticsPanel: React.FC = () => {
                 <span className="bigo-name" title={m}>{m}</span>
                 <span className="bigo-hint">{c.name}</span>
                 <span className={`bigo-chip ${c.grade}`}>{v}</span>
-                <BigoChange before={v} after={bigoAfterAi[m]} />
+                {bigoAfterAi[m]
+                  ? <BigoChange before={v} after={bigoAfterAi[m]} title="После правок ИИ" />
+                  : <BigoChange before={v} after={ruleAfter[m]} title="Оценка после рекомендаций диагностики" />}
               </button>
             );
           })}

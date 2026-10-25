@@ -290,9 +290,13 @@ class _CFGBuilder:
             label_text = ", ".join(str(lbl) for lbl in labels)
             case_node = self._add_node(
                 "case", f"case {label_text}", line_start=stmt.get("line"),
-                code_snippet=f"case {label_text}:",
+                code_snippet=f"case {label_text} ->" if stmt.get("arrow") else f"case {label_text}:",
             )
             self._add_edge(sw.id, case_node.id, "normal", label_text)
+            if stmt.get("arrow"):
+                # Java 14 `case X ->`: a case never falls through into the next one
+                out.extend(self._process_block(case.get("body", []), [_plain(case_node.id)]))
+                continue
             # fall-through from the previous case without break
             self._connect(fallthrough, case_node.id)
             fallthrough = self._process_block(case.get("body", []), [_plain(case_node.id)])
@@ -486,6 +490,8 @@ def _irrefutable(pattern: str) -> bool:
 def _stmt_snippet(stmt: dict) -> str:
     """Produce a short code snippet from a statement dict."""
     stype = stmt.get("type", "")
+    if stmt.get("lossy") and "raw" in stmt:  # the real source text (see core.parser._label_from_src)
+        return str(stmt["raw"])
     if stype == "LocalVariableDeclaration":
         parts = []
         for d in stmt.get("declarators", []):
@@ -496,6 +502,8 @@ def _stmt_snippet(stmt: dict) -> str:
         return f"{prefix}{stmt.get('var_type', '?')} {', '.join(parts)}"
     if stype == "StatementExpression":
         return stmt.get("expression", stype)
+    if stype == "YieldStatement":
+        return f"yield {stmt.get('expression', '')}"
     if "raw" in stmt:
-        return str(stmt["raw"])[:80]
+        return str(stmt["raw"])  # full text: it is what the node editor opens with
     return stype

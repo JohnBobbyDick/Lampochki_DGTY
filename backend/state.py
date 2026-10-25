@@ -165,10 +165,18 @@ def require(code: str | None = None, language: str | None = None) -> Session:
     return s
 
 
+def _with_code(ast: dict) -> list[dict]:
+    """Classes (incl. records and enums) plus interfaces: default / static / private interface
+    methods have bodies and get a CFG like any other method."""
+    return ast.get("classes", []) + ast.get("interfaces", [])
+
+
 def method_names(ast: dict) -> list[str]:
     names = []
-    for c in ast.get("classes", []):
+    for c in _with_code(ast):
         for m in c.get("methods", []):
+            if c.get("kind") == "interface" and not m.get("body"):
+                continue
             if c["name"] in ("Module", ""):
                 names.append(m["name"])
             else:
@@ -196,7 +204,7 @@ def find_method(ast: dict, ref: str | None) -> tuple[dict, dict] | None:
 def _find(ast: dict, ref: str, cls_name: str, name: str) -> tuple[dict, dict] | None:
     """The class named *cls_name* first; then (or with no *cls_name* — any class) the Python
     module pseudo-class, so a module function never shadows a same-named method of the class."""
-    classes = ast.get("classes", [])
+    classes = _with_code(ast)
     if cls_name:
         found = _scan([c for c in classes if c["name"] == cls_name], ref, name)
         if found is not None:

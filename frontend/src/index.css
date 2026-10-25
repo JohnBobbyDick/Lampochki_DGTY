@@ -103,8 +103,8 @@ button, select, input, textarea { font: inherit; }
 .app.no-bottom { grid-template-rows: var(--header-h) 1fr; }
 .header { display: flex; align-items: center; gap: 8px; padding: 0 16px; background: var(--canvas); border-bottom: 1px solid var(--hairline); }
 .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 0.9375rem; letter-spacing: -.3px; color: var(--ink); margin-right: 16px; white-space: nowrap; }
-.logo-mark { width: 18px; height: 18px; border-radius: 5px; background: var(--accent); box-shadow: inset 0 0 0 1px rgba(10, 10, 10, .12); position: relative; }
-.logo-mark::after { content: ''; position: absolute; inset: 5px; border-radius: 2px; background: var(--on-accent); }
+.logo-mark { width: 22px; height: 22px; border-radius: 5px; background: #0a0a0a url('./assets/logo-java.jpg') center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); flex-shrink: 0; }
+html[data-lang='python'] .logo-mark { background-image: url('./assets/logo-python.jpg'); }
 .spacer { flex: 1; }
 .muted { color: var(--muted); }
 
@@ -145,6 +145,10 @@ button, select, input, textarea { font: inherit; }
   transition: background-color .15s var(--ease), color .15s var(--ease); }
 @media (hover: hover) { .tab:hover { color: var(--ink); background: var(--hover); } }
 .tab.active { color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1px var(--hairline); }
+.tab-closable { display: inline-flex; align-items: center; gap: 2px; padding: 0 4px 0 0; cursor: default; }
+.tab-closable .tab-label { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; color: inherit; font: inherit; padding: 6px 4px 6px 12px; cursor: pointer; }
+.tab-closable .tab-close { display: grid; place-items: center; width: 20px; height: 20px; background: none; border: none; color: var(--muted); border-radius: 6px; cursor: pointer; padding: 0; }
+@media (hover: hover) { .tab-closable .tab-close:hover { color: var(--ink); background: var(--hover); } }
 .method-select { background: var(--surface); color: var(--ink); border: 1px solid var(--hairline-strong); border-radius: var(--r-md); height: 28px; padding: 0 8px; margin-left: 8px; max-width: 200px;
   transition: border-color .15s var(--ease); cursor: pointer; }
 @media (hover: hover) { .method-select:hover { border-color: var(--muted-soft); } }
@@ -244,6 +248,7 @@ button, select, input, textarea { font: inherit; }
 .bigo-badge { background: var(--accent); color: var(--on-accent); border-radius: var(--r-pill); padding: 1px 9px; font-size: 0.6875rem; font-weight: 700; font-family: var(--font-mono); }
 .reco { display: flex; gap: 6px; align-items: flex-start; color: var(--ok); margin-top: 8px; font-size: 0.8125rem; }
 .reco svg { flex: none; margin-top: 3px; }
+.reco-effect { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.8125rem; }
 .count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: var(--r-pill); background: var(--surface-elevated); color: var(--ink); font-size: 0.6875rem; line-height: 20px; text-align: center; letter-spacing: 0; }
 
 .bigo-list { display: flex; flex-direction: column; gap: 6px; }
@@ -353,10 +358,8 @@ kbd { font: 600 0.6875rem var(--font-mono); padding: 1px 6px; border-radius: 6px
 .console-input { background: transparent; border: none; outline: none; color: var(--accent-ink); font: inherit; width: 60%; padding: 0; caret-color: var(--accent-ink); }
 .run-panel { height: 100%; }
 
-/* ───────────── AI drawer ───────────── */
-.ai-drawer { position: fixed; top: var(--header-h); right: 0; bottom: var(--bottom-h); width: min(440px, 94vw); background: var(--surface-soft); border-left: 1px solid var(--hairline);
-  box-shadow: -12px 0 32px rgba(0, 0, 0, .25); z-index: 40; display: flex; flex-direction: column; animation: drawer-in .25s var(--ease); }
-@keyframes drawer-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+/* ───────────── AI tab ───────────── */
+.ai-pane { flex: 1; min-height: 0; display: flex; flex-direction: column; animation: fade-in .2s var(--ease); }
 .ai-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--hairline); color: var(--ink); }
 .ai-head-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-md); background: var(--accent); color: var(--on-accent); flex: none; }
 .ai-head-text { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.3; }
@@ -559,8 +562,7 @@ dialog.modal::backdrop { background: var(--backdrop); backdrop-filter: blur(3px)
 dialog.modal[open] { animation: pop-in .2s var(--ease); }
 .modal-label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
 .welcome { width: min(560px, 92vw); padding: 28px; }
-.welcome-mark .logo-mark { width: 36px; height: 36px; border-radius: 10px; display: block; }
-.welcome-mark .logo-mark::after { inset: 10px; border-radius: 3px; }
+.welcome-mark .logo-mark { width: 48px; height: 48px; border-radius: 10px; display: block; }
 .welcome-title { margin: 14px 0 6px; font-size: 1.5rem; line-height: 1.2; letter-spacing: -.02em; color: var(--ink); }
 .welcome-lead { margin: 0 0 18px; text-wrap: pretty; }
 .welcome-steps { list-style: none; margin: 0 0 22px; padding: 0; display: flex; flex-direction: column; gap: 12px; }

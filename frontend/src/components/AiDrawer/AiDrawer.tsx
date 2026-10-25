@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiX, FiInfo, FiCheckCircle, FiCornerDownRight } from 'react-icons/fi';
+import { FiInfo, FiCheckCircle, FiCornerDownRight } from 'react-icons/fi';
 import { LuSparkles } from 'react-icons/lu';
 import { useStore } from '../../store/useStore';
 import PatchView from './PatchView';
@@ -10,22 +10,20 @@ const SOURCE_LABEL: Record<string, string> = {
   static: 'База паттернов (без LLM)',
 };
 
-/** Slide-in panel with the LLM answer; never replaces the static analysis. */
+/** «ИИ-помощник» tab of the right panel with the LLM answer; never replaces the static analysis. */
 const AiDrawer: React.FC = () => {
   const ai = useStore((s) => s.ai);
   const loading = useStore((s) => s.aiLoading);
-  const close = () => useStore.getState().setAi(null);
   if (!ai && !loading) return null;
 
   return (
-    <aside className="ai-drawer" aria-label="Ответ ИИ">
+    <div className="ai-pane" aria-label="Ответ ИИ">
       <div className="ai-head">
         <span className="ai-head-icon" aria-hidden="true"><LuSparkles /></span>
         <div className="ai-head-text">
           <b title={ai?.title ?? undefined}>{ai?.title?.replace(/^\p{Extended_Pictographic}️?\s*/u, '') || 'ИИ-помощник'}</b>
           {ai && !loading && <span className="muted">{SOURCE_LABEL[ai.source] ?? ai.source}</span>}
         </div>
-        <button className="btn small icon ghost" onClick={close} aria-label="Закрыть"><FiX /></button>
       </div>
       {loading && (
         <div className="ai-body">
@@ -60,7 +58,7 @@ const AiDrawer: React.FC = () => {
           <div className="muted ai-privacy">Код отправляется во внешний LLM по кнопке «Объяснить с ИИ» и, если включено «Авто-ИИ», через 5 с после последней правки.</div>
         </div>
       )}
-    </aside>
+    </div>
   );
 };
 

@@ -462,6 +462,9 @@ class _Instrumenter:
                 self.ternaries(kw + 2, rp, ctx)
             self.expr(s.expression, ctx)
             for case in s.cases or []:
+                if getattr(case, "arrow", False):
+                    self.arrow_case(case, ctx)
+                    continue
                 self.case_probe(case, ctx)
                 self.block(case.statements, ctx)
         elif isinstance(s, T.TryStatement):
@@ -526,13 +529,38 @@ class _Instrumenter:
     def short(label: str) -> str:
         return label if len(label) <= _LABEL_MAX else label[:_LABEL_MAX - 1] + "…"
 
+    def has_pattern(self, a: int, b: int) -> bool:
+        """Tokens [a, b) hold ``x instanceof Type name`` (Java 16): wrapping that condition in a
+        probe call would take the pattern variable out of scope, so it is left uninstrumented."""
+        toks = self.tokens
+        for j in range(a, b):
+            if toks[j].value != "instanceof":
+                continue
+            k = j + 1
+            if k < b and toks[k].value == "final":
+                return True
+            depth = 0
+            while k < b:
+                v = toks[k].value
+                if v == "<":
+                    depth += 1
+                elif v == ">":
+                    depth -= 1
+                elif depth == 0 and v not in (".", "[", "]") and not (
+                        isinstance(toks[k], javalang.tokenizer.Identifier) and toks[k - 1].value in ("instanceof", ".")):
+                    break
+                k += 1
+            if k < b and isinstance(toks[k], javalang.tokenizer.Identifier):
+                return True
+        return False
+
     def is_true(self, a: int, b: int) -> bool:
         return b - a == 1 and self.tokens[a].value == "true"
 
     def decision(self, a: int, b: int, ctx: str, label: str, line: int, scan: bool = True) -> None:
         """``if``/``do``/``?:`` condition [a, b): ``__Cov.c(sb, D')``; *scan* — also the ``?:``
         conditions inside it."""
-        if b <= a:
+        if b <= a or self.has_pattern(a, b):
             return
         p = self.probe("branch", line, ctx, self.short(label), _TF, self.off(a))
         self.condition(a, b, ctx, ["__Cov.c(", _Ref(p), ", "] if p else None)
@@ -631,7 +659,7 @@ class _Instrumenter:
             semi2 = None if semi1 is None else self.scan(semi1 + 1, ";")
             if semi2 is not None:
                 ca, cb = semi1 + 1, semi2
-        constant = not each and (ca is None or ca >= cb or self.is_true(ca, cb))
+        constant = not each and (ca is None or ca >= cb or self.is_true(ca, cb) or self.has_pattern(ca, cb))
         en = rp + 1 if type(s.body) is T.Statement else self.end_tok(s)
         p = None
         if not constant and en is not None:
@@ -680,6 +708,38 @@ class _Instrumenter:
         p = self.probe("branch", self.line(colon), ctx, self.short(label), _HIT, at)
         if p:
             self.edit(at, [" __Cov.h(", _Ref(p), ");"])
+
+    def arrow_case(self, case, ctx: str) -> None:
+        """Java 14 ``case A, B -> …``: branch probe first in the rule body; a body that is a single
+        statement (expression / throw) is wrapped in ``{ … }`` to hold the probes."""
+        if not case.statements:
+            return
+        st = self.start_tok(case.statements[0])
+        if st is None or st < 1:
+            return
+        braced = self.tokens[st - 1].value == "{" and st >= 2 and self.tokens[st - 2].value == "->"
+        arrow = st - 2 if braced else st - 1
+        if self.tokens[arrow].value != "->":
+            return
+        k = arrow - 1
+        while k >= 0 and self.tokens[k].value not in ("case", "default"):
+            k -= 1
+        label = "default" if k >= 0 and self.tokens[k].value == "default" else f"case {self.text(k + 1, arrow)}"
+        if braced:
+            at = self.end_off(st - 1)
+            p = self.probe("branch", self.line(arrow), ctx, self.short(label), _HIT, at)
+            if p:
+                self.edit(at, [" __Cov.h(", _Ref(p), ");"])
+            self.block(case.statements, ctx)
+            return
+        en = self.end_tok(case.statements[-1])
+        if en is None:
+            return
+        at = self.off(st)
+        p = self.probe("branch", self.line(arrow), ctx, self.short(label), _HIT, at)
+        self.edit(at, ["{ ", *(["__Cov.h(", _Ref(p), "); "] if p else [])])
+        self.block(case.statements, ctx)
+        self.edit(self.end_off(en), [" }"])
 
     def catch_braces(self, kw: int, n: int) -> list[tuple[int, int]]:
         """(``catch`` token, ``{`` of its block) for the first *n* catch clauses of a try."""

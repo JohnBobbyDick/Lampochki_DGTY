@@ -36,14 +36,30 @@ There is no frontend test suite or linter config. Optional hardened runner image
   `state.require()` and operate on that, so `/api/parse` must be called first (else 409). This is a deliberate
   single-user demo design. `state.find_method` resolves `"Class.method"` refs used across endpoints.
 - `core/parser.py` turns `javalang` output into a JSON AST with declaration spans (via `core/source_map.py`,
-  token-based). javalang limits syntax to ~Java 8.
+  token-based). `javalang` is vendored in `backend/javalang/` (MIT, not a pip dependency) and extended to Java 17:
+  `RecordDeclaration` (compact ctor → `ConstructorDeclaration.compact`), `sealed`/`non-sealed` modifiers + `permits`,
+  arrow cases (`SwitchStatementCase.arrow`, `case A, B`), `SwitchExpression`, `YieldStatement`, `instanceof` patterns
+  (`pattern_name` on the type), text blocks, `\s` escape. Java 21 `switch` patterns are not supported. Records and
+  enums are listed in `ast["classes"]` with `kind` (`class|record|enum`); interfaces stay in `ast["interfaces"]`, and
+  their methods with bodies are found by `state.method_names`/`find_method`. Every statement dict gets `col`,
+  `range`/`src` (char offsets / exact source) and `head_range` (inside the parens of if/while/for/switch/catch);
+  statements whose text can't be rebuilt from the tree (switch expressions, anonymous classes, block lambdas,
+  local classes) are `lossy` and show/edit their real source (`raw`).
 - `core/cfg_builder.py` builds a per-method CFG with **deterministic node ids** (`n0…`). Graph editing relies on
   this: `/api/generate` rebuilds the CFG server-side, diffs the client's node labels against its own, and passes
-  only changed labels to `core/code_generator.py`, which regenerates the method body and splices it into the
-  source by span. Changing CFG id assignment breaks round-tripping.
+  only changed labels to `core/code_generator.py`. `splice_edits` replaces just the edited nodes' `range`/`head_range`
+  in the source (everything else stays byte-identical); only if a range is missing (e.g. `\uXXXX` escapes) does it
+  fall back to re-rendering the method body, where unedited statements are still emitted from `src`. Changing CFG
+  id assignment breaks round-tripping. Java arrow `switch` has no fall-through in the CFG.
 - `/api/graph?type=cfg|call|class` also decorates nodes with Big O (`bigo_analyzer`) and defects
   (`defect_detector`); node `data` keys are camelCased for the frontend in `api/graph.py`.
-- `core/decomposer.py` groups static methods by name prefix + call graph; `/decompose/verify` and
+  `Defect.big_o_after` (`bigOAfter`) is the rule's expected Big O of the fragment after its recommendation
+  (`defect_detector._power`); the frontend shows it on the defect card and, via `utils/bigoAfter.staticBigoAfter`,
+  in the method row when there is no AI estimate.
+- `core/decomposer.py` groups static methods by name prefix + call graph, moves nested classes/records/enums to
+  files, and extracts closed groups of instance fields + the methods that alone use them into a component class
+  (Extract Class: the monolith keeps a `private final` instance and delegating methods; a field's constructor
+  assignment moves only if it is side-effect free, see `_SAFE_INIT`); `/decompose/verify` and
   `/quality-gate` compile and compare stdout of original vs. new code (`core/comparator.py` masks timestamps).
 - Execution: `core/runner.py` (batch run, `JAVA_SANDBOX_MODE=subprocess|docker`, 10 s timeout, `-Xmx256m`) and
   `core/interactive.py` + `api/ws.py` (`/api/ws/run` streams stdout and accepts stdin for `Scanner`).
@@ -76,6 +92,9 @@ tests never touch a real `.env`; LLM tests opt in with `monkeypatch.setenv`. Use
 fixture to load files from `test_monoliths/`. Runner/compare tests need a JDK on PATH.
 
 ## Other files
+
+`results/` holds the saved test runs (pytest local/JDK 17/Docker, vitest, build) and the demo scenario run;
+`results/demo_scenario.py` replays the case path against a running stack (`docker compose up -d`).
 
 `DESIGN.md` is the UI design spec (dark canvas, `#faff69` yellow accent, Inter / JetBrains Mono) — follow it for
 UI work. `docs/architecture.md` is a short module overview; `to-do.md` is the original task plan (partly

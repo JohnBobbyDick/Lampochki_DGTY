@@ -49,9 +49,33 @@ def _flatten(stmts: list[dict]) -> list[dict]:
     return res
 
 
+def _dirty(s) -> bool:
+    """Whether a statement dict (or anything inside it) was changed by ``apply_edit``."""
+    if isinstance(s, dict):
+        return any(k in s for k in ("_edited", "_text", "_deleted", "_orig_text")) or any(
+            _dirty(v) for v in s.values() if isinstance(v, (dict, list)))
+    if isinstance(s, list):
+        return any(_dirty(v) for v in s)
+    return False
+
+
+def _verbatim(s: dict, ind: str) -> list[str]:
+    """The statement's own source, re-indented to *ind* (continuation lines keep their offsets)."""
+    lines = s["src"].split("\n")
+    old = max(0, (s.get("col") or 1) - 1)
+    rest = []
+    for line in lines[1:]:
+        cut = min(old, len(line) - len(line.lstrip(" ")))
+        rest.append(ind + line[cut:] if line.strip() else "")
+    return [ind + lines[0], *rest]
+
+
 def render_stmt(s: dict, level: int) -> list[str]:
     ind = INDENT * level
     t = s.get("type", "")
+
+    if s.get("src") and not _dirty(s):
+        return _verbatim(s, ind)
 
     if "_text" in s:
         return [ind + line for line in _end(s["_text"]).splitlines()]
@@ -71,6 +95,8 @@ def render_stmt(s: dict, level: int) -> list[str]:
         return [f"{ind}return {s['expression']};" if s.get("expression") else f"{ind}return;"]
     if t == "ThrowStatement":
         return [f"{ind}throw {s['expression']};"]
+    if t == "YieldStatement":
+        return [f"{ind}yield {s['expression']};"]
     if t == "BreakStatement":
         return [f"{ind}break{' ' + s['label'] if s.get('label') else ''};"]
     if t == "ContinueStatement":
@@ -87,6 +113,17 @@ def render_stmt(s: dict, level: int) -> list[str]:
         return [f"{ind}while ({s['condition']}) {{", *_block(s.get("body", []), level), ind + "}"]
     if t == "DoStatement":
         return [ind + "do {", *_block(s.get("body", []), level), f"{ind}}} while ({s['condition']});"]
+
+    if t == "SwitchStatement" and s.get("arrow"):
+        lines = [f"{ind}switch ({s['expression']}) {{"]
+        for case in s.get("cases", []):
+            labels = [lbl for lbl in case.get("labels", []) if lbl != "default"]
+            head = f"case {', '.join(labels)}" if labels else "default"
+            lines.append(f"{ind}{INDENT}{head} -> {{")
+            lines.extend(render_stmts(_flatten(case.get("body", [])), level + 2))
+            lines.append(f"{ind}{INDENT}}}")
+        lines.append(ind + "}")
+        return lines
 
     if t == "SwitchStatement":
         lines = [f"{ind}switch ({s['expression']}) {{"]
@@ -111,6 +148,8 @@ def render_stmt(s: dict, level: int) -> list[str]:
         lines.append(ind + "}")
         return lines
 
+    if s.get("src"):
+        return _verbatim(s, ind)
     raise UnsupportedConstruct(f"Unsupported statement: {t}")
 
 
@@ -237,6 +276,7 @@ def apply_edit(stmt: dict, text: str) -> None:
     """Mutate *stmt* so that it renders from the user-edited node *text*."""
     t = stmt.get("type", "")
     text = text.strip()
+    stmt["_edited"] = True
     if t in ("StreamSource", "StreamOp", "StreamTerminal"):
         text = text.rstrip(";").strip()
         if t != "StreamSource":
@@ -264,6 +304,81 @@ def apply_edit(stmt: dict, text: str) -> None:
         pass  # structural markers – not editable as text
     else:
         stmt["_text"] = text
+
+
+def _stream_owners(stmts: list, owners: dict[int, dict]) -> dict[int, dict]:
+    """id(stream step dict) -> the statement holding that stream."""
+    for s in stmts:
+        if not isinstance(s, dict):
+            continue
+        st = s.get("stream")
+        if st:
+            for step in [st["source"], *st["ops"], st.get("terminal")]:
+                if step:
+                    owners[id(step)] = s
+        for key in ("then", "else", "body", "finally"):
+            if isinstance(s.get(key), list):
+                _stream_owners(s[key], owners)
+        for part in (s.get("cases") or []) + (s.get("catches") or []):
+            _stream_owners(part.get("body", []), owners)
+    return owners
+
+
+def _replacement(stmt: dict) -> tuple[list[int], str] | None:
+    """(source range, new text) for one edited statement / catch clause, or None if unknown."""
+    t = stmt.get("type", "")
+    if stmt.get("stream") and _dirty(stmt["stream"]):
+        return (stmt["range"], _end(_compose_edited(stmt["stream"]))) if "range" in stmt else None
+    if "_text" in stmt:
+        return (stmt["range"], _end(stmt["_text"])) if "range" in stmt else None
+    if t in _FIELD_OF:
+        return (stmt["head_range"], stmt[_FIELD_OF[t]]) if "head_range" in stmt else None
+    if t in ("ReturnStatement", "ThrowStatement"):
+        return (stmt["range"], render_stmt(stmt, 0)[0]) if "range" in stmt else None
+    if "catches" not in stmt and "types" in stmt:  # a catch clause
+        if "head_range" not in stmt:
+            return None
+        return stmt["head_range"], f"{' | '.join(stmt['types'])} {stmt['name']}"
+    return None
+
+
+def splice_edits(code: str, method: dict, edits: dict[str, str]) -> tuple[str, list[str]] | None:
+    """Apply node edits as text replacements of just the edited nodes' source ranges.
+
+    Everything else in the file stays byte-identical. Returns None when some edited node has no
+    known range (then the caller re-renders the method body)."""
+    m = copy.deepcopy(method)
+    _, _, stmt_of = build_cfg_with_map(m)
+    owners = _stream_owners(m.get("body", []), {})
+    targets: dict[int, dict] = {}
+    changed: list[str] = []
+    for nid, text in edits.items():
+        stmt = stmt_of.get(nid)
+        if stmt is None:
+            continue
+        apply_edit(stmt, text)
+        changed.append(nid)
+        target = owners.get(id(stmt), stmt)
+        targets[id(target)] = target
+    if not targets:
+        return code, changed
+
+    repl: list[tuple[int, int, str]] = []
+    for target in targets.values():
+        r = _replacement(target)
+        if r is None:
+            return None
+        (a, b), text = r
+        line_start = code.rfind("\n", 0, a) + 1
+        indent = code[line_start:a] if not code[line_start:a].strip() else ""
+        repl.append((a, b, text.replace("\n", "\n" + indent)))
+    repl.sort(reverse=True)
+    for (a, b, _), (a2, b2, _) in zip(repl[1:], repl):
+        if b > a2:  # overlapping edits: let the full re-render sort them out
+            return None
+    for a, b, text in repl:
+        code = code[:a] + text + code[b:]
+    return code, changed
 
 
 def regenerate_method(method: dict, edits: dict[str, str]) -> tuple[list[str], list[str]]:

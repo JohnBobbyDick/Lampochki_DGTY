@@ -161,3 +161,13 @@ def test_monolith_and_demo_estimates_unchanged(read_java):
     ts = (Path(__file__).resolve().parents[2] / "frontend" / "src" / "project" / "examples.ts").read_text(encoding="utf-8")
     demo = re.search(r"export const DEMO = `(.*?)`", ts, re.S).group(1)
     assert analyze(demo)[1] == baseline["DEMO"]
+
+
+def test_defects_carry_expected_effect(read_java):
+    """The rule behind a defect tells what the fragment costs once its recommendation is applied."""
+    for name, method, before in (("Analyzer", "Analyzer.mergeItems", "O(n²)"),
+                                 ("Calculator", "Calculator.fibonacci", "O(2^n)")):
+        code = read_java(name)
+        ast, b = analyze(code)
+        d = next(d for d in detect_defects(ast, code, b) if d.method == method)
+        assert (d.big_o, d.big_o_after) == (before, "O(n)")

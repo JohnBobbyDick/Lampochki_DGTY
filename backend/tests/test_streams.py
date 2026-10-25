@@ -142,6 +142,7 @@ def test_not_decomposed():
 
 _CHAIN = ("List<Integer> r = xs.stream().filter(x -> x > 0).map(x -> x * 2)"
           ".collect(Collectors.toList());\n System.out.println(r);")
+_CHAIN_SRC = _CHAIN.split("\n")[0]
 _CHAIN_LINE = ("List<Integer> r = xs.stream().filter((x) -> x > 0).map((x) -> x * 2)"
                ".collect(Collectors.toList());")
 
@@ -213,7 +214,8 @@ def test_cfg_return_chain_goes_to_end():
     assert nodes[2].label == "return xs.stream()"
     assert any(e.source == nodes[4].id and e.target == nodes[1].id for e in edges)
     body, changed = regenerate_method(m, {})
-    assert body == ["return xs.stream().filter((x) -> x > 0).count();"] and changed == []
+    # an unedited statement keeps its source text
+    assert body == ["return xs.stream().filter(x -> x > 0).count();"] and changed == []
 
 
 def test_regenerate_without_edits_equals_plain_rendering():
@@ -221,7 +223,7 @@ def test_regenerate_without_edits_equals_plain_rendering():
     body, changed = regenerate_method(m, {})
     assert changed == []
     assert body == render_stmts(_no_stream(m["body"]), 0)
-    assert body[0] == _CHAIN_LINE
+    assert body[0] == _CHAIN_SRC
 
 
 def _ids(m):
@@ -269,7 +271,8 @@ def test_edit_multiline_chain_with_block_lambda_and_method_ref():
     nodes, _ = build_cfg(m)
     ops = [n for n in nodes if n.type == "stream-op"]
     assert [n.data["line_start"] for n in ops] == [6, 7, 8]
-    before = regenerate_method(m, {})[0][0]
+    # an edited chain is re-composed on one line from its (reconstructed) steps
+    before = compose(m["body"][0]["stream"]) + ";"
     filt = next(n for n in ops if n.label.startswith("filter"))
     after = regenerate_method(m, {filt.id: "filter(x -> x > 3)"})[0][0]
     assert after == before.replace(filt.label, "filter(x -> x > 3)")
@@ -283,7 +286,7 @@ def test_edit_source_with_full_chain_does_not_duplicate():
     """The node editor may send the whole statement as the source label."""
     m = _method(_CHAIN)
     nid = _ids(m)["stream-source:List<Integer> r = xs.stream()"]
-    plain = regenerate_method(m, {})[0]
+    plain = [_CHAIN_LINE, *regenerate_method(m, {})[0][1:]]
     full = compose(m["body"][0]["stream"])
     for label in (full, full + ";", "xs.stream().filter((x) -> x > 0) .map((x) -> x * 2)\n"
                   "   .collect(Collectors.toList())"):

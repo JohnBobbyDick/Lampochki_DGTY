@@ -28,6 +28,8 @@ export interface Defect {
   method?: string;
   severity: 'error' | 'warning' | 'hint';
   bigO?: string;
+  /** Expected Big O of the fragment once the recommendation is applied (static rule, no LLM). */
+  bigOAfter?: string;
   message: string;
   recommendation: string;
 }

@@ -179,7 +179,9 @@ export function useApi() {
       const st = S();
       st.setAi(null);
       st.setAiLoading(true);
+      const seq = S().aiSeq;
       const data = await call(async () => (await api.post('/ai/explain', { defect, language: S().language })).data, true);
+      if (S().aiSeq !== seq) return data; // the drawer was closed while waiting
       st.setAiLoading(false);
       if (data) {
         st.setAi({ title: '✨ Объяснение дефекта', text: data.explanation, patch: data.patch, source: data.source, note: data.note });
@@ -192,7 +194,9 @@ export function useApi() {
       const st = S();
       st.setAi(null);
       st.setAiLoading(true);
+      const seq = S().aiSeq;
       const data = await call(async () => (await api.post('/ai/fix', { code: st.code, line: err.line, message: err.message, language: st.language })).data, true);
+      if (S().aiSeq !== seq) return data; // the drawer was closed while waiting
       st.setAiLoading(false);
       if (data) {
         st.setAi({ title: '✨ Исправление ошибки', text: data.explanation, patch: data.patch, source: data.source, note: data.note });
@@ -205,7 +209,9 @@ export function useApi() {
       const st = S();
       st.setAi(null);
       st.setAiLoading(true);
+      const seq = S().aiSeq;
       const data = await call(async () => (await api.post('/ai/decompose')).data, true);
+      if (S().aiSeq !== seq) return data;
       st.setAiLoading(false);
       if (data) st.setAi({ title: '✨ Совет по декомпозиции', text: data.advice, source: data.source, note: data.note });
       return data;

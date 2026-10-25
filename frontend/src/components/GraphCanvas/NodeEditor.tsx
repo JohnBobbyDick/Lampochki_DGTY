@@ -30,8 +30,11 @@ const NodeEditor: React.FC = () => {
     // labels sent to the server are the *displayed* labels; the server diffs them against its own
     const res = await api.generateCode({ type: 'cfg', method: st.selectedMethod, nodes: graphNodes });
     if (res?.code) {
+      const before = st.code;
       st.replaceCode(res.code);
       close();
+      // graph → Java → run both versions: the verdict lands in the «Проверка» tab
+      if (res.code !== before) api.compareCode(before, res.code);
     }
   };
 

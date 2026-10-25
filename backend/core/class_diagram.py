@@ -21,14 +21,18 @@ def build_class_diagram(ast: dict) -> tuple[list[GraphNode], list[GraphEdge]]:
     names: set[str] = set()
 
     for cls in ast.get("classes", []):
+        if cls["name"] in names:  # a nested type is listed once
+            continue
         names.add(cls["name"])
+        kind = cls.get("kind", "class")
+        constants = [f"+ {c}" for c in cls.get("constants", [])]
         nodes.append(GraphNode(
-            id=cls["name"], type="class", label=cls["name"],
+            id=cls["name"], type="class", label=cls["name"] if kind == "class" else f"«{kind}» {cls['name']}",
             data={
                 "line_start": cls.get("line_start"),
                 "line_end": (cls.get("span") or {}).get("end", cls.get("line_start")),
-                "code_snippet": f"class {cls['name']}",
-                "fields": [f"{_vis(f['modifiers'])} {f['name']}: {f['type']}" for f in cls["fields"]],
+                "code_snippet": f"{kind} {cls['name']}",
+                "fields": constants + [f"{_vis(f['modifiers'])} {f['name']}: {f['type']}" for f in cls["fields"]],
                 "methods": [
                     f"{_vis(m['modifiers'])} {m['name']}({', '.join(p['type'] for p in m['parameters'])}): {m['return_type']}"
                     for m in cls["methods"]

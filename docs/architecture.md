@@ -5,12 +5,13 @@ Browser SPA (React, Ace, React Flow, Zustand) → REST `/api` → FastAPI.
 | Модуль | Назначение |
 |---|---|
 | `state.py`, `main.py` | сессия на вкладку браузера: заголовок `X-Session-Id` (UUID; иначе 400) → middleware кладёт `Session` в `ContextVar`, `state.current()`; до 200 сессий, вытеснение LRU, простой > 1 ч удаляет; без заголовка — общая сессия по умолчанию. WebSocket `/api/ws/run` сессию не использует |
-| `core/parser.py` | javalang → JSON-AST, line_map, спаны деклараций (по токенам) |
+| `javalang/` | встроенный форк javalang (MIT), расширенный до Java 17: record, sealed/permits, switch со стрелками и switch-выражения, `yield`, `instanceof` с образцом, текстовые блоки |
+| `core/parser.py` | javalang → JSON-AST, line_map, спаны деклараций (по токенам); record/enum в `classes` с `kind`; у каждого оператора `range`/`src`/`head_range` — точный текст в исходнике |
 | `core/cfg_builder.py` | CFG метода; детерминированные id узлов (`n0…`), карта узел→оператор |
 | `core/call_graph.py`, `class_diagram.py` | графы вызовов / классов |
 | `core/bigo_analyzer.py`, `defect_detector.py` | Big O по вложенности циклов/рекурсии; дефекты |
-| `core/code_generator.py` | правки узлов → перегенерация тела метода и вставка в исходник по спану |
-| `core/decomposer.py` | группировка static-методов по префиксам имён + графу вызовов |
+| `core/code_generator.py` | правки узлов → замена только текста изменённых узлов по `range`/`head_range` (`splice_edits`); запасной путь — перепечатка тела метода, где неизменённые операторы берутся из исходника |
+| `core/decomposer.py` | группировка static-методов по префиксам имён + графу вызовов; вложенные типы — в файлы; Extract Class для замкнутых групп полей объекта (делегаты в монолите) |
 | `core/runner.py`, `comparator.py` | javac/java (subprocess или docker), diff stdout (маскирует timestamps) |
 | `core/streams.py` | распознавание цепочек Stream API в операторе: поле `stream` (`prefix`, `source`, `ops`, `terminal`), `compose` собирает цепочку обратно; узлы CFG `stream-source`/`stream-op`/`stream-terminal` |
 | `core/coverage/` | покрытие: инструментирование исходника по токенам (`instrument.py`, `conditions.py`), счётчик `Cov.java` (mmap-файл), сборка с деградацией и чтение hits (`build.py`); Python — `py_cov.py` (AST-трансформация, рантайм `_jb_cov`) + загрузчик `_jb_run.py` |

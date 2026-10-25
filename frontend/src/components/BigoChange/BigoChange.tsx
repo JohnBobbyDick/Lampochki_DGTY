@@ -5,11 +5,11 @@ import { isBigoChange } from '../../utils/bigoChange';
 import { speedup } from '../../utils/speedup';
 
 /** «было → станет · ~N× быстрее»; renders nothing when there is no known change. */
-const BigoChange: React.FC<{ before: string; after?: string }> = ({ before, after }) => {
+const BigoChange: React.FC<{ before: string; after?: string; title?: string }> = ({ before, after, title }) => {
   if (!after || !isBigoChange(before, after)) return null;
   const sp = speedup(before, after);
   return (
-    <span className="bigo-change">
+    <span className="bigo-change" title={title}>
       <span className={`bigo-chip small ${classifyBigO(before).grade}`}>{before}</span>
       <FiArrowRight className="bigo-arrow" aria-label="станет" />
       <span className={`bigo-chip small ${classifyBigO(after).grade}`}>{after}</span>

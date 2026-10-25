@@ -76,6 +76,7 @@ class Defect(CamelModel):
     method: str = ""
     severity: str = Field("warning", description="'hint', 'warning', or 'error'")
     big_o: str = Field("", description="Big-O impact if relevant")
+    big_o_after: str = Field("", description="expected Big-O of the fragment once the recommendation is applied")
     message: str
     recommendation: str = ""
 

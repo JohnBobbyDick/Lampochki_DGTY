@@ -29,7 +29,7 @@ const Welcome: React.FC<{ open: boolean; onClose: () => void }> = ({ open, onClo
         className="btn"
         onClick={() => {
           const lang = useStore.getState().language;
-          useProject.getState().open(lang === 'python' ? 'examples/analyzer.py' : 'examples/Analyzer.java');
+          useProject.getState().open(lang === 'python' ? 'examples/analyzer.py' : 'examples/Warehouse.java');
           onClose();
         }}
       >

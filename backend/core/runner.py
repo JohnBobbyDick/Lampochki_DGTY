@@ -105,6 +105,23 @@ def get_javac_cmd() -> str:
     return _find_jdk()[0]
 
 
+_JDK_MAJOR: int | None = None
+
+
+def jdk_major() -> int:
+    """Major version of the javac in use (0 if unknown): records need 16+, switch expressions 14+."""
+    global _JDK_MAJOR
+    if _JDK_MAJOR is None:
+        try:
+            out = subprocess.run([get_javac_cmd(), "-version"], capture_output=True, text=True, timeout=20)
+            m = re.search(r"(\d+)(?:\.(\d+))?", out.stdout + out.stderr)
+            major = int(m.group(1)) if m else 0
+            _JDK_MAJOR = int(m.group(2)) if major == 1 and m.group(2) else major  # "1.8" -> 8
+        except Exception:  # noqa: BLE001
+            _JDK_MAJOR = 0
+    return _JDK_MAJOR
+
+
 def get_java_cmd() -> str:
     return _find_jdk()[1]
 
@@ -166,7 +183,7 @@ def detect_main_class(code: str) -> str | None:
 
 
 def _public_class(code: str) -> str | None:
-    m = re.search(r"\bpublic\s+(?:final\s+|abstract\s+)?(?:class|interface|enum)\s+(\w+)", code)
+    m = re.search(r"\bpublic\s+(?:final\s+|abstract\s+|sealed\s+|non-sealed\s+)*(?:class|interface|enum|record)\s+(\w+)", code)
     return m.group(1) if m else None
 
 

@@ -79,6 +79,10 @@ interface AppState {
   runNonce: number;
   ai: AiAnswer | null;
   aiLoading: boolean;
+  /** Bumped by closeAi: an answer requested before the bump is dropped. */
+  aiSeq: number;
+  /** Bumped whenever an AI answer is requested or shown: the right panel switches to the «ИИ-помощник» tab. */
+  aiFocus: number;
   aiEnabled: boolean;
   aiAuto: boolean;
   aiReviewing: boolean;
@@ -115,6 +119,7 @@ interface AppState {
   requestRun: () => void;
   setAi: (a: AiAnswer | null) => void;
   setAiLoading: (b: boolean) => void;
+  closeAi: () => void;
   setAiEnabled: (b: boolean) => void;
   setAiAuto: (b: boolean) => void;
   setAiReviewing: (b: boolean) => void;
@@ -186,6 +191,8 @@ export const useStore = create<AppState>((set, get) => ({
   runNonce: 0,
   ai: null,
   aiLoading: false,
+  aiSeq: 0,
+  aiFocus: 0,
   aiEnabled: false,
   aiAuto: (() => {
     try { return localStorage.getItem('jb.aiAuto') !== '0'; } catch { return true; }
@@ -281,8 +288,9 @@ export const useStore = create<AppState>((set, get) => ({
   setEditingNode: (editingNode) => set({ editingNode }),
   setSyncStatus: (syncStatus) => set({ syncStatus }),
   setStdin: (stdin) => set({ stdin }),
-  setAi: (ai) => set({ ai }),
-  setAiLoading: (aiLoading) => set({ aiLoading }),
+  setAi: (ai) => set((s) => ({ ai, aiFocus: ai ? s.aiFocus + 1 : s.aiFocus })),
+  setAiLoading: (aiLoading) => set((s) => ({ aiLoading, aiFocus: aiLoading ? s.aiFocus + 1 : s.aiFocus })),
+  closeAi: () => set((s) => ({ ai: null, aiLoading: false, aiSeq: s.aiSeq + 1 })),
   setAiEnabled: (aiEnabled) => set({ aiEnabled }),
   setAiAuto: (aiAuto) => {
     try { localStorage.setItem('jb.aiAuto', aiAuto ? '1' : '0'); } catch { /* private mode */ }

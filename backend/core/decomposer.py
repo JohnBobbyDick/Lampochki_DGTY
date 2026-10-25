@@ -1,7 +1,9 @@
 """Suggest and build a decomposition of a monolithic class/module into several files.
 
 Supports both Java and Python:
-- In Java: static methods are moved into new classes (e.g. MathOps.java, Parser.java).
+- In Java: static methods are moved into new classes (e.g. MathOps.java, Parser.java); a group of
+  instance fields with the methods that alone use them is extracted into a component class that the
+  monolith holds and delegates to (Extract Class), so its public API stays the same.
 - In Python: top-level functions (grouped like Java methods) and whole classes are moved into modules
   (e.g. mathops.py, store.py) and imported in main.py.
 """
@@ -42,10 +44,16 @@ def _group_of(name: str) -> str | None:
 
 def _comment_start(lines: list[str], start: int) -> int:
     """Pull in contiguous comment lines directly above a declaration (1-based)."""
-    i = start - 1
-    while i >= 1 and lines[i - 1].strip().startswith(("//", "/*", "*", "*/", "#")):
+    i = start
+    while i > 1 and lines[i - 2].strip().startswith(("//", "/*", "*", "*/", "#")):
         i -= 1
     return i
+
+
+def _removal_start(lines: list[str], start: int) -> int:
+    """Start of a declaration's comments plus one blank line above, so removals don't pile up blank lines."""
+    i = _comment_start(lines, start)
+    return i - 1 if i > 1 and not lines[i - 2].strip() else i
 
 
 def _uses(text: str, name: str) -> bool:
@@ -470,11 +478,163 @@ def _decompose_python(code: str) -> DecomposeResponse:
     return DecomposeResponse(files=files, warnings=warnings)
 
 
+# ── Java: Extract Class for instance state ─────────────────────────────────────
+
+# a moved field initializer must be free of side effects: `new T<>()` / `new T[]{…}` / literals
+_SAFE_INIT = re.compile(r"^(?:new\s+[\w.$<>?,\s\[\]]+(?:\(\s*\)|\[\s*\d*\s*\](?:\s*\{[^;]*\})?)"
+                        r"|-?\d[\w.]*|\"[^\"\\]*\"|'.'|true|false|null)$")
+_ASSIGN = re.compile(r"^(?:this\.)?(\w+)\s*=\s*(.+?);$", re.S)
+
+
+def _field_end(lines: list[str], start: int) -> int:
+    """Last line (1-based) of the field declaration that starts on *start*."""
+    i = start
+    while i <= len(lines) and not lines[i - 1].rstrip().endswith(";"):
+        i += 1
+    return min(i, len(lines))
+
+
+def _instance_components(ast: dict, mono: dict, lines: list[str], taken: set[str]) -> list[dict]:
+    """Groups of instance fields + the instance methods that alone use them (Extract Class).
+
+    A component is closed: its methods touch only its own fields and call only its own methods (or
+    static members); no other method touches its fields. Other code keeps calling the moved methods
+    through delegates left in the monolith, so they may be called from anywhere."""
+    fields = [f for f in mono.get("fields", []) if "static" not in f.get("modifiers", []) and f.get("line")]
+    methods = [m for m in mono.get("methods", [])
+               if "static" not in m.get("modifiers", []) and m.get("span") and m.get("body_open")]
+    if not fields or len(methods) < 2:
+        return []
+    names = {f["name"] for f in fields}
+    inst_names = {m["name"] for m in methods}
+    text_of = {id(m): "\n".join(lines[m["body_open"]["line"] - 1: m["span"]["end"]]) for m in methods}
+
+    def uses(text: str, name: str) -> bool:
+        return re.search(rf"(?<![\w.$])(?:this\.)?{re.escape(name)}\b", text) is not None
+
+    # union-find over methods and fields: a method joins every field it touches
+    parent: dict[str, str] = {}
+
+    def find(x: str) -> str:
+        while parent.setdefault(x, x) != x:
+            x = parent[x]
+        return x
+
+    def union(a: str, b: str) -> None:
+        parent[find(a)] = find(b)
+
+    escapes: set[str] = set()   # methods that pass `this` around: they stay
+    calls: dict[str, set[str]] = {}
+    for m in methods:
+        key, text = "m:" + m["name"], text_of[id(m)]
+        find(key)
+        if re.search(r"(?<![\w.])this\b(?!\s*\.)", text) or re.search(r"\bsuper\s*\.", text):
+            escapes.add(key)
+        for f in names:
+            if uses(text, f):
+                union(key, "f:" + f)
+        calls[m["name"]] = {o for o in inst_names - {m["name"]}
+                            if re.search(rf"(?<![\w.$])(?:this\.)?{re.escape(o)}\s*\(", text)}
+    # fields touched by constructors / initializers outside a simple `f = <safe>` stay with everything else
+    ctor_moves: dict[str, tuple[dict, str]] = {}
+    pinned: set[str] = set()
+    for ctor in mono.get("constructors", []):
+        params = {p["name"] for p in ctor.get("parameters", [])}
+        for st in ctor.get("body", []):
+            src = (st.get("src") or "").strip()
+            m = _ASSIGN.match(src) if st.get("type") == "StatementExpression" and "\n" not in src else None
+            alone = bool(st.get("line")) and lines[st["line"] - 1].strip() == src  # the line can be dropped
+            if m and alone and m.group(1) in names and m.group(1) not in ctor_moves \
+                    and _SAFE_INIT.match(m.group(2).strip()) and not any(uses(m.group(2), p) for p in params):
+                ctor_moves[m.group(1)] = (st, m.group(2).strip())
+                continue
+            for f in names:
+                if uses(src, f):
+                    pinned.add(f)
+
+    comps: dict[str, dict] = {}
+    for m in methods:
+        comps.setdefault(find("m:" + m["name"]), {"methods": [], "fields": []})["methods"].append(m)
+    for f in fields:
+        root = find("f:" + f["name"])
+        if root in comps:
+            comps[root]["fields"].append(f)
+
+    out = []
+    for comp in comps.values():
+        ms, fs = comp["methods"], comp["fields"]
+        if not fs or len(ms) >= len(methods) or any("m:" + m["name"] in escapes for m in ms):
+            continue
+        own = {m["name"] for m in ms}
+        if any(calls[m["name"]] - own for m in ms):
+            continue        # calls back into the monolith: not closed
+        if any(f["name"] in pinned or len([x for x in mono["fields"] if x.get("line") == f["line"]]) > 1
+               for f in fs):
+            continue        # assigned in a constructor in a way we can't move, or `int a, b;` on one line
+        decl_texts = {f["name"]: "\n".join(lines[f["line"] - 1: _field_end(lines, f["line"])]) for f in fs}
+        if any(f["name"] in ctor_moves and "=" in decl_texts[f["name"]] for f in fs):
+            continue        # both an initializer and a constructor assignment
+        base = re.sub(r"(^|_)([a-z])", lambda x: x.group(2).upper(), fs[0]["name"]) or "Component"
+        name = base[0].upper() + base[1:]
+        while name in taken:
+            name += "Part"
+        taken.add(name)
+        var = name[0].lower() + name[1:]
+        out.append({"name": name, "var": var, "methods": ms, "fields": fs,
+                    "ctor": {f["name"]: ctor_moves[f["name"]] for f in fs if f["name"] in ctor_moves}})
+    return out
+
+
+def _component_file(ast: dict, comp: dict, lines: list[str], fix) -> DecomposedFile:
+    """Source of an extracted component: moved fields (with initializers) + moved methods."""
+    parts = []
+    for f in comp["fields"]:
+        start, end = _comment_start(lines, f["line"]), _field_end(lines, f["line"])
+        decl = "\n".join(lines[start - 1: end])
+        if f["name"] in comp["ctor"]:
+            decl = re.sub(r"\s*;\s*$", f" = {comp['ctor'][f['name']][1]};", decl)
+        parts.append(decl)
+    body = "\n".join(parts)
+    for m in comp["methods"]:
+        start = _comment_start(lines, m["span"]["start"])
+        chunk = "\n".join(lines[start - 1: m["span"]["end"]])
+        decl_at = m["span"]["start"] - start
+        head, tail = chunk.split("\n")[:decl_at], chunk.split("\n")[decl_at:]
+        decl = "\n".join(tail)
+        # called by the monolith's delegate, so not private; no supertype to override here
+        decl = re.sub(r"@Override\s*", "", decl, count=1)
+        decl = re.sub(r"\bprivate\s+", "", decl, count=1)
+        body += "\n\n" + "\n".join(head + [fix(decl)])
+    code = _imports_for(ast, body) + f"public class {comp['name']} {{\n" + body + "\n}\n"
+    return DecomposedFile(name=f"{comp['name']}.java", methods=[m["name"] for m in comp["methods"]], code=code)
+
+
+def _delegate(m: dict, var: str, lines: list[str]) -> tuple[int, int, list[str]]:
+    """(first, last) body lines of *m* and the delegating body that replaces them."""
+    bo, end = m["body_open"], m["span"]["end"]
+    first = lines[bo["line"] - 1]
+    indent = re.match(r"\s*", lines[m["span"]["start"] - 1]).group(0)
+    args = ", ".join(p["name"] for p in m.get("parameters", []))
+    call = f"{var}.{m['name']}({args});"
+    stmt = call if m.get("return_type", "void") == "void" else f"return {call}"
+    new = [first[: bo["col"]], f"{indent}    {stmt}", f"{indent}}}"]
+    return bo["line"], end, new
+
+
 def decompose(code: str, ast: dict) -> DecomposeResponse:
     if ast.get("language") == "python":
         return _decompose_python(code)
     mono, groups, inner, warnings = plan(ast)
-    if not mono or len(groups) < 1:
+    lines_all = code.split("\n")
+    comps = _instance_components(ast, mono, lines_all, {mono.get("name")} | {c["name"] for c in ast.get("classes", [])}
+                                 | set(groups)) if mono else []
+    moved_inst = {m["name"] for c in comps for m in c["methods"]}
+    kept = [m["name"] for m in (mono or {}).get("methods", [])
+            if "static" not in m.get("modifiers", []) and m["name"] not in moved_inst and m["name"] != "main"]
+    warnings = [w for w in warnings if " не static — оставлен в " not in w]
+    if kept:
+        warnings.insert(0, f"Остались в {mono['name']} (работают с общим состоянием объекта): {', '.join(kept)}")
+    if not mono or (len(groups) < 1 and not comps):
         return DecomposeResponse(files=[], warnings=warnings + ["Нечего выделять"])
 
     lines = code.split("\n")
@@ -512,6 +672,9 @@ def decompose(code: str, ast: dict) -> DecomposeResponse:
         hdr_len = bo["line"] - start + 1
         header, body = chunk[:hdr_len], chunk[hdr_len:]
         header[-1], tail = header[-1][: bo["col"]], header[-1][bo["col"]:]
+        # the moved method is called as Group.name(...) from other classes, so it can't stay private
+        decl = m["span"]["start"] - start
+        header[decl:] = re.sub(r"\bprivate\s+", "", "\n".join(header[decl:]), count=1).split("\n")
         return "\n".join(header), tail + "\n" + "\n".join(body)
 
     kept_static = {
@@ -526,6 +689,7 @@ def decompose(code: str, ast: dict) -> DecomposeResponse:
             continue
         s, e = _comment_start(lines, ic["span"]["start"]), ic["span"]["end"]
         chunk = lines[s - 1: e]
+        s = _removal_start(lines, ic["span"]["start"])
         text = "\n".join(l[4:] if l.startswith("    ") else l for l in chunk)
         text = re.sub(r"^(\s*)(?:(public|private|protected)\s+)?static\s+", lambda m_: f"{m_.group(1)}", text, count=1, flags=re.M)
         text = re.sub(r"^(\s*)private\s+", r"\1", text, count=1)
@@ -543,12 +707,33 @@ def decompose(code: str, ast: dict) -> DecomposeResponse:
         code_g = _imports_for(ast, body) + f"public class {g} {{\n" + body + "\n}\n"
         files.append(DecomposedFile(name=f"{g}.java", methods=[m["name"] for m in ms], code=code_g))
         for m in ms:
-            removed_spans.append((_comment_start(lines, m["span"]["start"]), m["span"]["end"]))
+            removed_spans.append((_removal_start(lines, m["span"]["start"]), m["span"]["end"]))
+
+    # Extract Class: component files; in the monolith fields go, method bodies delegate
+    replaced: list[tuple[int, int, list[str]]] = []
+    for comp in comps:
+        files.append(_component_file(ast, comp, lines, lambda t: qualify_facade(rewrite(t), kept_static)))
+        holder_done = False
+        for f in sorted(comp["fields"], key=lambda f: f["line"]):
+            s_, e_ = _removal_start(lines, f["line"]), _field_end(lines, f["line"])
+            if not holder_done:
+                indent = re.match(r"\s*", lines[f["line"] - 1]).group(0)
+                replaced.append((s_, e_, [*([""] if s_ < f["line"] and not lines[s_ - 1].strip() else []),
+                                          f"{indent}private final {comp['name']} {comp['var']} = new {comp['name']}();"]))
+                holder_done = True
+            else:
+                removed_spans.append((s_, e_))
+        for st, _ in comp["ctor"].values():
+            ln = st["line"]
+            removed_spans.append((ln, ln))
+        for m in comp["methods"]:
+            replaced.append(_delegate(m, comp["var"], lines))
 
     # fields referenced from moved code lose `private`
     facade_lines = list(lines)
-    for s, e in sorted(removed_spans, reverse=True):
-        del facade_lines[s - 1: e]
+    edits = [(s_, e_, None) for s_, e_ in removed_spans] + replaced
+    for s_, e_, new in sorted(edits, key=lambda x: x[0], reverse=True):
+        facade_lines[s_ - 1: e_] = new or []
     facade_text = "\n".join(facade_lines)
     facade_text = rewrite(facade_text)
     for f in static_fields:

@@ -9,7 +9,7 @@ import re
 import tokenize
 
 from core.bigo_analyzer import (LOOP_TYPES, _Analyzer, _children, _loop_else, _nested, _py_parse, _walk_exprs,
-                                find_loops, is_recursive)
+                                complexity_label, find_loops, is_recursive)
 from core.cfg_builder import build_cfg, build_cfg_with_map, max_line
 from models.schemas import Defect
 
@@ -103,7 +103,7 @@ def _detect(ast: dict, code: str, bigo: dict[str, str] | None) -> list[Defect]:
                     and _iterable(outer) == _iterable(loop)
                 )
                 power = depth
-                big = "O(n²)" if power == 2 else "O(n³)" if power == 3 else f"O(n^{power})"
+                big = _power(power)
                 if same_iter:
                     msg = (f"Вложенный цикл по одной и той же коллекции «{_iterable(loop)}» — "
                            f"повторная обработка пар элементов в {qname}")
@@ -117,7 +117,7 @@ def _detect(ast: dict, code: str, bigo: dict[str, str] | None) -> list[Defect]:
                     line_start=line or 0, line_end=max_line(loop, line) or line or 0,
                     node_id=_node_id_for_line(m, line), method=qname,
                     severity="error" if power >= 3 else "warning",
-                    big_o=big, message=msg, recommendation=rec,
+                    big_o=big, big_o_after=_power(power - 1), message=msg, recommendation=rec,
                 ))
 
             # 2/3. catch blocks ---------------------------------------------
@@ -209,7 +209,7 @@ def _detect(ast: dict, code: str, bigo: dict[str, str] | None) -> list[Defect]:
                         span = dict(line_start=m.get("line_start") or 0, line_end=(m.get("span") or {}).get("end", 0), method=key)
                         if exponential:
                             defects.append(Defect(
-                                **span, severity="warning", big_o="O(2^n)",
+                                **span, severity="warning", big_o="O(2^n)", big_o_after="O(n)",
                                 message=f"Рекурсия в {key} вызывает себя дважды с уменьшением на 1 — "
                                         f"время растёт экспоненциально",
                                 recommendation="Запоминать уже посчитанные значения (мемоизация) или считать "
@@ -228,6 +228,11 @@ def _detect(ast: dict, code: str, bigo: dict[str, str] | None) -> list[Defect]:
 
 
 _PY_POS_KEYS = ("line", "line_end", "id", "span", "header")
+
+
+def _power(n: int) -> str:
+    """O(n^k) in the analyzer's notation: O(1), O(n), O(n²)…"""
+    return complexity_label((max(n, 0), 0))
 
 
 def _strip_lines(o, keys: tuple[str, ...] = ("line",)):
@@ -311,10 +316,11 @@ def _stream_defects(ast: dict) -> list[Defect]:
             qname = f"{cls['name']}.{m['name']}"
             body = m.get("body", [])
 
-            def add(line, severity, message, rec, big_o="", part=None):
+            def add(line, severity, message, rec, big_o="", part=None, after=""):
                 found.append(Defect(
                     line_start=line or 0, line_end=line or 0, node_id=_node_id_for_part(m, part, line),
-                    method=qname, severity=severity, big_o=big_o, message=message, recommendation=rec,
+                    method=qname, severity=severity, big_o=big_o, big_o_after=after, message=message,
+                    recommendation=rec,
                 ))
 
             # 1. stream over the collection that the enclosing loop iterates
@@ -333,7 +339,7 @@ def _stream_defects(ast: dict) -> list[Defect]:
                             f"Повторный стрим по коллекции «{coll}» внутри цикла по ней в {qname} — "
                             f"на каждый элемент коллекция обходится заново",
                             "Вынести стрим из цикла или посчитать результат за один проход (Map/Set) — O(n) вместо O(n²)",
-                            "O(n²)", part=st["source"])
+                            "O(n²)", part=st["source"], after="O(n)")
 
             for s in _walk_stmts(body):
                 st = s.get("stream")
@@ -358,7 +364,7 @@ def _stream_defects(ast: dict) -> list[Defect]:
                                 f"sorted(...).findFirst() в {qname} сортирует всё ради одного элемента — "
                                 f"используйте min(...)/max(...)",
                                 "Заменить на min(...)/max(...) с компаратором — O(n) вместо O(n log n)",
-                                "O(n log n)", part=term)
+                                "O(n log n)", part=term, after="O(n)")
                         if name in ("forEach", "forEachOrdered"):
                             args = term["args"]
                             lm = _LAMBDA_PARAMS.match(args)
@@ -495,10 +501,11 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
             types: dict[str, str] | None = None
             seen: set[tuple[int, str]] = set()
 
-            def add(line, severity, message, rec, big_o="", line_end=None, m=m, qname=qname):
+            def add(line, severity, message, rec, big_o="", line_end=None, after="", m=m, qname=qname):
                 found.append(Defect(
                     line_start=line or 0, line_end=line_end or line or 0, node_id=_node_id_for_line(m, line),
-                    method=qname, severity=severity, big_o=big_o, message=message, recommendation=rec,
+                    method=qname, severity=severity, big_o=big_o, big_o_after=after, message=message,
+                    recommendation=rec,
                 ))
 
             def memberships(s: dict, keys: tuple[str, ...], in_loop: bool, m=m, cls=cls, qname=qname,
@@ -523,7 +530,7 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
                     add(s.get("line"), "warning",
                         f"Поиск в списке «{text}» внутри цикла в {qname} — каждая проверка in перебирает весь список",
                         f"Превратите «{text}» в set до цикла (или храните элементы сразу в set) — проверка in "
-                        f"станет O(1)", "O(n²)")
+                        f"станет O(1)", "O(n²)", after="O(n)")
 
             # 3. nested loops (the same collection → pairs) --------------------------------
             for loop, depth in loops:
@@ -531,7 +538,7 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
                     continue
                 outer = _enclosing_loop(body, loop)
                 it = _py_iterable(loop)
-                big = "O(n²)" if depth == 2 else "O(n³)" if depth == 3 else f"O(n^{depth})"
+                big = _power(depth)
                 if outer is not None and it is not None and _py_iterable(outer) == it:
                     msg = f"Вложенный цикл по одной и той же коллекции «{it}» — повторная обработка пар элементов в {qname}"
                     rec = ("Сгруппировать элементы по ключу в dict/set за один проход, а пары перебирать через "
@@ -540,7 +547,8 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
                     msg = f"Вложенные циклы (глубина {depth}) в {qname}"
                     rec = "Заменить внутренний поиск проверкой в set/dict или объединить проходы по данным"
                 line = loop.get("line")
-                add(line, "error" if depth >= 3 else "warning", msg, rec, big, max_line(loop, line) or line)
+                add(line, "error" if depth >= 3 else "warning", msg, rec, big, max_line(loop, line) or line,
+                    after=_power(depth - 1))
 
             # 1/2. string concatenation and list membership once per iteration --------------
             in_loops: set[int] = set()
@@ -554,7 +562,7 @@ def _python_defects(ast: dict, code: str) -> list[Defect]:
                         seen.add((id(s), "+="))
                         add(s.get("line"), "warning",
                             f"Конкатенация строки «{name}» в цикле в {qname} — каждое сложение копирует всю строку",
-                            "Собрать части в список и объединить один раз: ''.join(parts)", "O(n²)")
+                            "Собрать части в список и объединить один раз: ''.join(parts)", "O(n²)", after="O(n)")
                     memberships(s, _PY_EXPR_KEYS, True)
             for s in _walk_stmts(body):                       # comprehensions outside loops
                 if id(s) not in in_loops:

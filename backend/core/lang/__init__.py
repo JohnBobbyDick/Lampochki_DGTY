@@ -24,7 +24,10 @@ def _check(language: str) -> Callable[[str], list[dict]]:
 
 
 def _java_regenerate(code: str, method: dict, edits: dict[str, str]) -> tuple[str, list[str]]:
-    from core.code_generator import regenerate_method, splice_method
+    from core.code_generator import regenerate_method, splice_edits, splice_method
+    spliced = splice_edits(code, method, edits)
+    if spliced is not None:
+        return spliced
     body, changed = regenerate_method(method, edits)
     return splice_method(code, method, body), changed
 

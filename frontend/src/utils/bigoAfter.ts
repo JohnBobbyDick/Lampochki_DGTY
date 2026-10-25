@@ -1,4 +1,5 @@
 import type { AiAnswer, AiPatch } from '../store/useStore';
+import type { Defect } from '../types';
 import { fragmentPresent } from './fragment';
 import { growth } from './speedup';
 
@@ -42,4 +43,19 @@ export const bigoAfter = (
   if (patches.length === 0) return {};
   if (patches.length === 1) return patches[0].bigoAfter ?? {};
   return combined ?? bestSingle(patches);
+};
+
+/**
+ * Rule-based estimate without an LLM: a method's Big O after fixing every defect that sets it
+ * (defect.bigO equals the method's label). Known only if each such defect has an expected bigOAfter;
+ * the result is the worst of those.
+ */
+export const staticBigoAfter = (bigo: Record<string, string>, defects: Defect[]): Record<string, string> => {
+  const out: Record<string, string> = {};
+  for (const [m, label] of Object.entries(bigo)) {
+    const dominant = defects.filter((d) => d.method === m && d.bigO === label);
+    if (!dominant.length || dominant.some((d) => !d.bigOAfter || growth(d.bigOAfter) === null)) continue;
+    out[m] = dominant.reduce((worst, d) => (growth(d.bigOAfter!)! > growth(worst)! ? d.bigOAfter! : worst), dominant[0].bigOAfter!);
+  }
+  return out;
 };

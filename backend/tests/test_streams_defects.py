@@ -145,6 +145,8 @@ def test_monolith_defects_unchanged():
         code = open(f, encoding="utf-8").read()
         got = [d.model_dump() for d in detect_defects(parse_java(code)["ast"], code)]
         got = json.loads(json.dumps(got, ensure_ascii=False))
+        for d in got:
+            d.pop("big_o_after")    # added after the baseline: the expected effect of the recommendation
         if os.path.basename(f) not in base:  # Streams.java has no pre-stage-6 baseline (new demo)
             continue
         old = base[os.path.basename(f)]

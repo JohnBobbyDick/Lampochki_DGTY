@@ -22,7 +22,7 @@ import { useBigoAfter } from './hooks/useBigoAfter';
 import { useTheme, toggleTheme } from './hooks/useTheme';
 import { useColumns, COL_LIMITS } from './hooks/useColumns';
 
-type Side = 'diagnostics' | 'decompose';
+type Side = 'diagnostics' | 'decompose' | 'ai';
 
 /** Russian plural form: plural(2, ['идея', 'идеи', 'идей']) → 'идеи'. */
 const plural = (n: number, forms: [string, string, string]) => {
@@ -70,6 +70,16 @@ const App: React.FC = () => {
   const hasBottom = useStore((s) => s.hasBottom);
   const decomposition = useStore((s) => s.decomposition);
   const hasDecomposition = !!(decomposition && decomposition.length > 0);
+  const aiOpen = useStore((s) => !!s.ai || s.aiLoading);
+  const aiFocus = useStore((s) => s.aiFocus);
+
+  useEffect(() => {
+    if (aiFocus) setSide('ai');
+  }, [aiFocus]);
+
+  useEffect(() => {
+    if (side === 'ai' && !aiOpen) setSide('diagnostics');
+  }, [side, aiOpen]);
 
   useEffect(() => {
     if (side === 'decompose' && !hasDecomposition && !isLoading) {
@@ -223,12 +233,17 @@ const App: React.FC = () => {
             {(hasDecomposition || (isLoading && side === 'decompose')) && (
               <button className={`tab ${side === 'decompose' ? 'active' : ''}`} aria-pressed={side === 'decompose'} onClick={() => setSide('decompose')}>Декомпозиция</button>
             )}
+            {aiOpen && (
+              <span className={`tab tab-closable ${side === 'ai' ? 'active' : ''}`}>
+                <button className="tab-label" aria-pressed={side === 'ai'} onClick={() => setSide('ai')}><LuSparkles aria-hidden="true" /> ИИ-помощник</button>
+                <button className="tab-close" onClick={() => useStore.getState().closeAi()} aria-label="Закрыть вкладку «ИИ-помощник»" title="Закрыть"><FiX /></button>
+              </span>
+            )}
           </div>
-          {side === 'diagnostics' ? <DiagnosticsPanel /> : <DecomposePanel />}
+          {side === 'diagnostics' ? <DiagnosticsPanel /> : side === 'decompose' ? <DecomposePanel /> : <AiDrawer />}
         </section>
       </main>
 
-      <AiDrawer />
       {aiReviewing && (
         <div className="ai-banner" role="status">
           <span className="spinner" aria-hidden="true" /> <LuSparkles className="ai-banner-icon" aria-hidden="true" /> ИИ смотрит, как улучшить ваш код…

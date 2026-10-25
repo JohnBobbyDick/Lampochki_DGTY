@@ -59,6 +59,9 @@ from javalang.tree import (
     Literal,
     BreakStatement,
     ContinueStatement,
+    RecordDeclaration,
+    YieldStatement,
+    SwitchExpression,
 )
 
 from core.streams import stream_of
@@ -110,10 +113,14 @@ def parse_java(code: str) -> dict[str, Any]:
 
     code_lines = code.splitlines()
 
-    # Walk top-level type declarations
+    # Walk type declarations (nested ones too). Records and enums are listed with the classes
+    # (``kind``) so their methods get a CFG, Big O, defects and a class-diagram node.
     for path, node in tree.filter(ClassDeclaration):
         cls = _extract_class(node, code_lines, line_map)
         ast_dict["classes"].append(cls)
+
+    for path, node in tree.filter(RecordDeclaration):
+        ast_dict["classes"].append(_extract_class(node, code_lines, line_map))
 
     for path, node in tree.filter(InterfaceDeclaration):
         iface = _extract_interface(node, code_lines, line_map)
@@ -122,6 +129,7 @@ def parse_java(code: str) -> dict[str, Any]:
     for path, node in tree.filter(EnumDeclaration):
         enum = _extract_enum(node, code_lines, line_map)
         ast_dict["enums"].append(enum)
+        ast_dict["classes"].append(_extract_class(node, code_lines, line_map))
 
     _attach_spans(ast_dict, code)
     return {"ast": ast_dict, "line_map": line_map, "errors": errors}
@@ -129,11 +137,12 @@ def parse_java(code: str) -> dict[str, Any]:
 
 def _attach_spans(ast_dict: dict, code: str) -> None:
     """Add a ``span`` ({start, end} lines incl. modifiers and closing brace)."""
-    from core.source_map import declaration_span, tokenize
+    from core.source_map import Offsets, declaration_span, tokenize
 
     tokens = tokenize(code)
     if not tokens:
         return
+    offsets = Offsets(code, tokens)
 
     def visit(decl: dict) -> None:
         for key in ("methods", "constructors"):
@@ -146,6 +155,8 @@ def _attach_spans(ast_dict: dict, code: str) -> None:
                         if bt is not None:
                             pos = tokens[bt].position
                             m["body_open"] = {"line": pos.line, "col": pos.column}
+                if offsets.ok:
+                    _attach_ranges(m.get("body", []), code, offsets)
         if decl.get("line_start") and decl.get("col"):
             sp = declaration_span(tokens, decl["line_start"], decl["col"])
             if sp:
@@ -157,6 +168,86 @@ def _attach_spans(ast_dict: dict, code: str) -> None:
         visit(c)
     for i in ast_dict["interfaces"]:
         visit(i)
+
+
+_HEADED = ("IfStatement", "WhileStatement", "ForStatement", "SwitchStatement")
+# statements the CFG expands into their own nodes; everything else is one node with one text
+_COMPOUND = (*_HEADED, "DoStatement", "TryStatement", "BlockStatement")
+
+
+def _attach_ranges(stmts: list[dict], code: str, offsets: Any) -> None:
+    """Give every statement dict its exact source: ``range`` / ``src`` (char offsets in *code*, the
+    whole statement) and, for headed statements and catch clauses, ``head_range`` (inside the
+    parentheses). The code generator splices edits into these ranges, leaving the rest untouched."""
+    from core.source_map import match_close, paren_after, statement_end
+
+    tokens = offsets.tokens
+    for d in stmts:
+        if not isinstance(d, dict):
+            continue
+        i = offsets.index(d.get("line"), d.get("col"))
+        if i is not None:
+            start = i
+            # javalang points a declaration after its `final` / annotations
+            while start > 0 and (tokens[start - 1].value == "final"
+                                 or tokens[start - 1].__class__.__name__ == "Annotation"
+                                 or (start > 1 and tokens[start - 2].__class__.__name__ == "Annotation")):
+                start -= 1
+            end = statement_end(tokens, i)
+            a, b = offsets.start(start), offsets.end(end)
+            d["range"] = [a, b]
+            d["src"] = code[a:b]
+            if d.get("type") in _HEADED:
+                p = paren_after(tokens, i)
+                if p:
+                    d["head_range"] = [offsets.end(p[0]), offsets.start(p[1])]
+            if d.get("type") == "TryStatement" and d.get("catches"):
+                j = i + 1
+                if tokens[j].value == "(":
+                    j = match_close(tokens, j) + 1
+                j = match_close(tokens, j)
+                for c in d["catches"]:
+                    if j + 1 >= len(tokens) or tokens[j + 1].value != "catch":
+                        break
+                    p = paren_after(tokens, j + 1)
+                    if not p:
+                        break
+                    c["head_range"] = [offsets.end(p[0]), offsets.start(p[1])]
+                    j = match_close(tokens, p[1] + 1)
+            if d.get("lossy"):
+                _label_from_src(d)
+        for key in ("then", "else", "body", "finally"):
+            if isinstance(d.get(key), list):
+                _attach_ranges(d[key], code, offsets)
+        for case in d.get("cases", []) or []:
+            _attach_ranges(case.get("body", []), code, offsets)
+        for c in d.get("catches", []) or []:
+            _attach_ranges(c.get("body", []), code, offsets)
+
+
+def _one_line(text: str) -> str:
+    """Collapse line breaks (with surrounding indentation) to one space, outside text blocks."""
+    out, i = [], 0
+    for m in re.finditer(r'"""(?:\\.|[^\\])*?"""', text, re.S):
+        out.append(re.sub(r"\s*\n\s*", " ", text[i:m.start()]))
+        out.append(m.group(0))
+        i = m.end()
+    out.append(re.sub(r"\s*\n\s*", " ", text[i:]))
+    return "".join(out)
+
+
+def _label_from_src(d: dict) -> None:
+    """A statement whose expressions javalang-to-text cannot reproduce (switch expressions,
+    anonymous classes, block lambdas, local classes) shows / edits its real source instead."""
+    text = _one_line(d["src"]).strip()
+    t = d.get("type")
+    if t == "ReturnStatement":
+        d["expression"] = re.sub(r"^return\b\s*", "", text).rstrip(";").strip()
+    elif t == "ThrowStatement":
+        d["expression"] = re.sub(r"^throw\b\s*", "", text).rstrip(";").strip()
+    elif t not in _COMPOUND:
+        d["raw"] = text.rstrip(";").strip() if t != "ClassDeclaration" else text
+        d.pop("stream", None)
 
 
 # ---------------------------------------------------------------------------
@@ -198,33 +289,50 @@ def _modifiers_list(modifiers: Any) -> list[str]:
     return sorted(str(m) for m in modifiers)
 
 
-def _extract_class(node: ClassDeclaration, code_lines: list[str], line_map: dict[str, int]) -> dict:
-    """Extract a full class description."""
+def _members(node: Any) -> list:
+    """Body declarations of a class / record / enum (an enum keeps them after its constants)."""
+    if isinstance(node, EnumDeclaration):
+        return list(getattr(node.body, "declarations", None) or [])
+    return list(node.body or [])
+
+
+def _extract_class(node: Any, code_lines: list[str], line_map: dict[str, int]) -> dict:
+    """Extract a full class description (also records and enums, see ``kind``)."""
     cls_id = _make_id("class", node.name)
     if node.position:
         line_map[cls_id] = node.position.line
+    kind = "record" if isinstance(node, RecordDeclaration) else "enum" if isinstance(node, EnumDeclaration) else "class"
 
     extends = None
-    if node.extends:
+    if getattr(node, "extends", None):
         extends = _type_to_str(node.extends)
 
     implements: list[str] = []
     if node.implements:
         implements = [_type_to_str(i) for i in node.implements]
 
-    fields = _extract_fields(node, code_lines, line_map, cls_id)
-    methods = _extract_methods(node, code_lines, line_map, cls_id)
-    constructors = _extract_constructors(node, code_lines, line_map, cls_id)
+    members = _members(node)
+    fields = _extract_fields(members, code_lines, line_map, cls_id)
+    if kind == "record":
+        # record components are private final fields (with accessors) of the record
+        fields = [
+            {"id": _make_id(f"{cls_id}.field", p.name), "name": p.name, "type": _type_to_str(p.type),
+             "modifiers": ["final", "private"], "line": node.position.line if node.position else None}
+            for p in (node.components or [])
+        ] + fields
+    methods = _extract_methods(members, code_lines, line_map, cls_id)
+    constructors = _extract_constructors(members, code_lines, line_map, cls_id)
 
-    # Inner classes
+    # Inner classes, records and enums
     inner_classes: list[dict] = []
-    for member in (node.body or []):
-        if isinstance(member, ClassDeclaration):
+    for member in members:
+        if isinstance(member, (ClassDeclaration, RecordDeclaration, EnumDeclaration)):
             inner_classes.append(_extract_class(member, code_lines, line_map))
 
-    return {
+    out = {
         "id": cls_id,
         "name": node.name,
+        "kind": kind,
         "modifiers": _modifiers_list(node.modifiers),
         "extends": extends,
         "implements": implements,
@@ -235,6 +343,9 @@ def _extract_class(node: ClassDeclaration, code_lines: list[str], line_map: dict
         "line_start": node.position.line if node.position else None,
         "col": node.position.column if node.position else None,
     }
+    if kind == "enum":
+        out["constants"] = [c.name for c in (getattr(node.body, "constants", None) or [])]
+    return out
 
 
 def _extract_interface(node: InterfaceDeclaration, code_lines: list[str], line_map: dict[str, int]) -> dict:
@@ -256,10 +367,12 @@ def _extract_interface(node: InterfaceDeclaration, code_lines: list[str], line_m
     return {
         "id": iface_id,
         "name": node.name,
+        "kind": "interface",
         "modifiers": _modifiers_list(node.modifiers),
         "extends": extends,
         "methods": methods,
         "line_start": node.position.line if node.position else None,
+        "col": node.position.column if node.position else None,
     }
 
 
@@ -289,14 +402,14 @@ def _extract_enum(node: EnumDeclaration, code_lines: list[str], line_map: dict[s
 # ---------------------------------------------------------------------------
 
 def _extract_fields(
-    cls_node: ClassDeclaration,
+    members: list,
     code_lines: list[str],
     line_map: dict[str, int],
     parent_id: str,
 ) -> list[dict]:
-    """Extract field declarations from a class body."""
+    """Extract field declarations from class body declarations."""
     fields: list[dict] = []
-    for member in (cls_node.body or []):
+    for member in members:
         if isinstance(member, FieldDeclaration):
             type_str = _type_to_str(member.type)
             for decl in (member.declarators or []):
@@ -321,14 +434,14 @@ def _extract_fields(
 # ---------------------------------------------------------------------------
 
 def _extract_methods(
-    cls_node: ClassDeclaration,
+    members: list,
     code_lines: list[str],
     line_map: dict[str, int],
     parent_id: str,
 ) -> list[dict]:
-    """Extract all method declarations from a class body."""
+    """Extract all method declarations from class body declarations."""
     methods: list[dict] = []
-    for member in (cls_node.body or []):
+    for member in members:
         if isinstance(member, MethodDeclaration):
             methods.append(_extract_single_method(member, code_lines, line_map, parent_id))
     return methods
@@ -370,14 +483,14 @@ def _extract_single_method(
 
 
 def _extract_constructors(
-    cls_node: ClassDeclaration,
+    members: list,
     code_lines: list[str],
     line_map: dict[str, int],
     parent_id: str,
 ) -> list[dict]:
     """Extract constructor declarations."""
     constructors: list[dict] = []
-    for member in (cls_node.body or []):
+    for member in members:
         if isinstance(member, ConstructorDeclaration):
             c_id = _make_id(f"{parent_id}.ctor", member.name)
             if member.position:
@@ -456,6 +569,19 @@ def _stmt_to_dict(stmt: Any) -> dict:
     d: dict[str, Any] = {"type": type(stmt).__name__}
     if hasattr(stmt, "position") and stmt.position:
         d["line"] = stmt.position.line
+        d["col"] = stmt.position.column
+    lossy_before = _LOSSY[0]
+    d = _stmt_fields(stmt, d)
+    if _LOSSY[0] != lossy_before:
+        d["lossy"] = True
+    return d
+
+
+# bumped whenever an expression is rendered to text with something left out (see ``_label_from_src``)
+_LOSSY = [0]
+
+
+def _stmt_fields(stmt: Any, d: dict[str, Any]) -> dict:
 
     # ── IfStatement ────────────────────────────────────────────────────
     if isinstance(stmt, IfStatement):
@@ -501,6 +627,12 @@ def _stmt_to_dict(stmt: Any) -> dict:
             case_body = _extract_body_statements(case.statements) if case.statements else []
             cases.append({"labels": case_labels, "body": case_body})
         d["cases"] = cases
+        if stmt.arrow:
+            d["arrow"] = True  # Java 14 `case X ->`: no fall-through between cases
+        return d
+
+    if isinstance(stmt, YieldStatement):
+        d["expression"] = _expr_to_str(stmt.expression)
         return d
 
     # ── Try / Catch / Finally ──────────────────────────────────────────
@@ -575,7 +707,11 @@ def _stmt_to_dict(stmt: Any) -> dict:
         d["label"] = stmt.goto
         return d
 
-    # ── Fallback ───────────────────────────────────────────────────────
+    # ── Fallback (local class / record / enum / interface, assert, synchronized …) ──
+    if isinstance(stmt, (ClassDeclaration, RecordDeclaration, EnumDeclaration, InterfaceDeclaration)):
+        _LOSSY[0] += 1
+        d["raw"] = f"{'record' if isinstance(stmt, RecordDeclaration) else 'class'} {stmt.name}"
+        return d
     d["raw"] = _expr_to_str(stmt)
     return d
 
@@ -673,6 +809,8 @@ def _expr_to_str(expr: Any) -> str:
         return _prefix_postfix(expr, f"({_type_to_str(expr.type)}) {_wrap(expr.expression, 'cast')}")
 
     if isinstance(expr, ClassCreator):
+        if expr.body is not None:
+            _LOSSY[0] += 1  # anonymous class body
         args = ", ".join(_expr_to_str(a) for a in (expr.arguments or []))
         diamond = "<>" if (isinstance(expr.type, ReferenceType) and expr.type.arguments == []) else ""
         tname = _type_to_str(expr.type)
@@ -701,6 +839,10 @@ def _expr_to_str(expr: Any) -> str:
     if isinstance(expr, MethodReference):
         return f"{_expr_to_str(expr.expression)}::{_expr_to_str(expr.method)}"
 
+    if isinstance(expr, SwitchExpression):
+        _LOSSY[0] += 1
+        return _prefix_postfix(expr, f"switch ({_expr_to_str(expr.expression)}) {{ … }}")
+
     if isinstance(expr, VariableDeclaration):
         names = ", ".join(
             d.name + ("[]" * len(d.dimensions) if getattr(d, "dimensions", None) else "")
@@ -720,7 +862,8 @@ def _expr_to_str(expr: Any) -> str:
         return f"{init}; {cond}; {upd}"
 
     if isinstance(expr, ReferenceType) or isinstance(expr, BasicType):
-        return _type_to_str(expr)
+        pattern = getattr(expr, "pattern_name", None)  # `x instanceof Type name`
+        return _type_to_str(expr) + (f" {pattern}" if pattern else "")
 
     if isinstance(expr, Literal):
         return _prefix_postfix(expr, str(expr.value))
@@ -728,6 +871,7 @@ def _expr_to_str(expr: Any) -> str:
     if hasattr(expr, "value"):
         return str(expr.value)
 
+    _LOSSY[0] += 1
     return type(expr).__name__
 
 
@@ -739,6 +883,10 @@ def _stmt_text(stmt: Any) -> str:
         return f"return {_expr_to_str(stmt.expression)};".replace("return ;", "return;")
     if isinstance(stmt, LocalVariableDeclaration):
         return _expr_to_str(stmt) + ";"
+    if isinstance(stmt, (ThrowStatement, YieldStatement)):
+        kw = "throw" if isinstance(stmt, ThrowStatement) else "yield"
+        return f"{kw} {_expr_to_str(stmt.expression)};"
+    _LOSSY[0] += 1  # if / loops / … inside a block lambda
     return _expr_to_str(stmt)
 
 

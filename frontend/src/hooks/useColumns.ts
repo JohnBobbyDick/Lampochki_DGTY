@@ -8,7 +8,7 @@ export const COL_LIMITS: Record<ColKey, [number, number]> = {
   side: [280, 600],
 };
 
-const DEFAULTS: Record<ColKey, number> = { tree: 244, editor: 460, side: 380 };
+const DEFAULTS: Record<ColKey, number> = { tree: 244, editor: 460, side: 400 };
 const KEY = 'jb.columns';
 
 /** Widths of the resizable columns, remembered per browser. */

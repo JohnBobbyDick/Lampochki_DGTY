@@ -41,14 +41,30 @@ There is no linter config. Optional hardened runner image: `docker build -t lamp
   The frontend id comes from `utils/sessionId.ts` (`sessionStorage` `jb.sid`) via an axios interceptor in
   `hooks/useApi.ts`. `state.find_method` resolves `"Class.method"` refs used across endpoints.
 - `core/parser.py` turns `javalang` output into a JSON AST with declaration spans (via `core/source_map.py`,
-  token-based). javalang limits syntax to ~Java 8.
+  token-based). `javalang` is vendored in `backend/javalang/` (MIT, not a pip dependency) and extended to Java 17:
+  `RecordDeclaration` (compact ctor → `ConstructorDeclaration.compact`), `sealed`/`non-sealed` modifiers + `permits`,
+  arrow cases (`SwitchStatementCase.arrow`, `case A, B`), `SwitchExpression`, `YieldStatement`, `instanceof` patterns
+  (`pattern_name` on the type), text blocks, `\s` escape. Java 21 `switch` patterns are not supported. Records and
+  enums are listed in `ast["classes"]` with `kind` (`class|record|enum`); interfaces stay in `ast["interfaces"]`, and
+  their methods with bodies are found by `state.method_names`/`find_method`. Every statement dict gets `col`,
+  `range`/`src` (char offsets / exact source) and `head_range` (inside the parens of if/while/for/switch/catch);
+  statements whose text can't be rebuilt from the tree (switch expressions, anonymous classes, block lambdas,
+  local classes) are `lossy` and show/edit their real source (`raw`).
 - `core/cfg_builder.py` builds a per-method CFG with **deterministic node ids** (`n0…`). Graph editing relies on
   this: `/api/generate` rebuilds the CFG server-side, diffs the client's node labels against its own, and passes
-  only changed labels to `core/code_generator.py`, which regenerates the method body and splices it into the
-  source by span. Changing CFG id assignment breaks round-tripping.
+  only changed labels to `core/code_generator.py`. `splice_edits` replaces just the edited nodes' `range`/`head_range`
+  in the source (everything else stays byte-identical); only if a range is missing (e.g. `\uXXXX` escapes) does it
+  fall back to re-rendering the method body, where unedited statements are still emitted from `src`. Changing CFG
+  id assignment breaks round-tripping. Java arrow `switch` has no fall-through in the CFG.
 - `/api/graph?type=cfg|call|class` also decorates nodes with Big O (`bigo_analyzer`) and defects
   (`defect_detector`); node `data` keys are camelCased for the frontend in `api/graph.py`.
-- `core/decomposer.py` groups static methods by name prefix + call graph; `/decompose/verify` and
+  `Defect.big_o_after` (`bigOAfter`) is the rule's expected Big O of the fragment after its recommendation
+  (`defect_detector._power`); the frontend shows it on the defect card and, via `utils/bigoAfter.staticBigoAfter`,
+  in the method row when there is no AI estimate.
+- `core/decomposer.py` groups static methods by name prefix + call graph, moves nested classes/records/enums to
+  files, and extracts closed groups of instance fields + the methods that alone use them into a component class
+  (Extract Class: the monolith keeps a `private final` instance and delegating methods; a field's constructor
+  assignment moves only if it is side-effect free, see `_SAFE_INIT`); `/decompose/verify` and
   `/quality-gate` compile and compare stdout of original vs. new code (`core/comparator.py` masks timestamps).
 - Execution: `core/runner.py` (batch run, `JAVA_SANDBOX_MODE=subprocess|docker`, 10 s timeout, `-Xmx256m`) and
   `core/interactive.py` + `api/ws.py` (`/api/ws/run` streams stdout and accepts stdin for `Scanner`; the whole
@@ -124,10 +140,13 @@ BottomPanel tab «Покрытие» (`CoveragePanel`) shows the summary.
 Big O after AI: `utils/speedup.ts` (f(n) ratio at n = 1000, nice rounding), `utils/bigoAfter.ts` + `hooks/useBigoAfter.ts` →
 `useStore.bigoAfterAi` (one applicable advice: `patch.bigoAfter`; ≥2: `/api/ai/bigo-combined`, debounced 400 ms), shown by
 `components/BigoChange` (`utils/bigoChange.ts`) in DiagnosticsPanel's «Сложность методов · Big O» row and `PatchView`.
-`hooks/useApi.ts` wraps all backend calls;
+`components/GraphCanvas/NodeEditor.tsx` runs `/run/compare` (code before vs. after) right after a graph edit, so the
+verdict shows in the «Проверка» tab. `hooks/useApi.ts` wraps all backend calls;
 `hooks/useSync.ts` drives the edit → 500 ms debounce → `/parse` → `/analyze` + `/graph` loop and lays graphs
 out with ELK (`elkjs` 0.12.0 layered layout via `utils/elkLayout.ts`, rendered by `components/GraphCanvas/LabeledEdge.tsx` with orthogonal bend points and loop ports). The graph button toggles visibility (defaults to closed, closes on language switch); editor expands when hidden; the bottom panel opens on the first run/compare action (`hasBottom`). `useProject.ts` persists project tree changes (creation, rename, deletion of files/folders, language auto-detection) in IndexedDB (`jb.project.v1`, `utils/projectStorage.ts`) with a 500 ms debounce, taking live code from `useStore.code`. `hooks/useAutoReview.ts` fires `/api/ai/review` 5 s after the last edit and cancels on new edits.
 Example Java files live in both `frontend/src/examples/` and `test_monoliths/` (the latter used by backend tests).
+`Warehouse.java` is the ~1000-line demo monolith of the case (Java 11, full mandatory scope); `Modern.java` covers
+Java 17 syntax (its run tests are skipped when `runner.jdk_major()` < 17).
 
 ## Tests
 
@@ -136,6 +155,9 @@ tests never touch a real `.env`; LLM tests opt in with `monkeypatch.setenv`. Use
 fixture to load files from `test_monoliths/`. Runner/compare tests need a JDK on PATH.
 
 ## Other files
+
+`results/` holds the saved test runs (pytest local/JDK 17/Docker, vitest, build) and the demo scenario run;
+`results/demo_scenario.py` replays the case path against a running stack (`docker compose up -d`).
 
 `DESIGN.md` is the UI design spec (dark canvas, `#faff69` yellow accent, Inter / JetBrains Mono) — follow it for
 UI work. `docs/architecture.md` is a short module overview; `to-do.md` is the original task plan (partly

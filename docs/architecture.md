@@ -4,6 +4,7 @@ Browser SPA (React, Ace, React Flow, Zustand) → REST `/api` → FastAPI.
 
 | Модуль | Назначение |
 |---|---|
+| `state.py`, `main.py` | сессия на вкладку браузера: заголовок `X-Session-Id` (UUID; иначе 400) → middleware кладёт `Session` в `ContextVar`, `state.current()`; до 200 сессий, вытеснение LRU, простой > 1 ч удаляет; без заголовка — общая сессия по умолчанию. WebSocket `/api/ws/run` сессию не использует |
 | `core/parser.py` | javalang → JSON-AST, line_map, спаны деклараций (по токенам) |
 | `core/cfg_builder.py` | CFG метода; детерминированные id узлов (`n0…`), карта узел→оператор |
 | `core/call_graph.py`, `class_diagram.py` | графы вызовов / классов |

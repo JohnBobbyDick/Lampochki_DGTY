@@ -45,7 +45,7 @@ async def fix(req: AiFixRequest) -> AiExplainResponse:
 
 @router.post("/suggest", response_model=AiSuggestResponse)
 async def suggest(req: AiSuggestRequest) -> AiSuggestResponse:
-    lang = req.language or (state.SESSION.language if state.SESSION else "java")
+    lang = req.language or state.current().language
     return AiSuggestResponse(**await ai_analyzer.suggest(req.code_fragment, req.context, language=lang))
 
 
@@ -62,7 +62,7 @@ async def review(req: AiReviewRequest, request: Request) -> AiReviewResponse:
     """Auto-review fired by the UI 5 s after the user stops typing."""
     if not llm_client.is_configured():
         return AiReviewResponse(note="LLM отключён или не настроен")
-    lang = req.language or (state.SESSION.language if state.SESSION else "java")
+    lang = req.language or state.current().language
     s = state.require(req.code, language=lang)
     known = [d.message for d in detect_defects(s.ast, s.code, analyze_ast(s.ast))]
     async with _REVIEW_SLOTS:
@@ -78,7 +78,7 @@ async def review(req: AiReviewRequest, request: Request) -> AiReviewResponse:
 
 def _req_language(language: str | None) -> str | None:
     """Request language, else the session's; None → legacy autodetect from the text."""
-    return language or (state.SESSION.language if state.SESSION and state.SESSION.code else None)
+    return language or (state.current().language if state.current().code else None)
 
 
 @router.post("/apply", response_model=AiApplyResponse)

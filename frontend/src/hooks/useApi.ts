@@ -3,12 +3,19 @@ import axios, { AxiosError } from 'axios';
 import { useStore, AiPatch } from '../store/useStore';
 import { useProject } from '../store/useProject';
 import { downloadFile } from '../utils/download';
+import { getSessionId } from '../utils/sessionId';
 import { GraphType, QualityGateResult } from '../types';
 
 const api = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
   timeout: 90_000,
+});
+
+// one server session per browser tab
+api.interceptors.request.use((cfg) => {
+  cfg.headers.set('X-Session-Id', getSessionId());
+  return cfg;
 });
 
 /** Pull a readable message out of any thrown value. */

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import axios from 'axios';
+import { getSessionId } from '../utils/sessionId';
 import { useStore } from '../store/useStore';
 import { useApi } from './useApi';
 
@@ -30,7 +31,7 @@ export function useAutoReview() {
       const st = useStore.getState();
       st.setAiReviewing(true);
       try {
-        const { data } = await axios.post('/api/ai/review', { code, language: st.language }, { signal: controller.signal, timeout: 120_000 });
+        const { data } = await axios.post('/api/ai/review', { code, language: st.language }, { signal: controller.signal, timeout: 120_000, headers: { 'X-Session-Id': getSessionId() } });
         lastReviewed.current = code;
         const items = (data.suggestions ?? []).filter((it: { patch?: unknown }) => it.patch);
         st.setAiReview(

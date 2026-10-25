@@ -33,9 +33,13 @@ There is no linter config. Optional hardened runner image: `docker build -t lamp
 **Backend (`backend/`, FastAPI).** `main.py` mounts every router in `api/` under `/api`. Run from inside
 `backend/` — imports are top-level (`import state`, `from core.parser import …`), not package-relative.
 
-- `state.py` holds a single global `SESSION` (last parsed code, AST, line map). Most endpoints call
-  `state.require()` and operate on that, so `/api/parse` must be called first (else 409). This is a deliberate
-  single-user demo design. `state.find_method` resolves `"Class.method"` refs used across endpoints.
+- `state.py` keeps one `Session` (last parsed code, AST, line map) per browser tab: `SessionStore` (thread-safe LRU,
+  max 200 sessions, dropped after 1 h idle). `main.py` middleware selects it into a `ContextVar` from the
+  `X-Session-Id` header (non-UUID → 400; no header → shared default session, never evicted, used by curl/old tests);
+  `state.current()` returns it. Most endpoints call `state.require()` and operate on that, so `/api/parse` must be
+  called first (else 409). The WebSocket `/api/ws/run` takes code in its message and does not use the session.
+  The frontend id comes from `utils/sessionId.ts` (`sessionStorage` `jb.sid`) via an axios interceptor in
+  `hooks/useApi.ts`. `state.find_method` resolves `"Class.method"` refs used across endpoints.
 - `core/parser.py` turns `javalang` output into a JSON AST with declaration spans (via `core/source_map.py`,
   token-based). javalang limits syntax to ~Java 8.
 - `core/cfg_builder.py` builds a per-method CFG with **deterministic node ids** (`n0…`). Graph editing relies on

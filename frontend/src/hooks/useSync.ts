@@ -1,84 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { Node, Edge, MarkerType } from 'reactflow';
-import dagre from '@dagrejs/dagre';
 import { useStore } from '../store/useStore';
 import { useApi } from './useApi';
-import { GraphNode, GraphEdge } from '../types';
-
-/* mid-tone hues that read on both the light and the dark graph canvas */
-const EDGE_COLOR: Record<string, string> = {
-  normal: '#8a8a8a',
-  true: '#22a55b',
-  false: '#e5534b',
-  back: '#4f8ef7',
-  exception: '#e5534b',
-  extends: '#9b7af0',
-  implements: '#9b7af0',
-};
-
-const EDGE_LABEL: Record<string, string> = { true: 'да', false: 'нет', back: 'повтор' };
-
-function layoutGraph(
-  graphNodes: GraphNode[],
-  graphEdges: GraphEdge[],
-  direction: 'TB' | 'LR',
-): { nodes: Node[]; edges: Edge[] } {
-  const g = new dagre.graphlib.Graph();
-  g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: direction, nodesep: 60, ranksep: 84 });
-
-  const size = (n: GraphNode) =>
-    n.type === 'class' || n.type === 'interface'
-      ? { width: 280, height: 64 + 12 * 2 + 18 * (Math.max(1, n.data.fields?.length ?? 0) + Math.max(1, n.data.methods?.length ?? 0)) }
-      : n.type === 'method'
-        ? { width: 170, height: 90 }
-        : n.type.startsWith('stream-')
-          ? { width: 220, height: 46 + 18 * Math.ceil((n.label?.length ?? 0) / 26) }
-          : { width: 220, height: 70 };
-
-  graphNodes.forEach((n) => g.setNode(n.id, size(n)));
-  graphEdges.forEach((e) => g.setEdge(e.source, e.target));
-  dagre.layout(g);
-
-  const nodes: Node[] = graphNodes.map((n) => {
-    const pos = g.node(n.id);
-    const { width, height } = size(n);
-    return {
-      id: n.id,
-      type: n.type,
-      position: { x: (pos?.x ?? 0) - width / 2, y: (pos?.y ?? 0) - height / 2 },
-      data: { label: n.label, ...n.data, nodeType: n.type },
-    };
-  });
-
-  let backIndex = 0;
-  const centerX = (id: string) => g.node(id)?.x ?? 0;
-  const edges: Edge[] = graphEdges.map((e) => {
-    const color = EDGE_COLOR[e.type] ?? EDGE_COLOR.normal;
-    const back = e.type === 'back' && direction === 'TB';
-    return {
-      id: e.id,
-      source: e.source,
-      target: e.target,
-      /* back edges are explained by their dashed style and the legend; a label there only adds clutter */
-      label: back ? undefined : (e.label && (EDGE_LABEL[e.label] ?? e.label)) || undefined,
-      animated: e.type === 'back',
-      type: 'labeled',
-      /* a body left of its loop header loops back on the left, otherwise on the right */
-      ...(back ? (centerX(e.source) < centerX(e.target) - 1
-        ? { sourceHandle: 'back-out-l', targetHandle: 'back-in-l' }
-        : { sourceHandle: 'back-out-r', targetHandle: 'back-in-r' }) : {}),
-      data: { color, offset: back ? 22 + 14 * backIndex++ : 20 },
-      style: {
-        stroke: color,
-        strokeWidth: 1.6,
-        strokeDasharray: ['back', 'exception', 'implements'].includes(e.type) ? '6 4' : undefined,
-      },
-      markerEnd: { type: MarkerType.ArrowClosed, color },
-    };
-  });
-  return { nodes, edges };
-}
+import { layoutGraph } from '../utils/elkLayout';
 
 /** Debounced code → parse → graph + analysis pipeline. */
 export function useSync() {
@@ -109,7 +32,12 @@ export function useSync() {
       return;
     }
     st.setGraphError(null);
-    const { nodes, edges } = layoutGraph(data.nodes ?? [], data.edges ?? [], st.graphType === 'class' ? 'LR' : 'TB');
+    const { nodes, edges } = await layoutGraph(
+      data.nodes ?? [],
+      data.edges ?? [],
+      st.graphType === 'class' ? 'LR' : 'TB'
+    );
+    if (id !== reqId.current) return; // stale check after async ELK layout
     st.setNodes(nodes);
     st.setEdges(edges);
     setSyncStatus('idle');

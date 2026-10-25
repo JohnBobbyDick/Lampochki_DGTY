@@ -19,7 +19,7 @@ describe('Block B: UI improvements and state', () => {
     storage = fakeStorage();
     vi.stubGlobal('localStorage', storage);
     useStore.setState({
-      showGraph: true,
+      showGraph: false,
       hasBottom: false,
       decomposition: null,
       gateResult: null,
@@ -34,26 +34,45 @@ describe('Block B: UI improvements and state', () => {
   });
 
   describe('B2: showGraph', () => {
-    it('defaults to true and toggles with persistence', () => {
-      expect(useStore.getState().showGraph).toBe(true);
-
-      useStore.getState().toggleGraph();
+    it('defaults to false and toggles with persistence', () => {
       expect(useStore.getState().showGraph).toBe(false);
-      expect(storage.m['jb.graph']).toBe('0');
 
       useStore.getState().toggleGraph();
       expect(useStore.getState().showGraph).toBe(true);
       expect(storage.m['jb.graph']).toBe('1');
+
+      useStore.getState().toggleGraph();
+      expect(useStore.getState().showGraph).toBe(false);
+      expect(storage.m['jb.graph']).toBe('0');
     });
 
     it('setShowGraph explicitly sets and persists state', () => {
-      useStore.getState().setShowGraph(false);
-      expect(useStore.getState().showGraph).toBe(false);
-      expect(storage.m['jb.graph']).toBe('0');
-
       useStore.getState().setShowGraph(true);
       expect(useStore.getState().showGraph).toBe(true);
       expect(storage.m['jb.graph']).toBe('1');
+
+      useStore.getState().setShowGraph(false);
+      expect(useStore.getState().showGraph).toBe(false);
+      expect(storage.m['jb.graph']).toBe('0');
+    });
+
+    it('closes graph on language switch', () => {
+      useStore.setState({ language: 'java', showGraph: true });
+      useStore.getState().setLanguage('python');
+      expect(useStore.getState().showGraph).toBe(false);
+      expect(storage.m['jb.graph']).toBe('0');
+    });
+
+    it('closes graph in loadDocument when language changes', () => {
+      useStore.setState({ language: 'java', showGraph: true });
+      useStore.getState().loadDocument('print("hello")', 'print("hello")', 'python');
+      expect(useStore.getState().showGraph).toBe(false);
+    });
+
+    it('keeps graph open in loadDocument when language does not change', () => {
+      useStore.setState({ language: 'java', showGraph: true });
+      useStore.getState().loadDocument('class B {}', 'class B {}', 'java');
+      expect(useStore.getState().showGraph).toBe(true);
     });
   });
 

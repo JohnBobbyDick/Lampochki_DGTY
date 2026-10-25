@@ -281,6 +281,8 @@ export const useProject = create<ProjectState>((set, get) => ({
       return;
     }
 
+    useStore.getState().setShowGraph(false);
+
     const files = saved(s.files, s.activeId);
     const targetId = lang === 'python' ? s.activePythonId : s.activeJavaId;
     const target = files.find((f) => f.id === targetId) || files.find((f) => f.language === lang);

@@ -148,9 +148,7 @@ export const useStore = create<AppState>((set, get) => ({
   syntaxErrors: [],
   compileErrors: null,
   lineMap: {},
-  showGraph: (() => {
-    try { return localStorage.getItem('jb.graph') !== '0'; } catch { return true; }
-  })(),
+  showGraph: false,
   setShowGraph: (showGraph) => {
     try { localStorage.setItem('jb.graph', showGraph ? '1' : '0'); } catch { /* private mode */ }
     set({ showGraph });
@@ -198,7 +196,15 @@ export const useStore = create<AppState>((set, get) => ({
   isLoading: false,
   error: null,
 
-  setLanguage: (language) => set({ language }),
+  setLanguage: (language) => {
+    const prev = get().language;
+    if (prev !== language) {
+      try { localStorage.setItem('jb.graph', '0'); } catch { /* private mode */ }
+      set({ language, showGraph: false });
+    } else {
+      set({ language });
+    }
+  },
   setCode: (code) => set({ code }),
   setOriginalCode: (code) => set({ originalCode: code }),
   setAst: (ast) => set({ ast }),
@@ -236,8 +242,14 @@ export const useStore = create<AppState>((set, get) => ({
         detected = 'java';
       }
     }
+    const curLang = get().language;
+    const langChanged = Boolean(detected && detected !== curLang);
+    if (langChanged) {
+      try { localStorage.setItem('jb.graph', '0'); } catch { /* private mode */ }
+    }
     set((st) => ({
       docNonce: st.docNonce + 1,
+      showGraph: langChanged ? false : st.showGraph,
       code, originalCode: original, language: detected, past: [], future: [],
       runResult: null, compareResult: null, decomposition: null, gateResult: null,
       selectedMethod: null, ai: null, aiReview: null, stdin: '',

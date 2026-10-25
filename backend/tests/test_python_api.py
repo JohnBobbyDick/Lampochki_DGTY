@@ -1,5 +1,7 @@
 """Test API endpoints with Python source code."""
 
+import asyncio
+
 from fastapi.testclient import TestClient
 from main import app
 
@@ -185,3 +187,47 @@ def test_api_ai_review_python_prompt(monkeypatch):
     prompt = seen["body"]["contents"][0]["parts"][0]["text"]
     assert "Python-ревьюер" in prompt
     assert "PEP 8" in prompt
+
+
+PY_WITH_JAVA_WORDS = '''# System.out.println — так было бы в Java; public class здесь не нужен
+def total(items):
+    s = 0
+    for x in items:
+        s = s + x
+    return s
+
+print(total([1, 2, 3]))
+'''
+
+
+def test_patch_for_python_with_java_words_validated_as_python(monkeypatch):
+    """The known language reaches build_patch: a Python file is never validated as Java by a text guess."""
+    import json
+    from ai import ai_analyzer, llm_client, patcher
+
+    async def fake(prompt, **kw):
+        return json.dumps({"summary": "ок", "suggestions": [{
+            "line": 3, "title": "sum()", "detail": "встроенная функция",
+            "old_code": "    s = 0\n    for x in items:\n        s = s + x\n    return s",
+            "new_code": "    return sum(items)", "imports": []}]})
+
+    monkeypatch.setattr(llm_client, "generate", fake)
+    seen = []
+    real_validate = patcher.validate
+
+    async def spy(original, patched, **kw):
+        seen.append(kw.get("language"))
+        return await real_validate(original, patched, **kw)
+
+    monkeypatch.setattr(patcher, "validate", spy)
+    res = asyncio.run(ai_analyzer.review(PY_WITH_JAVA_WORDS, [], language="python"))
+    [item] = res["suggestions"]  # an invalid patch is dropped from the review
+    assert seen == ["python"]
+    p = item["patch"]
+    assert p["valid"], p["problems"]
+    assert p["bigo_before"] == p["bigo_after"] == {"Module.total": "O(n)"}  # sum() is O(n) too; not empty
+
+    direct = asyncio.run(patcher.build_patch(PY_WITH_JAVA_WORDS, "s = s + x", "s += x", [], 5,
+                                             language="python"))
+    assert direct["valid"], direct["problems"]
+    assert direct["bigo_before"] == direct["bigo_after"] == {"Module.total": "O(n)"}

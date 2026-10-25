@@ -71,7 +71,8 @@ async def _generate_patches(prompt: str, code: str, validate_json, extract, fix_
         patches = await asyncio.gather(*(
             patcher.build_patch(code, str(c.get("old_code") or ""), str(c.get("new_code") or ""),
                                 c.get("imports") if isinstance(c.get("imports"), list) else [],
-                                c.get("line") if isinstance(c.get("line"), int) else None, fix_line=fix_line)
+                                c.get("line") if isinstance(c.get("line"), int) else None, fix_line=fix_line,
+                                language=language)
             for c in cands))
         results = list(zip(cands, patches))
         if any(p and p["valid"] for _, p in results) or not any(_has_code(c) for c in cands):

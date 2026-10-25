@@ -160,8 +160,10 @@ def _explain(e: dict) -> str:
 
 
 async def build_patch(code: str, old: str, new: str, imports: list[str] | None,
-                      hint_line: int | None = None, *, fix_line: int | None = None) -> dict | None:
-    """Full patch description for the UI, or None when the fragment can't be located unambiguously."""
+                      hint_line: int | None = None, *, fix_line: int | None = None,
+                      language: str | None = None) -> dict | None:
+    """Full patch description for the UI, or None when the fragment can't be located unambiguously.
+    *language* — the file's known language (None → guess from the text, legacy callers)."""
     code = normalize(code)
     if not (old or "").strip() or not (new or "").strip():
         return None
@@ -170,13 +172,13 @@ async def build_patch(code: str, old: str, new: str, imports: list[str] | None,
         return None
     start, end = span
     old_text = "\n".join(code.split("\n")[start - 1:end])
-    patched, added = replace_range(code, start, end, new, imports)
+    patched, added = replace_range(code, start, end, new, imports, language)
     if patched == code:
         return None
     lines = code.split("\n")
     base = lines[start - 1][: len(lines[start - 1]) - len(lines[start - 1].lstrip())]
-    valid, problems, warnings = await validate(code, patched, fix_line=fix_line)
-    before, after = bigo_diff.bigo_change(code, patched, start, end) if valid else ({}, {})
+    valid, problems, warnings = await validate(code, patched, fix_line=fix_line, language=language)
+    before, after = bigo_diff.bigo_change(code, patched, start, end, language) if valid else ({}, {})
     return {
         "bigo_before": before, "bigo_after": after,
         "old_code": old_text, "new_code": reindent(new, base), "imports": added,

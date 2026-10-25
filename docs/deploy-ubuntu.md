@@ -12,6 +12,36 @@
 ```
 Java и Python ставить на сервер не нужно — они внутри Docker-образа.
 
+## Запуск на уже подготовленном сервере
+
+Этот раздел — для сервера, на котором шаги 1–6 ниже уже выполнены:
+- Docker и Caddy установлены;
+- репозиторий лежит в `/opt/Lampochki_DGTY`;
+- в нём есть `.env` с `JB_HTTP_BIND=127.0.0.1:8080`;
+- Caddyfile указывает на `127.0.0.1:8080`.
+
+Запуск или перезапуск после `docker compose down`:
+
+```bash
+cd /opt/Lampochki_DGTY
+git pull                                   # свежий main
+cat .env                                   # JB_HTTP_BIND=127.0.0.1:8080
+grep JB_HTTP_BIND docker-compose.yml       # "${JB_HTTP_BIND:-80}:80" — иначе git pull не прошёл
+docker compose up -d --build               # сборка и запуск (первый раз 3–10 минут)
+docker compose ps                          # backend и frontend — running
+curl -sI http://127.0.0.1:8080/ | head -1  # HTTP/1.1 200 OK
+sudo systemctl status caddy --no-pager | head -3   # active (running)
+```
+
+Откройте **https://javablueprints.mooo.com**. Если вместо интерфейса белая страница, обновите её без кеша:
+Ctrl+Shift+R (на Mac — Cmd+Shift+R). Браузер мог запомнить пустой ответ 502, который Caddy отдавал, пока
+приложение не работало.
+
+Остановить: `docker compose down`. Перезапустить без пересборки: `docker compose restart`. Обновить версию — шаг 7.
+
+**Ключи ИИ.** Если в `backend/.env` лежат ключи Gemini, закройте сайт паролем (раздел 9) или удалите ключи:
+код посетителей может их прочитать.
+
 ## 0. Что нужно
 
 | | Минимум | Рекомендуется |
@@ -185,13 +215,24 @@ python3 results/demo_scenario.py http://127.0.0.1:8080     # должно быт
 Поэтому:
 - **Открытый сайт для всех — без ключей ИИ.** Не создавайте `backend/.env` с ключами: всё, кроме ответов LLM,
   работает на статических подсказках.
-- **Нужен ИИ** — закройте сайт паролем. В Caddyfile внутри блока домена:
-  ```
-  basic_auth {
-      jury <хеш из команды: caddy hash-password>
+- **Нужен ИИ** — закройте сайт паролем. Получите хеш пароля командой `caddy hash-password` (она спросит пароль)
+  и замените Caddyfile:
+  ```bash
+  sudo tee /etc/caddy/Caddyfile > /dev/null <<'EOF'
+  javablueprints.mooo.com {
+      basicauth {
+          jury <хеш из caddy hash-password>
+      }
+      encode gzip
+      reverse_proxy 127.0.0.1:8080
   }
+  EOF
+  sudo systemctl reload caddy
   ```
-  После этого `sudo systemctl reload caddy`. В Caddy старше 2.8 директива называется `basicauth`. Используйте отдельные ключи с лимитом расходов и после демо удалите их.
+  Логин — `jury`, пароль — тот, что вы ввели. В Ubuntu ставится Caddy 2.6, поэтому директива пишется
+  `basicauth`; в Caddy 2.8+ она называется `basic_auth`.
+
+  Используйте отдельные ключи с лимитом расходов и после демо удалите их.
 - Авторизации в самом приложении нет: у каждой вкладки браузера своя сессия, файлы проекта хранятся в браузере
   посетителя.
 - Порт бэкенда (8000) наружу не публикуется, а интерфейс слушает только `127.0.0.1`. Не меняйте это.
@@ -203,7 +244,8 @@ python3 results/demo_scenario.py http://127.0.0.1:8080     # должно быт
 | `Bind for 127.0.0.1:8080 failed: port is already allocated` | Порт занят другим сервисом. Смените порт в `.env` (`JB_HTTP_BIND=127.0.0.1:8081`) и в Caddyfile, затем `docker compose up -d` и `sudo systemctl reload caddy` |
 | `Pool overlaps with other one on this address space` | Подсеть `172.30.57.0/24` уже занята. Добавьте в корневой `.env`: `JB_SUBNET=172.31.99.0/24`, `JB_NGINX_IP=172.31.99.10`, `FORWARDED_ALLOW_IPS=172.31.99.10` |
 | Сборка падает на `npm run build` (killed / exit 137) | Не хватает памяти — добавьте swap (шаг 2) |
-| `502 Bad Gateway` от Caddy | Приложение не запущено или слушает другой порт: `docker compose ps`, сравните порт в `.env` и Caddyfile |
+| Белая страница или `502 Bad Gateway`, в логе Caddy `dial tcp 127.0.0.1:8080: connect: connection refused` | Приложение не запущено или слушает другой порт. Проверьте `docker compose ps` и сравните порт в `.env` и Caddyfile. Затем обновите страницу без кеша (Ctrl+Shift+R) |
+| `failed to bind host port 0.0.0.0:80/tcp: address already in use` | Порт 80 занят Caddy, а приложение пытается занять его само: на сервере старая версия `docker-compose.yml` или нет `.env`. Выполните `git pull`, `echo 'JB_HTTP_BIND=127.0.0.1:8080' > .env`, затем `docker compose up -d` |
 | Код разбирается, но «Запустить» не подключается к консоли | Проверка Origin не совпала (WebSocket закрывается). Откройте сайт именно по `https://javablueprints.mooo.com` или добавьте адрес в `backend/.env`: `ALLOWED_ORIGINS=https://javablueprints.mooo.com` и перезапустите бэкенд |
 | «Слишком много новых сессий» | Больше 30 новых вкладок с одного IP за 10 минут — подождите или закройте лишние вкладки |
 | ИИ не отвечает | `docker compose exec backend python check_llm.py` проверяет ключи и прокси (ключи в выводе маскируются) |

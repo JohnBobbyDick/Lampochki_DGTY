@@ -17,26 +17,34 @@
 ### A1. Отдельная сессия на каждого пользователя (вкладку браузера)
 Сейчас `backend/state.py` держит один глобальный `SESSION`. Два одновременных пользователя видят графы и дефекты
 друг друга. Логина нет и не будет.
-- [ ] Фронтенд: при старте вкладки создать `sessionId` (`crypto.randomUUID()`, хранить в `sessionStorage`, чтобы
+- [x] Фронтенд: при старте вкладки создать `sessionId` (`crypto.randomUUID()`, хранить в `sessionStorage`, чтобы
       перезагрузка той же вкладки сохраняла сессию). Передавать его:
-  - [ ] в каждом HTTP-запросе — заголовок `X-Session-Id` (interceptor в `hooks/useApi.ts`);
-  - [ ] в WebSocket `/api/ws/run` — параметр `?sid=` (`components/Console/Console.tsx`, `wsUrl()`).
-- [ ] Бэкенд:
-  - [ ] `state.py`: вместо одного `SESSION` — словарь сессий по id (до 200 штук, вытеснять самую давно
+  - [x] в каждом HTTP-запросе — заголовок `X-Session-Id` (interceptor в `hooks/useApi.ts`);
+  - [x] ~~в WebSocket `/api/ws/run` — параметр `?sid=`~~ — не нужен: WebSocket получает код в сообщении и сессию
+        не использует.
+- [x] Бэкенд:
+  - [x] `state.py`: вместо одного `SESSION` — словарь сессий по id (до 200 штук, вытеснять самую давно
         неиспользуемую; сессия, не использованная 1 час, удаляется);
-  - [ ] текущая сессия выбирается через `contextvars`; её выставляет middleware в `main.py` из заголовка;
-  - [ ] без заголовка — общая сессия по умолчанию, как сейчас, чтобы старые тесты и `curl` работали;
-  - [ ] некорректный id (не UUID) → 400.
-- [ ] Заменить прямые обращения `state.SESSION` на `state.current()` во всех `backend/api/*.py` (parse, analyze,
+  - [x] текущая сессия выбирается через `contextvars`; её выставляет middleware в `main.py` из заголовка;
+  - [x] без заголовка — общая сессия по умолчанию, как сейчас, чтобы старые тесты и `curl` работали;
+  - [x] некорректный id (не UUID) → 400.
+- [x] Заменить прямые обращения `state.SESSION` на `state.current()` во всех `backend/api/*.py` (parse, analyze,
       graph, generate, decompose, ai) и в `backend/ai/*`, если они там есть. `state.require()`, `state.load()` и
       `state.find_method()` работают с текущей сессией.
-- [ ] Тесты (`backend/tests/test_sessions.py`):
-  - [ ] два клиента с разными `X-Session-Id` парсят разный код (Java и Python), и `/api/graph` каждого
+- [x] Тесты (`backend/tests/test_sessions.py`):
+  - [x] два клиента с разными `X-Session-Id` парсят разный код (Java и Python), и `/api/graph` каждого
         возвращает свой граф;
-  - [ ] без заголовка всё работает как раньше;
-  - [ ] вытеснение старых сессий;
-  - [ ] невалидный id → 400.
-- [ ] Обновить `CLAUDE.md` (сейчас там «single-user demo design») и `docs/architecture.md`.
+  - [x] без заголовка всё работает как раньше;
+  - [x] вытеснение старых сессий;
+  - [x] невалидный id → 400.
+- [x] Обновить `CLAUDE.md` (сейчас там «single-user demo design») и `docs/architecture.md`.
+- [x] Сверх плана (по итогам ревью безопасности):
+  - [x] неизвестный id при чтении не создаёт и не вытесняет сессии; новая сессия — только при `/parse`;
+  - [x] не больше 30 новых сессий с одного IP за 10 минут, иначе 429 «Слишком много новых сессий, попробуйте позже»;
+  - [x] фронтенд при 409 один раз заново отправляет `/parse` и повторяет запрос (`utils/sessionRecovery.ts`);
+  - [x] за nginx — настоящий IP клиента: nginx перезаписывает `X-Forwarded-For`, uvicorn `--proxy-headers`
+        доверяет только адресу nginx (`FORWARDED_ALLOW_IPS`, отдельная сеть `jbnet` в `docker-compose.yml`).
+- Коммиты: bfbd4b4, 41f7b1e, bd96967, 504cd55. Backend: 516 passed, 2 skipped.
 
 ### A2. Граф пустой для Python-файла и просит «вставить Java-код»
 Сервер для `.py` строит граф (проверено: `/api/graph?type=cfg` возвращает 8 узлов для `analyzer.py`). Значит,

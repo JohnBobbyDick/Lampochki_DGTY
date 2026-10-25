@@ -5,12 +5,14 @@ services:
       - path: ./backend/.env      # optional: GEMINI_API_KEY etc. (see backend/.env.example)
         required: false
     environment:
-      # trust X-Forwarded-For (real client IP for the per-IP session limit) only from the compose network (nginx);
-      # port 8000 is not published, so only nginx reaches the backend. Narrow it to your proxy's IP if exposed.
-      - FORWARDED_ALLOW_IPS=${FORWARDED_ALLOW_IPS:-172.16.0.0/12,10.0.0.0/8,192.168.0.0/16}
+      # trust X-Forwarded-For (real client IP for the per-IP session limit) only from the nginx container, whose IP
+      # is fixed on the jbnet network. Must equal JB_NGINX_IP below: change both together.
+      - FORWARDED_ALLOW_IPS=${FORWARDED_ALLOW_IPS:-172.30.57.10}
       - JAVA_SANDBOX_MODE=subprocess   # "docker" → run Java in the sandbox image (needs docker socket)
     mem_limit: 1g
     restart: unless-stopped
+    networks:
+      - jbnet
 
   frontend:
     build: ./frontend
@@ -19,9 +21,18 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+    networks:
+      jbnet:
+        ipv4_address: ${JB_NGINX_IP:-172.30.57.10}   # keep in sync with FORWARDED_ALLOW_IPS of backend
 
   # Optional hardened runner image: docker build -t lampochki-sandbox ./sandbox
   sandbox:
     build: ./sandbox
     image: lampochki-sandbox
     profiles: ["sandbox"]
+
+networks:
+  jbnet:
+    ipam:
+      config:
+        - subnet: ${JB_SUBNET:-172.30.57.0/24}

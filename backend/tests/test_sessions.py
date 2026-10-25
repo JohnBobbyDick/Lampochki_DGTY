@@ -170,3 +170,49 @@ def test_forwarded_for_only_from_trusted_proxy():
     h = {"X-Forwarded-For": "203.0.113.7"}
     assert build("testclient").get("/ip", headers=h).json() == {"ip": "203.0.113.7"}
     assert build("10.0.0.0/8").get("/ip", headers=h).json() == {"ip": "testclient"}
+
+
+def _root():
+    from pathlib import Path
+    return Path(__file__).resolve().parents[2]
+
+
+def test_nginx_overwrites_forwarded_for():
+    lines = [l for l in (_root() / "frontend/nginx.conf").read_text().splitlines()
+             if "X-Forwarded-For" in l and not l.strip().startswith("#")]
+    assert lines
+    for l in lines:
+        assert "$remote_addr" in l
+        assert "$proxy_add_x_forwarded_for" not in l
+
+
+def test_single_trusted_proxy_cannot_be_spoofed_around():
+    from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+    from fastapi import FastAPI, Request
+
+    a = FastAPI()
+
+    @a.get("/ip")
+    def ip(request: Request):
+        return {"ip": request.client.host}
+
+    h = {"X-Forwarded-For": "6.6.6.6"}
+    # trusted proxy (nginx) writes the real client address
+    assert TestClient(ProxyHeadersMiddleware(a, trusted_hosts="testclient")).get("/ip", headers=h).json() == {"ip": "6.6.6.6"}
+    # untrusted private peer with a spoofed header keeps its own address
+    from uvicorn.middleware.proxy_headers import _TrustedHosts
+    t = _TrustedHosts("172.30.57.10")
+    assert t.get_trusted_client_address("6.6.6.6")[0] == "6.6.6.6"
+    assert "192.168.1.50" not in t and "172.30.57.10" in t
+    # a different private peer is not trusted: its spoofed header is ignored
+    assert TestClient(ProxyHeadersMiddleware(a, trusted_hosts="172.30.57.10")).get("/ip", headers=h).json() == {"ip": "testclient"}
+
+
+def test_compose_trusted_ip_matches_nginx_ip():
+    yaml = pytest.importorskip("yaml")
+    import re
+    doc = yaml.safe_load((_root() / "docker-compose.yml").read_text())
+    env = doc["services"]["backend"]["environment"]
+    allow = next(e for e in env if e.startswith("FORWARDED_ALLOW_IPS=")).split(":-", 1)[1].rstrip("}")
+    ip = doc["services"]["frontend"]["networks"]["jbnet"]["ipv4_address"]
+    assert allow == re.search(r":-([^}]+)\}", ip).group(1)

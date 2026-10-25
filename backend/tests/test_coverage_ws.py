@@ -210,7 +210,8 @@ def test_python_docker_command_mounts_cov(monkeypatch):
         cov = tmp / "cov"
         # only the two pre-created files are writable: no rw directory for untrusted code
         assert rw == [f"{cov / 'hits.bin'}:/cov/hits.bin:rw", f"{cov / 'compiled'}:/cov/compiled:rw"]
-        assert (cov.stat().st_mode & 0o777) == 0o755
+        if sys.platform != "win32":
+            assert (cov.stat().st_mode & 0o777) == 0o755
         assert "JB_COV=/cov/hits.bin" in cmd and f"JB_COV_SLOTS={plan.slots}" in cmd
         assert cmd[-3:] == ["python3", "-u", "_jb_run.py"]
         assert not any(c == str(cov / "hits.bin") or c.startswith("JB_COV=" + str(tmp)) for c in cmd)
@@ -240,7 +241,8 @@ def test_java_docker_prepare_keeps_cov_dir_private(tmp_path):
     ok, plan = interactive._prepare_docker(tmp_path, "Echo.java", ECHO)
     assert ok and plan.language == "java"
     cov = tmp_path / "cov"
-    assert (cov.stat().st_mode & 0o777) == 0o755
+    if sys.platform != "win32":
+        assert (cov.stat().st_mode & 0o777) == 0o755
     marker = cov / "compiled"
     assert marker.is_file() and marker.stat().st_size == 0 and (marker.stat().st_mode & 0o777) == 0o666
 

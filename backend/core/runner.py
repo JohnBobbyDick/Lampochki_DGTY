@@ -198,7 +198,7 @@ def check_compiles(code: str, language: str | None = None) -> list[dict] | None:
         (tmp / fname).write_text(code, encoding="utf-8")
         proc = subprocess.run(
             [get_javac_cmd(), "-proc:none", "-XDshould-stop.ifError=FLOW", "-encoding", "UTF-8", "-d", str(tmp / "out"), fname],
-            cwd=tmp, capture_output=True, text=True, timeout=30, env=child_env(),
+            cwd=tmp, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30, env=child_env(),
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
@@ -209,7 +209,9 @@ def check_compiles(code: str, language: str | None = None) -> list[dict] | None:
     return parse_compile_errors(proc.stderr) or [{"file": fname, "line": 0, "message": proc.stderr.strip()[:200]}]
 
 
-def _trim(s: str) -> str:
+def _trim(s: str | None) -> str:
+    if not s:
+        return ""
     return s if len(s) <= _MAX_OUT else s[:_MAX_OUT] + "\n…[output truncated]"
 
 
@@ -288,6 +290,7 @@ def _run_python_dir(tmp: Path, entry: str, stdin_input: str, timeout_sec: int) -
     try:
         proc = subprocess.run(
             cmd, cwd=None if docker else tmp, input=stdin_input, capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
             timeout=timeout_sec + (30 if docker else 0), env=env, preexec_fn=None if docker else python_preexec(),
         )
     except FileNotFoundError as exc:
@@ -374,7 +377,7 @@ def _run_local(tmp: Path, names: list[str], main_class: str, stdin_input: str, t
     try:
         comp = subprocess.run(
             [javac_cmd, "-encoding", "UTF-8", "-d", ".", *names],
-            cwd=tmp, capture_output=True, text=True, timeout=60, env=child_env(),
+            cwd=tmp, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60, env=child_env(),
         )
     except FileNotFoundError as exc:
         return RunResponse(stderr=f"Java toolchain (javac) not found: {exc}", exit_code=127)
@@ -390,7 +393,7 @@ def _run_local(tmp: Path, names: list[str], main_class: str, stdin_input: str, t
     try:
         proc = subprocess.run(
             [java_cmd, "-Xmx256m", "-Dfile.encoding=UTF-8", "-cp", ".", main_class],
-            cwd=tmp, input=stdin_input, capture_output=True, text=True, timeout=timeout, env=child_env(),
+            cwd=tmp, input=stdin_input, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, env=child_env(),
         )
         return RunResponse(
             stdout=_trim(proc.stdout), stderr=_trim(proc.stderr), exit_code=proc.returncode,
@@ -438,7 +441,7 @@ def _run_docker(tmp: Path, names: list[str], main_class: str, stdin_input: str, 
     cmd = docker_command(tmp, names, main_class)
     t0 = time.monotonic()
     try:
-        proc = subprocess.run(cmd, input=stdin_input, capture_output=True, text=True, timeout=timeout + 30)
+        proc = subprocess.run(cmd, input=stdin_input, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout + 30)
     except subprocess.TimeoutExpired:
         return RunResponse(stderr=f"Timeout: выполнение превысило {timeout} с", exit_code=124,
                            duration_ms=timeout * 1000)

@@ -246,7 +246,8 @@ def test_cov_files_and_env(tmp_path):
     plan = prepare_python(tmp_path, "print(1)\n")
     assert plan.data_file == tmp_path / "cov" / "hits.bin"
     assert plan.data_file.stat().st_size == plan.slots * 4
-    assert oct(os.stat(tmp_path / "cov").st_mode & 0o777) == "0o755"
+    if sys.platform != "win32":
+        assert oct(os.stat(tmp_path / "cov").st_mode & 0o777) == "0o755"
     marker = tmp_path / "cov" / "compiled"      # pre-created empty: the child only writes into it
     assert marker.is_file() and marker.stat().st_size == 0 and oct(marker.stat().st_mode & 0o777) == "0o666"
     assert plan.language == "python" and not build.marker_set(marker)

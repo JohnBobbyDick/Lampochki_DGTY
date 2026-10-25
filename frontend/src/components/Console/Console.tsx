@@ -6,6 +6,9 @@ import { runStatus } from '../../utils/runs';
 
 type Seg = { kind: 'out' | 'err' | 'in' | 'sys'; text: string };
 
+/** Silence after which a running program is probably blocked on reading stdin. */
+export const IDLE_HINT_MS = 1500;
+
 const wsUrl = () => `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/ws/run`;
 
 /** Interactive console: program output streams in, typed lines go to the program's stdin. */
@@ -14,6 +17,8 @@ const Console: React.FC = () => {
   const [segs, setSegs] = useState<Seg[]>([]);
   const [running, setRunning] = useState(false);
   const [line, setLine] = useState('');
+  const [idle, setIdle] = useState(false);
+  const [eofSent, setEofSent] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const inputs = useRef<string[]>([]);
   const stopped = useRef(false);
@@ -24,7 +29,21 @@ const Console: React.FC = () => {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [segs]);
+  }, [segs, idle]);
+
+  /* no output for a while → the program most likely waits for input: say so instead of a silent timeout */
+  useEffect(() => {
+    setIdle(false);
+    if (!running || eofSent) return;
+    const timer = setTimeout(() => setIdle(true), IDLE_HINT_MS);
+    return () => clearTimeout(timer);
+  }, [segs, running, eofSent]);
+
+  const sendEof = () => {
+    wsRef.current?.send(JSON.stringify({ type: 'eof' }));
+    setEofSent(true);
+    inputRef.current?.focus();
+  };
 
   const start = () => {
     wsRef.current?.close();
@@ -37,6 +56,7 @@ const Console: React.FC = () => {
     let stderr = '';
     let compileFailed = false; // the backend sends `exit` after `compile_error`: not a run
     setSegs([]);
+    setEofSent(false);
     setRunning(true);
 
     const ws = new WebSocket(wsUrl());
@@ -71,8 +91,9 @@ const Console: React.FC = () => {
       }
     };
     ws.onerror = () => {
+      if (wsRef.current !== ws) return; // a replaced connection closed by a restart: not an error of this run
       push({ kind: 'err', text: 'Не удалось подключиться к серверу (WebSocket /api/ws/run)\n' });
-      if (wsRef.current === ws) setRunning(false);
+      setRunning(false);
     };
     ws.onclose = () => { if (wsRef.current === ws) setRunning(false); };
   };
@@ -110,7 +131,7 @@ const Console: React.FC = () => {
         <span className="spacer" />
         {running && (
           <>
-            <button className="btn small" onClick={() => wsRef.current?.send(JSON.stringify({ type: 'eof' }))} title="Закрыть ввод программы (Ctrl+D)">Завершить ввод</button>
+            <button className="btn small" onClick={sendEof} disabled={eofSent} title="Закрыть ввод программы (Ctrl+D)">Завершить ввод</button>
             <button className="btn small" onClick={stop}><FiSquare /> Остановить</button>
           </>
         )}
@@ -134,12 +155,19 @@ const Console: React.FC = () => {
                 if (e.key === 'Enter') { e.preventDefault(); send(line); }
                 else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
                   e.preventDefault(); e.stopPropagation();
-                  wsRef.current?.send(JSON.stringify({ type: 'eof' }));
+                  sendEof();
                 } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) e.stopPropagation();
               }}
             />
           )}
         </pre>
+        {running && idle && (
+          <div className="console-wait" role="status">
+            Программа ждёт ввод: наберите значение и нажмите <kbd>Enter</kbd>. Если вводить нечего, нажмите
+            {' '}<button className="btn small" onClick={(e) => { e.stopPropagation(); sendEof(); }}>Завершить ввод</button>{' '}
+            (<kbd>Ctrl</kbd> + <kbd>D</kbd>) — программа увидит конец ввода и, если умеет, возьмёт значения по умолчанию.
+          </div>
+        )}
       </div>
     </div>
   );

@@ -538,6 +538,9 @@ input.switch:disabled { opacity: .4; cursor: default; }
 .run-dot.on { background: var(--ok); box-shadow: 0 0 0 4px var(--ok-soft); animation: pulse 1.4s ease-in-out infinite; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 7px transparent; } }
 .console-status { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--muted); }
+.console-wait { margin: 8px 0 4px; padding: 8px 12px; border: 1px solid var(--accent-line); border-radius: var(--r-md);
+  background: var(--accent-soft); color: var(--ink); font-size: 0.8125rem; line-height: 1.6; }
+.console-wait .btn { vertical-align: baseline; }
 .console-hint { line-height: 1.9; }
 
 /* Header groups */
